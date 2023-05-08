@@ -1,1 +1,5 @@
 .idea/
+coverage.out
+inzibat
+dist/
+tmp/
