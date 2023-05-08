@@ -1,2 +1,2 @@
 # Inzibat
-Light-weight API Gateway
+Light-weight REST API Gateway
