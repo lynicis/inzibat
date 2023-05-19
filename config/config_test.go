@@ -1,17 +1,22 @@
-package main
+package config
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		folderPath := filepath.Base("./testdata")
+		wd, err := os.Getwd()
+		require.NoError(t, err)
+
+		folderPath := filepath.Join(wd, "../testdata")
 		cfg, err := ReadConfig(folderPath, "test.json")
 
 		assert.NoError(t, err)
@@ -49,7 +54,10 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestConfig_Print(t *testing.T) {
-	path := filepath.Base("./testdata")
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	path := filepath.Join(wd, "../testdata")
 	cfg, err := ReadConfig(path, "test")
 	cfg.Print()
 

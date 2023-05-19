@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"errors"
@@ -7,6 +7,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Lynicis/inzibat/client"
+	"github.com/Lynicis/inzibat/config"
+
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -14,16 +17,16 @@ import (
 
 type Router interface {
 	CreateRoutes()
-	HandleClientMethod(routeConfig *Route) func(ctx *fiber.Ctx) error
+	HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error
 }
 
 type router struct {
-	config *Config
+	config *config.Config
 	app    *fiber.App
-	client Client
+	client client.Client
 }
 
-func NewRouter(config *Config, app *fiber.App, client Client) Router {
+func NewRouter(config *config.Config, app *fiber.App, client client.Client) Router {
 	return &router{
 		config: config,
 		app:    app,
@@ -37,7 +40,7 @@ func (r *router) CreateRoutes() {
 	}
 }
 
-func (r *router) HandleClientMethod(routeConfig *Route) func(ctx *fiber.Ctx) error {
+func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
 		var (
 			err                error
@@ -51,7 +54,7 @@ func (r *router) HandleClientMethod(routeConfig *Route) func(ctx *fiber.Ctx) err
 
 		cloneOfClientStruct := r.client.GetCloneOfStruct()
 		methodName := cases.Title(language.Und).String(strings.ToLower(Method))
-		method := reflect.ValueOf(&client{fasthttp: cloneOfClientStruct.fasthttp}).MethodByName(methodName)
+		method := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
 
 		var params []reflect.Value
 		if Method == http.MethodGet {
@@ -69,8 +72,8 @@ func (r *router) HandleClientMethod(routeConfig *Route) func(ctx *fiber.Ctx) err
 		returnValues := method.Call(params)
 
 		var ok bool
-		var response *HttpResponse
-		response, ok = returnValues[0].Interface().(*HttpResponse)
+		var response *client.HttpResponse
+		response, ok = returnValues[0].Interface().(*client.HttpResponse)
 		if !ok {
 			return errors.New("type casting error")
 		}

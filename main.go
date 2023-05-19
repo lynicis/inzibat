@@ -2,6 +2,11 @@ package main
 
 import (
 	"os"
+
+	"github.com/Lynicis/inzibat/client"
+	"github.com/Lynicis/inzibat/config"
+	"github.com/Lynicis/inzibat/router"
+	"github.com/Lynicis/inzibat/server"
 )
 
 func main() {
@@ -10,25 +15,25 @@ func main() {
 		panic(err)
 	}
 
-	configFileName := os.Getenv(EnvironmentVariableConfigFileName)
+	configFileName := os.Getenv(config.EnvironmentVariableConfigFileName)
 	if configFileName == "" {
-		configFileName = DefaultConfigFileName
+		configFileName = config.DefaultConfigFileName
 	}
 
-	config, err := ReadConfig(workingDirectory, configFileName)
+	configInstance, err := config.ReadConfig(workingDirectory, configFileName)
 	if err != nil {
 		panic(err)
 	}
 
-	server := NewServer(config)
-	app := server.GetFiberInstance()
+	serverInstance := server.NewServer(configInstance)
+	app := serverInstance.GetFiberInstance()
 
-	client := NewClient()
-	router := NewRouter(config, app, client)
-	router.CreateRoutes()
+	clientInstance := client.NewClient()
+	routerInstance := router.NewRouter(configInstance, app, clientInstance)
+	routerInstance.CreateRoutes()
 
-	config.Print()
-	err = server.Start()
+	configInstance.Print()
+	err = serverInstance.Start()
 	if err != nil {
 		panic(err)
 	}

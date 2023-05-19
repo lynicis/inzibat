@@ -1,8 +1,10 @@
-package main
+package router
 
 import (
 	"net/http"
 	"testing"
+
+	"github.com/Lynicis/inzibat/config"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -16,13 +18,13 @@ func TestNewRouter(t *testing.T) {
 func TestRouter_CreateRoutes(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		t.Run("GET Method", func(t *testing.T) {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: http.MethodGet,
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -30,20 +32,20 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 
 			assert.Len(t, app.GetRoutes(), 1)
 		})
 
 		t.Run("POST Method", func(t *testing.T) {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: http.MethodPost,
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -51,20 +53,20 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 
 			assert.Len(t, app.GetRoutes(), 1)
 		})
 
 		t.Run("PUT Method", func(t *testing.T) {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: http.MethodPut,
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -72,20 +74,20 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 
 			assert.Len(t, app.GetRoutes(), 1)
 		})
 
 		t.Run("POST Method", func(t *testing.T) {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: http.MethodDelete,
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -93,20 +95,20 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 
 			assert.Len(t, app.GetRoutes(), 1)
 		})
 
 		t.Run("PATCH Method", func(t *testing.T) {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: http.MethodPatch,
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -114,7 +116,7 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 
 			assert.Len(t, app.GetRoutes(), 1)
@@ -123,13 +125,13 @@ func TestRouter_CreateRoutes(t *testing.T) {
 
 	t.Run("when client get malicious http method", func(t *testing.T) {
 		assert.Panics(t, func() {
-			config := &Config{
+			configInstance := &config.Config{
 				ServerPort: "3000",
-				Routes: []Route{
+				Routes: []config.Route{
 					{
 						Method: "MALICIOUS",
 						Path:   "/",
-						RequestTo: RequestTo{
+						RequestTo: config.RequestTo{
 							Host: "http://127.0.0.1:3001",
 							Path: "/",
 						},
@@ -137,7 +139,7 @@ func TestRouter_CreateRoutes(t *testing.T) {
 				},
 			}
 			app := fiber.New()
-			r := NewRouter(config, app, nil)
+			r := NewRouter(configInstance, app, nil)
 			r.CreateRoutes()
 		})
 	})

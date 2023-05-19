@@ -1,7 +1,9 @@
-package main
+package server
 
 import (
 	"testing"
+
+	"github.com/Lynicis/inzibat/config"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -9,7 +11,7 @@ import (
 
 func TestServer(t *testing.T) {
 	t.Run("should create server instance and return server instance", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			ServerPort: "8080",
 		}
 
@@ -19,7 +21,7 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("should server start and stop", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			ServerPort: "8080",
 		}
 

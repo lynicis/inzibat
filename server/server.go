@@ -1,10 +1,12 @@
-package main
+package server
 
 import (
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Lynicis/inzibat/config"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -20,7 +22,7 @@ type server struct {
 	fiber *fiber.App
 }
 
-func NewServer(config *Config) Server {
+func NewServer(config *config.Config) Server {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})

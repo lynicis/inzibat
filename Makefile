@@ -11,7 +11,7 @@ lint:
 	golangci-lint --verbose run .
 
 test:
-	go test .
+	go test ./...
 
 coverage:
 	go test -tags=unit -coverprofile=coverage.out -covermode=atomic ./...
