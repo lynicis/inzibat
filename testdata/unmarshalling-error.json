@@ -1,0 +1,12 @@
+{
+  "serverPort": 8080,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "requestTo": {
+        "host": "http://localhost:8081",
+        "path": "/health"
+      }
+    }
+  ]

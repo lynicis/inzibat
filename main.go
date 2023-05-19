@@ -1,7 +1,21 @@
 package main
 
+import (
+	"os"
+)
+
 func main() {
-	config, err := ReadConfig()
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	configFileName := os.Getenv(EnvironmentVariableConfigFileName)
+	if configFileName == "" {
+		configFileName = DefaultConfigFileName
+	}
+
+	config, err := ReadConfig(workingDirectory, configFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -13,6 +27,7 @@ func main() {
 	router := NewRouter(config, app, client)
 	router.CreateRoutes()
 
+	config.Print()
 	err = server.Start()
 	if err != nil {
 		panic(err)
