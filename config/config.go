@@ -49,14 +49,10 @@ func ReadConfig(filepath, filename string) (*Config, error) {
 
 func (c *Config) Print() {
 	fmt.Println("🫡 INZIBAT 🪖")
-	fmt.Println(
-		fmt.Sprintf(
-			"Open Routes: %d", len(c.Routes),
-		),
+	fmt.Printf(
+		"Open Routes: %d\n", len(c.Routes),
 	)
-	fmt.Println(
-		fmt.Sprintf(
-			"Server Port: %s", c.ServerPort,
-		),
+	fmt.Printf(
+		"Server Port: %s", c.ServerPort,
 	)
 }

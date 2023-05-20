@@ -1,0 +1,28 @@
+run:
+  concurrency: 4
+  timeout: 3m
+  go: "1.20"
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gomodguard
+    - cyclop
+    - gocritic
+    - goconst
+    - whitespace
+    - unused
+    - varnamelen
+    - funlen
+    - goimports
+    - lll
+    - varnamelen
+    - funlen
+
+severity:
+  default-severity: error
+
+issues:
+  exclude:
+    - _test\.go
