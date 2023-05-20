@@ -75,12 +75,12 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 		var response *client.HttpResponse
 		response, ok = returnValues[0].Interface().(*client.HttpResponse)
 		if !ok {
-			return errors.New("type casting error")
+			return errors.New(ErrorTypeCasting)
 		}
 
 		err, ok = returnValues[1].Interface().(error)
 		if !ok {
-			return errors.New("type casting error")
+			return errors.New(ErrorTypeCasting)
 		}
 
 		if err != nil {

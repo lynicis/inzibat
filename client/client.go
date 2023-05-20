@@ -9,10 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const (
-	ResponseFailed = "response failed"
-)
-
 type Client interface {
 	Get(uri string, requestHeader HttpHeader) (*HttpResponse, error)
 	Post(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)

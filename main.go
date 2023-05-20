@@ -1,15 +1,19 @@
 package main
 
 import (
+	"os"
+
 	"github.com/Lynicis/inzibat/client"
 	"github.com/Lynicis/inzibat/config"
 	"github.com/Lynicis/inzibat/router"
 	"github.com/Lynicis/inzibat/server"
-	"os"
 )
 
 func main() {
-	workingDirectory, err := os.Getwd()
+	var err error
+
+	var workingDirectory string
+	workingDirectory, err = os.Getwd()
 	if err != nil {
 		panic(err)
 	}
@@ -19,19 +23,20 @@ func main() {
 		configFileName = config.DefaultConfigFileName
 	}
 
-	configInstance, err := config.ReadConfig(workingDirectory, configFileName)
+	var cfg *config.Config
+	cfg, err = config.ReadConfig(workingDirectory, configFileName)
 	if err != nil {
 		panic(err)
 	}
 
-	serverInstance := server.NewServer(configInstance)
+	serverInstance := server.NewServer(cfg)
 	app := serverInstance.GetFiberInstance()
 
 	clientInstance := client.NewClient()
-	routerInstance := router.NewRouter(configInstance, app, clientInstance)
+	routerInstance := router.NewRouter(cfg, app, clientInstance)
 	routerInstance.CreateRoutes()
 
-	configInstance.Print()
+	cfg.Print()
 	err = serverInstance.Start()
 	if err != nil {
 		panic(err)

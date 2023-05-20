@@ -8,30 +8,25 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	EnvironmentVariableConfigFileName = "CONFIG_FN"
-	DefaultConfigFileName             = "desired"
-)
-
 func ReadConfig(filepath, filename string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigName(filename)
-	v.SetConfigType("json")
+	v.SetConfigType(FileTypeJson)
 	v.AddConfigPath(filepath)
 
 	err := v.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, errors.New()
+			return nil, errors.New(ErrorFileNotFound)
 		}
 
-		return nil, errors.New("error occurred while reading config file")
+		return nil, errors.New(ErrorReadFile)
 	}
 
-	var desiredConfig Config
+	var desiredConfig *Config
 	err = v.Unmarshal(&desiredConfig)
 	if err != nil {
-		return nil, errors.New("error occurred while unmarshalling config file")
+		return nil, errors.New(ErrorUnmarshalling)
 	}
 
 	for index, route := range desiredConfig.Routes {
@@ -41,7 +36,7 @@ func ReadConfig(filepath, filename string) (*Config, error) {
 
 		if route.Method == http.MethodGet {
 			if route.RequestTo.Body != nil {
-				return nil, errors.New("send body with get http method")
+				return nil, errors.New(ErrorGetSendBody)
 			}
 		}
 
@@ -49,7 +44,7 @@ func ReadConfig(filepath, filename string) (*Config, error) {
 		desiredConfig.Routes[index].RequestTo.Method = route.RequestTo.Method
 	}
 
-	return &desiredConfig, nil
+	return desiredConfig, nil
 }
 
 func (c *Config) Print() {
