@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 )
@@ -16,91 +15,83 @@ const (
 
 type Client interface {
 	Get(uri string, requestHeader HttpHeader) (*HttpResponse, error)
-	Post(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error)
-	Put(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error)
-	Patch(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error)
-	Delete(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error)
+	Post(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
+	Put(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
+	Patch(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
+	Delete(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
 	GetCloneOfStruct() *client
 }
 
 type client struct {
-	fasthttp *fasthttp.Client
+	httpClient *fasthttp.Client
 }
 
 func NewClient() Client {
-	fasthttpInstance := &fasthttp.Client{
-		ReadTimeout:              10 * time.Second,
-		WriteTimeout:             10 * time.Second,
-		MaxIdleConnDuration:      10 * time.Second,
-		NoDefaultUserAgentHeader: true,
+	httpClient := &fasthttp.Client{
+		ReadTimeout:                   10 * time.Second,
+		WriteTimeout:                  10 * time.Second,
+		MaxIdleConnDuration:           10 * time.Second,
+		NoDefaultUserAgentHeader:      true,
+		DisableHeaderNamesNormalizing: true,
+		DisablePathNormalizing:        true,
 	}
 
 	return &client{
-		fasthttp: fasthttpInstance,
+		httpClient: httpClient,
 	}
 }
 
-func (c *client) Get(uri string, requestHeader HttpHeader) (*HttpResponse, error) {
-	response, err := makeRequest(uri, http.MethodGet, requestHeader)
+func (c client) Get(uri string, requestHeader HttpHeader) (*HttpResponse, error) {
+	response, err := c.makeRequest(uri, http.MethodGet, requestHeader, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpResponse{
-		Status: response.StatusCode(),
-		Body:   response.Body(),
-	}, nil
+	return response, nil
 }
 
-func (c *client) Post(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error) {
-	response, err := makeRequest(uri, http.MethodPost, requestHeader, requestBody)
+func (c client) Post(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
+	response, err := c.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpResponse{
-		Status: response.StatusCode(),
-		Body:   response.Body(),
-	}, nil
+	return response, nil
 }
 
-func (c *client) Put(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error) {
-	response, err := makeRequest(uri, http.MethodPut, requestHeader, requestBody)
+func (c client) Put(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
+	response, err := c.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpResponse{
-		Status: response.StatusCode(),
-		Body:   response.Body(),
-	}, nil
+	return response, nil
 }
 
-func (c *client) Patch(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error) {
-	response, err := makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
+func (c client) Patch(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
+	response, err := c.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpResponse{
-		Status: response.StatusCode(),
-		Body:   response.Body(),
-	}, nil
+	return response, nil
 }
 
-func (c *client) Delete(uri string, requestHeader HttpHeader, requestBody HttpBody) (*HttpResponse, error) {
-	response, err := makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
+func (c client) Delete(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
+	response, err := c.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpResponse{
-		Status: response.StatusCode(),
-		Body:   response.Body(),
-	}, nil
+	return response, nil
 }
 
-func makeRequest(uri string, method string, requestHeader HttpHeader, requestBody ...HttpBody) (*fiber.Response, error) {
+func (c client) GetCloneOfStruct() *client {
+	copOfClientStruct := c
+	return &copOfClientStruct
+}
+
+func (c client) makeRequest(uri string, method string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
 
@@ -115,11 +106,7 @@ func makeRequest(uri string, method string, requestHeader HttpHeader, requestBod
 	}
 
 	if requestBody != nil {
-		reqBody, err := json.Marshal(requestBody)
-		if err != nil {
-			return nil, err
-		}
-		request.SetBody(reqBody)
+		request.SetBody(requestBody)
 	}
 
 	response := fasthttp.AcquireResponse()
@@ -130,23 +117,12 @@ func makeRequest(uri string, method string, requestHeader HttpHeader, requestBod
 		return nil, err
 	}
 
-	if response.StatusCode() >= fasthttp.StatusMultipleChoices {
+	if response.StatusCode() >= http.StatusMultipleChoices {
 		return nil, errors.New(ResponseFailed)
 	}
 
-	var responseBody map[string]interface{}
-	responseBodyBytes := response.Body()
-	if len(responseBodyBytes) > 0 {
-		err = json.Unmarshal(responseBodyBytes, &responseBody)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return response, nil
-}
-
-func (c *client) GetCloneOfStruct() *client {
-	copOfClientStruct := c
-	return copOfClientStruct
+	return &HttpResponse{
+		Status: response.StatusCode(),
+		Body:   response.Body(),
+	}, nil
 }

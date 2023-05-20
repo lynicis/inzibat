@@ -1,12 +1,11 @@
 package main
 
 import (
-	"os"
-
 	"github.com/Lynicis/inzibat/client"
 	"github.com/Lynicis/inzibat/config"
 	"github.com/Lynicis/inzibat/router"
 	"github.com/Lynicis/inzibat/server"
+	"os"
 )
 
 func main() {

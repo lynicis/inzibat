@@ -22,7 +22,7 @@ func ReadConfig(filepath, filename string) (*Config, error) {
 	err := v.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, errors.New("config file not found")
+			return nil, errors.New()
 		}
 
 		return nil, errors.New("error occurred while reading config file")

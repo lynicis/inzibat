@@ -3,7 +3,6 @@ module github.com/Lynicis/inzibat
 go 1.20
 
 require (
-	github.com/goccy/go-json v0.10.2
 	github.com/gofiber/fiber/v2 v2.46.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.1

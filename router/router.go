@@ -87,6 +87,6 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 			return err
 		}
 
-		return ctx.Status(response.Status).Send(response.Body)
+		return ctx.Status(response.Status).JSON(response.Body)
 	}
 }

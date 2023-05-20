@@ -1,6 +1,8 @@
 package config
 
-import "github.com/Lynicis/inzibat/client"
+import (
+	"github.com/Lynicis/inzibat/client"
+)
 
 type Config struct {
 	ServerPort string  `json:"serverPort"`
@@ -16,7 +18,7 @@ type Route struct {
 type RequestTo struct {
 	Method string            `json:"method,omitempty"`
 	Header client.HttpHeader `json:"header,omitempty"`
-	Body   client.HttpBody   `json:"body,omitempty"`
+	Body   []byte            `json:"body,omitempty"`
 	Host   string            `json:"host"`
 	Path   string            `json:"path"`
 }
