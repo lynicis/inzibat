@@ -94,7 +94,7 @@ jobs:
 
       - name: Bump Major Versioning
         id: major-versioning
-        if: contains(github.event.head_commit.message, 'major')
+        if: contains(github.event.head_commit.message, 'major:')
         uses: christian-draeger/increment-semantic-version@1.1.0
         with:
           current-version: ${{ steps.latest-tag.outputs.tag }}
@@ -102,7 +102,7 @@ jobs:
 
       - name: Bump Minor Versioning
         id: minor-versioning
-        if: contains(github.event.head_commit.message, 'minor')
+        if: contains(github.event.head_commit.message, 'minor:')
         uses: christian-draeger/increment-semantic-version@1.1.0
         with:
           current-version: ${{ steps.latest-tag.outputs.tag }}
@@ -110,7 +110,7 @@ jobs:
 
       - name: Bump Patch Versioning
         id: patch-versioning
-        if: contains(github.event.head_commit.message, 'patch')
+        if: contains(github.event.head_commit.message, 'patch:')
         uses: christian-draeger/increment-semantic-version@1.1.0
         with:
           current-version: ${{ steps.latest-tag.outputs.tag }}
@@ -118,15 +118,15 @@ jobs:
 
       - name: Handle Versioning
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == *major* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"major:"* ]]; then
             echo "NEXT_VERSION=${{steps.major-versioning.outputs.next-version}}" >> $GITHUB_ENV
           fi
           
-          if [[ "${{ github.event.head_commit.message }}" == *minor* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"minor:"* ]]; then
             echo "NEXT_VERSION=${{steps.minor-versioning.outputs.next-version}}" >> $GITHUB_ENV
           fi
           
-          if [[ "${{ github.event.head_commit.message }}" == *patch* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"patch:"* ]]; then
             echo "NEXT_VERSION=${{steps.patch-versioning.outputs.next-version}}" >> $GITHUB_ENV
           fi
 
