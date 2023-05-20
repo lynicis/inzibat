@@ -71,15 +71,15 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 		}
 		returnValues := method.Call(params)
 
-		var ok bool
+		var isOk bool
 		var response *client.HttpResponse
-		response, ok = returnValues[0].Interface().(*client.HttpResponse)
-		if !ok {
+		response, isOk = returnValues[0].Interface().(*client.HttpResponse)
+		if !isOk {
 			return errors.New(ErrorTypeCasting)
 		}
 
-		err, ok = returnValues[1].Interface().(error)
-		if !ok {
+		err, isOk = returnValues[1].Interface().(error)
+		if !isOk {
 			return errors.New(ErrorTypeCasting)
 		}
 

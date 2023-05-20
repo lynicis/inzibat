@@ -2,6 +2,7 @@ run:
   concurrency: 4
   timeout: 3m
   go: "1.20"
+  tests: false
 
 linters:
   disable-all: true
@@ -22,7 +23,3 @@ linters:
 
 severity:
   default-severity: error
-
-issues:
-  exclude:
-    - _test\.go

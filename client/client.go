@@ -87,7 +87,12 @@ func (c client) GetCloneOfStruct() *client {
 	return &copOfClientStruct
 }
 
-func (c client) makeRequest(uri string, method string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
+func (c client) makeRequest(
+	uri string,
+	method string,
+	requestHeader HttpHeader,
+	requestBody []byte,
+) (*HttpResponse, error) {
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
 

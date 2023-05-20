@@ -8,7 +8,7 @@ build:
 	go build .
 
 lint:
-	golangci-lint --verbose run .
+	golangci-lint --verbose run ./...
 
 test:
 	go test ./...

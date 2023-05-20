@@ -9,12 +9,12 @@ import (
 )
 
 func ReadConfig(filepath, filename string) (*Config, error) {
-	v := viper.New()
-	v.SetConfigName(filename)
-	v.SetConfigType(FileTypeJson)
-	v.AddConfigPath(filepath)
+	viperInstance := viper.New()
+	viperInstance.SetConfigName(filename)
+	viperInstance.SetConfigType(FileTypeJson)
+	viperInstance.AddConfigPath(filepath)
 
-	err := v.ReadInConfig()
+	err := viperInstance.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			return nil, errors.New(ErrorFileNotFound)
@@ -24,7 +24,7 @@ func ReadConfig(filepath, filename string) (*Config, error) {
 	}
 
 	var desiredConfig *Config
-	err = v.Unmarshal(&desiredConfig)
+	err = viperInstance.Unmarshal(&desiredConfig)
 	if err != nil {
 		return nil, errors.New(ErrorUnmarshalling)
 	}
