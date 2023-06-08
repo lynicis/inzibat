@@ -2,12 +2,9 @@ package server
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+	"time"
 
 	"github.com/Lynicis/inzibat/config"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,20 +31,12 @@ func NewServer(config *config.Config) Server {
 }
 
 func (s *server) Start() error {
-	shutdownChannel := make(chan os.Signal, 1)
-	signal.Notify(shutdownChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-shutdownChannel
-		_ = s.fiber.Shutdown()
-	}()
-
 	serverAddress := fmt.Sprintf(":%s", s.port)
 	return s.fiber.Listen(serverAddress)
 }
 
 func (s *server) Shutdown() error {
-	return s.fiber.Shutdown()
+	return s.fiber.ShutdownWithTimeout(10 * time.Second)
 }
 
 func (s *server) GetFiberInstance() *fiber.App {
