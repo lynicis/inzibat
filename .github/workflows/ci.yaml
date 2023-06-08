@@ -36,6 +36,7 @@ jobs:
   test:
     needs: [ build ]
     runs-on: ubuntu-latest
+    container: go:1.20-alpine
     steps:
       - uses: actions/checkout@v3
 
