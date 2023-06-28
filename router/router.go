@@ -35,7 +35,8 @@ func NewRouter(config *config.Config, app *fiber.App, client client.Client) Rout
 }
 
 func (r *router) CreateRoutes() {
-	for _, route := range r.config.Routes {
+	for index := range r.config.Routes {
+		route := r.config.Routes[index]
 		r.app.Add(route.Method, route.Path, r.HandleClientMethod(&route))
 	}
 }
