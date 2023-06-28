@@ -82,6 +82,7 @@ jobs:
 
   versioning:
     needs: [ security-analysis ]
+    if: "!contains(github.event.head_commit.message, 'major:') || !contains(github.event.head_commit.message, 'minor:') || !contains(github.event.head_commit.message, 'patch:')"
     runs-on: ubuntu-latest
     environment: latest
     steps:
@@ -126,7 +127,7 @@ jobs:
             echo "NEXT_VERSION=${{steps.minor-versioning.outputs.next-version}}" >> $GITHUB_ENV
           fi
           
-          if [[ contains(github.event.head_commit.message, 'patch:') ]]; then
+          elif [[ contains(github.event.head_commit.message, 'patch:') ]]; then
             echo "NEXT_VERSION=${{steps.patch-versioning.outputs.next-version}}" >> $GITHUB_ENV
           fi
 
