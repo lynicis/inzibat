@@ -80,7 +80,7 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 		}
 
 		err, isOk = returnValues[1].Interface().(error)
-		if !isOk {
+		if !isOk && err != nil {
 			return errors.New(ErrorTypeCasting)
 		}
 
@@ -88,6 +88,6 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 			return err
 		}
 
-		return ctx.Status(response.Status).JSON(response.Body)
+		return ctx.Status(response.Status).Send(response.Body)
 	}
 }
