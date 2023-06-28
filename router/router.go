@@ -2,8 +2,8 @@ package router
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -44,50 +44,56 @@ func (r *router) CreateRoutes() {
 func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
 		var (
-			err                error
-			HostName           = routeConfig.RequestTo.Host
-			Path               = routeConfig.RequestTo.Path
-			Method             = routeConfig.RequestTo.Method
-			RequestToUrl       = fmt.Sprintf("%s%s", HostName, Path)
-			RequestWithHeaders = routeConfig.RequestTo.Header
-			RequestWithBody    = routeConfig.RequestTo.Body
+			err                     error
+			ConfigRequestToHostName = routeConfig.RequestTo.Host
+			ConfigRequestToPath     = routeConfig.RequestTo.Path
+			ConfigRequestToMethod   = routeConfig.RequestTo.Method
 		)
 
-		cloneOfClientStruct := r.client.GetCloneOfStruct()
-		methodName := cases.Title(language.Und).String(strings.ToLower(Method))
-		method := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
+		var requestUrlBuilder *url.URL
+		requestUrlBuilder, err = url.Parse(ConfigRequestToHostName)
+		if err != nil {
+			return errors.New(ErrorUrlParse)
+		}
+		requestUrlBuilder.Path = ConfigRequestToPath
+		ConfigRequestToURL := requestUrlBuilder.String()
 
-		var params []reflect.Value
-		if Method == http.MethodGet {
+		cloneOfClientStruct := r.client.GetCloneOfStruct()
+		methodName := cases.Title(language.Und).String(strings.ToLower(ConfigRequestToMethod))
+		request := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
+
+		var (
+			RequestWithHeaders = routeConfig.RequestTo.Header
+			RequestWithBody    = routeConfig.RequestTo.Body
+			params             []reflect.Value
+		)
+
+		if ConfigRequestToMethod == http.MethodGet {
 			params = []reflect.Value{
-				reflect.ValueOf(RequestToUrl),
+				reflect.ValueOf(ConfigRequestToURL),
 				reflect.ValueOf(RequestWithHeaders),
 			}
 		} else {
 			params = []reflect.Value{
-				reflect.ValueOf(RequestToUrl),
+				reflect.ValueOf(ConfigRequestToURL),
 				reflect.ValueOf(RequestWithHeaders),
 				reflect.ValueOf(RequestWithBody),
 			}
 		}
-		returnValues := method.Call(params)
+		returnValues := request.Call(params)
 
 		var isOk bool
-		var response *client.HttpResponse
-		response, isOk = returnValues[0].Interface().(*client.HttpResponse)
+		var returnedHttpResponse *client.HttpResponse
+		returnedHttpResponse, isOk = returnValues[0].Interface().(*client.HttpResponse)
 		if !isOk {
 			return errors.New(ErrorTypeCasting)
 		}
 
-		err, isOk = returnValues[1].Interface().(error)
-		if !isOk && err != nil {
+		returnedErr := returnValues[1].Interface()
+		if returnedErr != nil {
 			return errors.New(ErrorTypeCasting)
 		}
 
-		if err != nil {
-			return err
-		}
-
-		return ctx.Status(response.Status).Send(response.Body)
+		return ctx.Status(returnedHttpResponse.Status).Send(returnedHttpResponse.Body)
 	}
 }
