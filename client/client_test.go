@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Lynicis/inzibat/client"
 	"github.com/Lynicis/inzibat/config"
@@ -49,17 +50,14 @@ func TestClient_Get(t *testing.T) {
 			return ctx.Status(fiber.StatusOK).Send(TestReqBody)
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		response, err := c.Get(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		})
-
-		_ = mockServer.Shutdown()
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqHeaderValue, xTestKeyHeader)
@@ -79,17 +77,14 @@ func TestClient_Get(t *testing.T) {
 			ServerPort: port,
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		_, err = c.Get(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		})
-
-		_ = mockServer.Shutdown()
 
 		assert.Error(t, err)
 	})
@@ -112,17 +107,14 @@ func TestClient_Post(t *testing.T) {
 			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		response, err := c.Post(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
@@ -142,17 +134,14 @@ func TestClient_Post(t *testing.T) {
 			ServerPort: port,
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		_, err = c.Post(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.Error(t, err)
 	})
@@ -175,17 +164,14 @@ func TestClient_Put(t *testing.T) {
 			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		response, err := c.Put(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
@@ -205,17 +191,14 @@ func TestClient_Put(t *testing.T) {
 			ServerPort: port,
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		_, err = c.Put(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.Error(t, err)
 	})
@@ -237,18 +220,14 @@ func TestClient_Delete(t *testing.T) {
 			requestBodyBytes = ctx.Body()
 			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
 		})
-
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		response, err := c.Delete(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
@@ -268,17 +247,14 @@ func TestClient_Delete(t *testing.T) {
 			ServerPort: port,
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		_, err = c.Delete(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.Error(t, err)
 	})
@@ -301,17 +277,14 @@ func TestClient_Patch(t *testing.T) {
 			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		response, err := c.Patch(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
@@ -331,17 +304,14 @@ func TestClient_Patch(t *testing.T) {
 			ServerPort: port,
 		})
 
-		go func() {
-			err := mockServer.Start()
-			require.NoError(t, err)
-		}()
+		go mockServer.Start()
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
 		_, err = c.Patch(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
-
-		_ = mockServer.Shutdown()
 
 		assert.Error(t, err)
 	})
