@@ -1,8 +1,17 @@
+project_name: inzibat
+
+release:
+  github:
+    owner: lynicis
+    name: inzibat
+
 before:
   hooks:
     - go mod tidy
+
 builds:
-  - env:
+  - binary: inzibat
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -11,6 +20,7 @@ builds:
 
 archives:
   - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -18,16 +28,26 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
     format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        format: zip
+    files:
+      - inzibat
+      - README.md
+      - LICENSE
+
 checksum:
-  name_template: 'checksums.txt'
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 changelog:
   sort: asc
   filters:
     exclude:
       - '^docs:'
       - '^test:'
+      - '^chore:'
+      - '^ci:'
