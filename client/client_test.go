@@ -2,13 +2,12 @@ package client_test
 
 import (
 	"fmt"
-	"net"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/Lynicis/inzibat/client"
 	"github.com/Lynicis/inzibat/config"
+	"github.com/Lynicis/inzibat/port"
 	"github.com/Lynicis/inzibat/server"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,19 +28,18 @@ var (
 )
 
 func TestNewClient(t *testing.T) {
-	newClient := client.NewClient()
-	assert.Implements(t, (*client.Client)(nil), newClient)
+	c := client.NewClient()
+	assert.Implements(t, (*client.Client)(nil), c)
 }
 
 func TestClient_Get(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		var xTestKeyHeader string
@@ -54,7 +52,7 @@ func TestClient_Get(t *testing.T) {
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		response, err := c.Get(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		})
@@ -68,20 +66,19 @@ func TestClient_Get(t *testing.T) {
 	})
 
 	t.Run("when client return error", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		go mockServer.Start()
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		_, err = c.Get(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		})
@@ -92,13 +89,12 @@ func TestClient_Get(t *testing.T) {
 
 func TestClient_Post(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		var requestBodyBytes []byte
@@ -111,7 +107,7 @@ func TestClient_Post(t *testing.T) {
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		response, err := c.Post(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -125,20 +121,19 @@ func TestClient_Post(t *testing.T) {
 	})
 
 	t.Run("when client return error", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		go mockServer.Start()
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		_, err = c.Post(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -149,13 +144,12 @@ func TestClient_Post(t *testing.T) {
 
 func TestClient_Put(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		var requestBodyBytes []byte
@@ -168,7 +162,7 @@ func TestClient_Put(t *testing.T) {
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		response, err := c.Put(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -182,20 +176,19 @@ func TestClient_Put(t *testing.T) {
 	})
 
 	t.Run("when client return error", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		go mockServer.Start()
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		uri := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		uri := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		_, err = c.Put(uri, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -206,13 +199,12 @@ func TestClient_Put(t *testing.T) {
 
 func TestClient_Delete(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		var requestBodyBytes []byte
@@ -224,7 +216,7 @@ func TestClient_Delete(t *testing.T) {
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		url := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		response, err := c.Delete(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -238,20 +230,19 @@ func TestClient_Delete(t *testing.T) {
 	})
 
 	t.Run("when client return error", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		go mockServer.Start()
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		url := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		_, err = c.Delete(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -262,13 +253,12 @@ func TestClient_Delete(t *testing.T) {
 
 func TestClient_Patch(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		var requestBodyBytes []byte
@@ -281,7 +271,7 @@ func TestClient_Patch(t *testing.T) {
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		url := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		response, err := c.Patch(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -295,20 +285,19 @@ func TestClient_Patch(t *testing.T) {
 	})
 
 	t.Run("when client return error", func(t *testing.T) {
-		freePort, err := getFreePort()
+		freePort, err := port.GetFreePort()
 		require.NoError(t, err)
 
 		c := client.NewClient()
-		port := strconv.Itoa(freePort)
 		mockServer := server.NewServer(&config.Config{
-			ServerPort: port,
+			ServerPort: freePort,
 		})
 
 		go mockServer.Start()
 		defer mockServer.Shutdown()
 		time.Sleep(1 * time.Second)
 
-		url := fmt.Sprintf("%s:%s%s", TestReqUri, port, TestReqPath)
+		url := fmt.Sprintf("%s:%s%s", TestReqUri, freePort, TestReqPath)
 		_, err = c.Patch(url, client.HttpHeader{
 			TestReqHeaderKey: TestReqHeaderValue,
 		}, TestReqBody)
@@ -323,18 +312,4 @@ func TestClient_GetCloneOfStruct(t *testing.T) {
 
 	assert.NotSame(t, newClient, cloneOfStruct)
 	assert.Implements(t, (*client.Client)(nil), cloneOfStruct)
-}
-
-func getFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port, nil
 }
