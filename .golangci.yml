@@ -21,5 +21,9 @@ linters:
     - varnamelen
     - funlen
 
+linters-settings:
+  cyclop:
+    max-complexity: 11
+
 severity:
   default-severity: error
