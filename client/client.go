@@ -10,12 +10,11 @@ import (
 )
 
 type Client interface {
-	Get(uri string, requestHeader HttpHeader) (*HttpResponse, error)
-	Post(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
-	Put(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
-	Patch(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
-	Delete(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error)
-	GetCloneOfStruct() *client
+	Get(uri string, requestHeader map[string]string) (*HttpResponse, error)
+	Post(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error)
+	Put(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error)
+	Patch(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error)
+	Delete(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error)
 }
 
 type client struct {
@@ -37,60 +36,30 @@ func NewClient() Client {
 	}
 }
 
-func (c client) Get(uri string, requestHeader HttpHeader) (*HttpResponse, error) {
-	response, err := c.makeRequest(uri, http.MethodGet, requestHeader, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (c *client) Get(uri string, requestHeader map[string]string) (*HttpResponse, error) {
+	return c.makeRequest(uri, http.MethodGet, requestHeader, nil)
 }
 
-func (c client) Post(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
-	response, err := c.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (c *client) Post(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
+	return c.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
 }
 
-func (c client) Put(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
-	response, err := c.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (c *client) Put(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
+	return c.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
 }
 
-func (c client) Patch(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
-	response, err := c.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (c *client) Patch(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
+	return c.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
 }
 
-func (c client) Delete(uri string, requestHeader HttpHeader, requestBody []byte) (*HttpResponse, error) {
-	response, err := c.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
+func (c *client) Delete(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
+	return c.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
 }
 
-func (c client) GetCloneOfStruct() *client {
-	copOfClientStruct := c
-	return &copOfClientStruct
-}
-
-func (c client) makeRequest(
+func (c *client) makeRequest(
 	uri string,
 	method string,
-	requestHeader HttpHeader,
+	requestHeader map[string]string,
 	requestBody []byte,
 ) (*HttpResponse, error) {
 	request := fasthttp.AcquireRequest()
@@ -119,7 +88,7 @@ func (c client) makeRequest(
 	}
 
 	if response.StatusCode() >= http.StatusMultipleChoices {
-		return nil, errors.New(ResponseFailed)
+		return nil, errors.New(ErrResponseFailed)
 	}
 
 	return &HttpResponse{

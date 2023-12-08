@@ -2,17 +2,15 @@ package router
 
 import (
 	"errors"
-	"net/http"
-	"net/url"
-	"reflect"
 	"strings"
 
-	"github.com/Lynicis/inzibat/client"
-	"github.com/Lynicis/inzibat/config"
-
+	"github.com/goccy/go-reflect"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/Lynicis/inzibat/client"
+	"github.com/Lynicis/inzibat/config"
 )
 
 type Router interface {
@@ -35,63 +33,61 @@ func NewRouter(config *config.Config, app *fiber.App, client client.Client) Rout
 }
 
 func (r *router) CreateRoutes() {
-	for index := range r.config.Routes {
-		route := r.config.Routes[index]
-		r.app.Add(route.Method, route.Path, r.HandleClientMethod(&route))
+	workerCount := r.config.Concurrency.RouteCreatorLimit
+	routeChannel := make(chan config.Route, workerCount)
+	defer close(routeChannel)
+
+	for _, route := range r.config.Routes {
+		routeChannel <- route
+		r.routeCreatorWorker(routeChannel)
 	}
+}
+
+func (r *router) routeCreatorWorker(routeChannel chan config.Route) {
+	route := <-routeChannel
+	r.app.Add(route.Method, route.Path, r.HandleClientMethod(&route))
 }
 
 func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
-		var (
-			err                     error
-			ConfigRequestToHostName = routeConfig.RequestTo.Host
-			ConfigRequestToPath     = routeConfig.RequestTo.Path
-			ConfigRequestToMethod   = routeConfig.RequestTo.Method
-		)
+		var ConfigRequestToMethod = routeConfig.RequestTo.Method
+		cloneOfClientStruct := r.client
 
-		var requestUrlBuilder *url.URL
-		requestUrlBuilder, err = url.Parse(ConfigRequestToHostName)
-		if err != nil {
-			return errors.New(ErrorUrlParse)
-		}
-		requestUrlBuilder.Path = ConfigRequestToPath
-		ConfigRequestToURL := requestUrlBuilder.String()
-
-		cloneOfClientStruct := r.client.GetCloneOfStruct()
 		methodName := cases.Title(language.Und).String(strings.ToLower(ConfigRequestToMethod))
-		request := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
+		requestMethod := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
 
 		var (
-			RequestWithHeaders = routeConfig.RequestTo.Header
-			RequestWithBody    = routeConfig.RequestTo.Body
-			params             []reflect.Value
+			ConfigRequestToURL = routeConfig.RequestTo.Host + routeConfig.RequestTo.Path
+			RequestWithHeaders map[string]string
+			RequestWithBody    = ctx.Body()
 		)
 
-		if ConfigRequestToMethod == http.MethodGet {
-			params = []reflect.Value{
-				reflect.ValueOf(ConfigRequestToURL),
-				reflect.ValueOf(RequestWithHeaders),
-			}
-		} else {
-			params = []reflect.Value{
-				reflect.ValueOf(ConfigRequestToURL),
-				reflect.ValueOf(RequestWithHeaders),
-				reflect.ValueOf(RequestWithBody),
-			}
+		if routeConfig.RequestTo.Headers != nil {
+			RequestWithHeaders = routeConfig.RequestTo.Headers
 		}
-		returnValues := request.Call(params)
 
-		var isOk bool
+		methodArgumentsForClient := []reflect.Value{
+			reflect.ValueOf(ConfigRequestToURL),
+			reflect.ValueOf(RequestWithHeaders),
+			reflect.ValueOf(RequestWithBody),
+		}
+
+		if ConfigRequestToMethod == fiber.MethodGet {
+			methodArgumentsForClient = methodArgumentsForClient[:len(methodArgumentsForClient)-1]
+		}
+
+		returnedArguments := requestMethod.Call(methodArgumentsForClient)
+
+		var isSafeToGetReturnArguments bool
 		var returnedHttpResponse *client.HttpResponse
-		returnedHttpResponse, isOk = returnValues[0].Interface().(*client.HttpResponse)
-		if !isOk {
+		returnedHttpResponse, isSafeToGetReturnArguments = returnedArguments[0].Interface().(*client.HttpResponse)
+		if !isSafeToGetReturnArguments {
 			return errors.New(ErrorTypeCasting)
 		}
 
-		returnedErr := returnValues[1].Interface()
-		if returnedErr != nil {
-			return errors.New(ErrorTypeCasting)
+		returnedError := returnedArguments[1].Interface()
+		if returnedError != nil {
+			return returnedError.(error)
 		}
 
 		return ctx.Status(returnedHttpResponse.Status).Send(returnedHttpResponse.Body)

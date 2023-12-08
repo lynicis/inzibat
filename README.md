@@ -42,7 +42,7 @@
 
 <h2>Installation</h2>
 
-<p>You need install Go 1.17 or higher version, You can download from <a href="https://golang.org/dl/">here</a>.</p>
+<p>You need install Go 1.20 or higher version, You can download from <a href="https://golang.org/dl/">here</a>.</p>
 
 ```bash
 go install github.com/Lynicis/inzibat
@@ -69,6 +69,7 @@ go run inzibat -c config.json
 - [ ] Configurable Logging
 - [ ] Configurable Rate Limiting
 - [ ] Token-Based Authentication
+- [ ] UI
 
 <br/>
 

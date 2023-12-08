@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Lynicis/inzibat/config"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -22,6 +23,8 @@ type server struct {
 func NewServer(config *config.Config) Server {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		JSONDecoder:           json.Unmarshal,
+		JSONEncoder:           json.Marshal,
 	})
 
 	return &server{

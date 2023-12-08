@@ -1,6 +1,8 @@
 package client
 
-type HttpHeader map[string]string
+const (
+	ErrResponseFailed = "response failed"
+)
 
 type HttpResponse struct {
 	Status int

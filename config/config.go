@@ -2,57 +2,70 @@ package config
 
 import (
 	"errors"
-	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
+	"path"
+	"runtime"
 
 	"github.com/spf13/viper"
 )
 
-func ReadConfig(filepath, filename string) (*Config, error) {
+func ReadConfig(filename string) (*Config, error) {
 	viperInstance := viper.New()
 	viperInstance.SetConfigName(filename)
-	viperInstance.SetConfigType(FileTypeJson)
-	viperInstance.AddConfigPath(filepath)
 
-	err := viperInstance.ReadInConfig()
+	workingDirectory, err := os.Getwd()
 	if err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		return nil, errors.New(ErrorReadFile)
+	}
+
+	cleanFilename := path.Clean(filename)
+	configFilePath := path.Join(workingDirectory, cleanFilename)
+	extensionOfFilePath := path.Ext(configFilePath)
+	if extensionOfFilePath == "" {
+		configFilePath = path.Clean(configFilePath + ".json")
+	}
+
+	viperInstance.SetConfigFile(configFilePath)
+	err = viperInstance.ReadInConfig()
+	if err != nil {
+		var errorConfigFileNotFound *fs.PathError
+		isErrorConfigFileNotFound := errors.As(err, &errorConfigFileNotFound)
+		if isErrorConfigFileNotFound {
 			return nil, errors.New(ErrorFileNotFound)
 		}
 
 		return nil, errors.New(ErrorReadFile)
 	}
 
-	var desiredConfig *Config
+	/*
+	 * case-insensitive map keys
+	 */
+	var desiredConfig Config
 	err = viperInstance.Unmarshal(&desiredConfig)
 	if err != nil {
 		return nil, errors.New(ErrorUnmarshalling)
 	}
 
-	for index, route := range desiredConfig.Routes {
+	for indexOfRoute, route := range desiredConfig.Routes {
 		if route.RequestTo.Method == "" {
 			route.RequestTo.Method = http.MethodGet
 		}
 
-		if route.Method == http.MethodGet {
+		if route.RequestTo.Method == http.MethodGet {
 			if route.RequestTo.Body != nil {
 				return nil, errors.New(ErrorGetSendBody)
 			}
 		}
 
-		desiredConfig.Routes[index].Method = route.Method
-		desiredConfig.Routes[index].RequestTo.Method = route.RequestTo.Method
+		desiredConfig.Routes[indexOfRoute].Method = route.Method
+		desiredConfig.Routes[indexOfRoute].RequestTo.Method = route.RequestTo.Method
 	}
 
-	return desiredConfig, nil
-}
+	if desiredConfig.Concurrency.RouteCreatorLimit == 0 {
+		desiredConfig.Concurrency.RouteCreatorLimit = runtime.NumCPU()
+	}
 
-func (c *Config) Print() {
-	fmt.Println("🫡 INZIBAT 🪖")
-	fmt.Printf(
-		"Open Routes: %d\n", len(c.Routes),
-	)
-	fmt.Printf(
-		"Server Port: %s", c.ServerPort,
-	)
+	return &desiredConfig, nil
 }

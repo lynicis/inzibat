@@ -1,23 +1,17 @@
 package config
 
 import (
+	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestReadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		wd, err := os.Getwd()
-		require.NoError(t, err)
-
-		folderPath := filepath.Join(wd, "../testdata")
-		cfg, err := ReadConfig(folderPath, "test.json")
+		cfg, err := ReadConfig("../test-data/test.json")
 
 		assert.NoError(t, err)
 		assert.Equal(t, &Config{
@@ -25,41 +19,61 @@ func TestReadConfig(t *testing.T) {
 			Routes: []Route{
 				{
 					Method: fiber.MethodGet,
-					Path:   "/",
+					Path:   "/route-one",
 					RequestTo: RequestTo{
-						Method: http.MethodGet,
-						Host:   "http://localhost:8081",
-						Path:   "/health",
+						Method: http.MethodPost,
+						Headers: map[string]string{
+							"xtestheader": "TestHeaderValue",
+						},
+						Body: map[string]string{
+							"testkey": "testValue",
+						},
+						Host:                   "http://localhost:8081",
+						Path:                   "/route-one",
+						PassWithRequestBody:    true,
+						PassWithRequestHeaders: true,
 					},
 				},
+				{
+					Method: fiber.MethodGet,
+					Path:   "/route-two",
+					RequestTo: RequestTo{
+						Method: http.MethodGet,
+						Headers: map[string]string{
+							"xtestheader": "TestHeaderValue",
+						},
+						Host:                   "http://localhost:8081",
+						Path:                   "/route-two",
+						PassWithRequestBody:    true,
+						PassWithRequestHeaders: true,
+					},
+				},
+			},
+			Concurrency: Concurrency{
+				RouteCreatorLimit: 5,
 			},
 		}, cfg)
 	})
 
 	t.Run("config file doesn't exist", func(t *testing.T) {
-		folderPath := filepath.Base("./testdata")
-		cfg, err := ReadConfig(folderPath, "notfound")
+		t.Run("with file extension", func(t *testing.T) {
+			cfg, err := ReadConfig("not-found.json")
 
-		assert.Empty(t, cfg)
-		assert.Error(t, err)
+			assert.Empty(t, cfg)
+			if assert.Error(t, err) {
+				expectedError := errors.New(ErrorFileNotFound)
+				assert.Equal(t, expectedError, err)
+			}
+		})
+
+		t.Run("without file extension", func(t *testing.T) {
+			cfg, err := ReadConfig("not-found")
+
+			assert.Empty(t, cfg)
+			if assert.Error(t, err) {
+				expectedError := errors.New(ErrorFileNotFound)
+				assert.Equal(t, expectedError, err)
+			}
+		})
 	})
-
-	t.Run("config file unmarshalling error", func(t *testing.T) {
-		folderPath := filepath.Base("./testdata")
-		cfg, err := ReadConfig(folderPath, "unmarshalling-error")
-
-		assert.Empty(t, cfg)
-		assert.Error(t, err)
-	})
-}
-
-func TestConfig_Print(t *testing.T) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	path := filepath.Join(wd, "../testdata")
-	cfg, err := ReadConfig(path, "test")
-	cfg.Print()
-
-	assert.NoError(t, err)
 }
