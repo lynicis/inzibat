@@ -16,6 +16,7 @@ import (
 type Router interface {
 	CreateRoutes()
 	HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error
+	HandleMockMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error
 }
 
 type router struct {
@@ -44,8 +45,20 @@ func (r *router) CreateRoutes() {
 }
 
 func (r *router) routeCreatorWorker(routeChannel chan config.Route) {
-	route := <-routeChannel
-	r.app.Add(route.Method, route.Path, r.HandleClientMethod(&route))
+	var (
+		route         = <-routeChannel
+		routeFunction func(ctx *fiber.Ctx) error
+	)
+
+	if reflect.ValueOf(route.RequestTo).IsValid() {
+		routeFunction = r.HandleClientMethod(&route)
+	}
+
+	if reflect.ValueOf(route.Mock).IsValid() {
+		routeFunction = r.HandleMockMethod(&route)
+	}
+
+	r.app.Add(route.Method, route.Path, routeFunction)
 }
 
 func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
@@ -87,9 +100,31 @@ func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.C
 
 		returnedError := returnedArguments[1].Interface()
 		if returnedError != nil {
+			if routeConfig.RequestTo.InErrorReturn500 {
+				return ctx.SendStatus(fiber.StatusInternalServerError)
+			}
+
 			return returnedError.(error)
 		}
 
 		return ctx.Status(returnedHttpResponse.Status).Send(returnedHttpResponse.Body)
+	}
+}
+
+func (r *router) HandleMockMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
+	return func(ctx *fiber.Ctx) error {
+		var (
+			Headers = routeConfig.Mock.Headers
+			Body    = routeConfig.Mock.Body
+			Status  = routeConfig.Mock.Status
+		)
+
+		if len(Headers) > 0 {
+			for headerKey, headerValue := range Headers {
+				ctx.Set(headerKey, headerValue)
+			}
+		}
+
+		return ctx.Status(Status).JSON(Body)
 	}
 }

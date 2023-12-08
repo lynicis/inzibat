@@ -25,7 +25,7 @@ func TestReadConfig(t *testing.T) {
 						Headers: map[string]string{
 							"xtestheader": "TestHeaderValue",
 						},
-						Body: map[string]string{
+						Body: map[string]interface{}{
 							"testkey": "testValue",
 						},
 						Host:                   "http://localhost:8081",
