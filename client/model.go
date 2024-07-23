@@ -1,8 +1,6 @@
 package client
 
-const (
-	ErrResponseFailed = "response failed"
-)
+const ErrorResponseFailed = "response failed"
 
 type HttpResponse struct {
 	Status int

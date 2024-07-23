@@ -2,70 +2,58 @@ package config
 
 import (
 	"errors"
-	"io/fs"
 	"net/http"
-	"os"
-	"path"
 	"runtime"
-
-	"github.com/spf13/viper"
 )
 
-func ReadConfig(filename string) (*Config, error) {
-	viperInstance := viper.New()
-	viperInstance.SetConfigName(filename)
+type Config interface {
+	LoadConfig(filename string) (*Cfg, error)
+}
 
-	workingDirectory, err := os.Getwd()
+type Loader struct {
+	ConfigReader Reader
+}
+
+func (loader *Loader) LoadConfig(filename string) (*Cfg, error) {
+	config, err := loader.ConfigReader.ReadConfig(filename)
 	if err != nil {
-		return nil, errors.New(ErrorReadFile)
+		return nil, err
 	}
 
-	cleanFilename := path.Clean(filename)
-	configFilePath := path.Join(workingDirectory, cleanFilename)
-	extensionOfFilePath := path.Ext(configFilePath)
-	if extensionOfFilePath == "" {
-		configFilePath = path.Clean(configFilePath + ".json")
-	}
+	for indexOfRoute, route := range config.Routes {
+		var (
+			RequestToMethod = route.RequestTo.Method
+			RequestToBody   = route.RequestTo.Body
+		)
 
-	viperInstance.SetConfigFile(configFilePath)
-	err = viperInstance.ReadInConfig()
-	if err != nil {
-		var errorConfigFileNotFound *fs.PathError
-		isErrorConfigFileNotFound := errors.As(err, &errorConfigFileNotFound)
-		if isErrorConfigFileNotFound {
-			return nil, errors.New(ErrorFileNotFound)
-		}
-
-		return nil, errors.New(ErrorReadFile)
-	}
-
-	/*
-	 * case-insensitive map keys
-	 */
-	var desiredConfig Config
-	err = viperInstance.Unmarshal(&desiredConfig)
-	if err != nil {
-		return nil, errors.New(ErrorUnmarshalling)
-	}
-
-	for indexOfRoute, route := range desiredConfig.Routes {
-		if route.RequestTo.Method == "" {
+		if RequestToMethod == "" {
 			route.RequestTo.Method = http.MethodGet
 		}
 
-		if route.RequestTo.Method == http.MethodGet {
-			if route.RequestTo.Body != nil {
-				return nil, errors.New(ErrorGetSendBody)
-			}
+		if RequestToMethod == http.MethodGet && RequestToBody != nil {
+			return nil, errors.New(ErrorGetSendBody)
 		}
 
-		desiredConfig.Routes[indexOfRoute].Method = route.Method
-		desiredConfig.Routes[indexOfRoute].RequestTo.Method = route.RequestTo.Method
+		config.Routes[indexOfRoute].Method = route.Method
+		config.Routes[indexOfRoute].RequestTo.Method = route.RequestTo.Method
 	}
 
-	if desiredConfig.Concurrency.RouteCreatorLimit == 0 {
-		desiredConfig.Concurrency.RouteCreatorLimit = runtime.NumCPU()
+	if config.HealthCheckRoute {
+		config.Routes = append(
+			config.Routes,
+			Route{
+				Method: "GET",
+				Path:   "/health",
+				Mock: Mock{
+					StatusCode: http.StatusOK,
+				},
+			},
+		)
 	}
 
-	return &desiredConfig, nil
+	if config.Concurrency.RouteCreatorLimit == 0 {
+		config.Concurrency.RouteCreatorLimit = runtime.GOMAXPROCS(3)
+	}
+
+	return config, nil
 }

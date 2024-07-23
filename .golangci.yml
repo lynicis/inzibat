@@ -1,7 +1,7 @@
 run:
   concurrency: 4
   timeout: 3m
-  go: "1.20"
+  go: "1.21"
   tests: false
 
 linters:
@@ -24,6 +24,8 @@ linters:
 linters-settings:
   cyclop:
     max-complexity: 11
+  funlen:
+    lines: 100
 
 severity:
   default-severity: error

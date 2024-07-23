@@ -1,19 +1,12 @@
 package config
 
 const (
-	ErrorFileNotFound  = "config file not found"
-	ErrorReadFile      = "error occurred while reading config file"
-	ErrorUnmarshalling = "error occurred while unmarshalling config file"
-	ErrorGetSendBody   = "send body with get http method"
-)
-
-const (
 	EnvironmentVariableConfigFileName = "CONFIG_FN"
 	DefaultConfigFileName             = "inzibat.config.json"
 )
 
-type Config struct {
-	ServerPort       string
+type Cfg struct {
+	ServerPort       int
 	Routes           []Route
 	Concurrency      Concurrency
 	HealthCheckRoute bool
@@ -32,7 +25,7 @@ type Concurrency struct {
 
 type RequestTo struct {
 	Method                 string
-	Headers                map[string]string
+	Headers                map[string][]string
 	Body                   map[string]interface{}
 	Host                   string
 	Path                   string
@@ -42,7 +35,8 @@ type RequestTo struct {
 }
 
 type Mock struct {
-	Headers map[string]string
-	Body    map[string]interface{}
-	Status  int
+	Headers    map[string]string
+	Body       map[string]interface{}
+	BodyString string
+	StatusCode int
 }

@@ -9,24 +9,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReadConfig(t *testing.T) {
+func TestLoader_LoadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		cfg, err := ReadConfig("../test-data/test.json")
-
-		assert.NoError(t, err)
-		assert.Equal(t, &Config{
-			ServerPort: "8080",
+		expectedCfg := &Cfg{
+			ServerPort: 8080,
 			Routes: []Route{
 				{
 					Method: fiber.MethodGet,
 					Path:   "/route-one",
 					RequestTo: RequestTo{
 						Method: http.MethodPost,
-						Headers: map[string]string{
-							"xtestheader": "TestHeaderValue",
+						Headers: map[string][]string{
+							"X-Test-Header": {"Test-Header-Value"},
 						},
 						Body: map[string]interface{}{
-							"testkey": "testValue",
+							"testKey": "testValue",
 						},
 						Host:                   "http://localhost:8081",
 						Path:                   "/route-one",
@@ -39,8 +36,8 @@ func TestReadConfig(t *testing.T) {
 					Path:   "/route-two",
 					RequestTo: RequestTo{
 						Method: http.MethodGet,
-						Headers: map[string]string{
-							"xtestheader": "TestHeaderValue",
+						Headers: map[string][]string{
+							"X-Test-Header": {"Test-Header-Value"},
 						},
 						Host:                   "http://localhost:8081",
 						Path:                   "/route-two",
@@ -52,28 +49,68 @@ func TestReadConfig(t *testing.T) {
 			Concurrency: Concurrency{
 				RouteCreatorLimit: 5,
 			},
-		}, cfg)
+		}
+
+		mockReader := &MockReader{
+			OutputCfg:   expectedCfg,
+			OutputError: nil,
+		}
+
+		cfgLoader := &Loader{
+			ConfigReader: mockReader,
+		}
+		cfg, err := cfgLoader.LoadConfig("test-file-name")
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedCfg, cfg)
 	})
 
-	t.Run("config file doesn't exist", func(t *testing.T) {
-		t.Run("with file extension", func(t *testing.T) {
-			cfg, err := ReadConfig("not-found.json")
+	t.Run("when reader return error should return it", func(t *testing.T) {
+		expectedError := errors.New("something went wrong")
+		mockReader := &MockReader{
+			OutputCfg:   nil,
+			OutputError: expectedError,
+		}
 
-			assert.Empty(t, cfg)
-			if assert.Error(t, err) {
-				expectedError := errors.New(ErrorFileNotFound)
-				assert.Equal(t, expectedError, err)
-			}
-		})
+		cfgLoader := &Loader{
+			ConfigReader: mockReader,
+		}
+		cfg, err := cfgLoader.LoadConfig("test-file-name")
 
-		t.Run("without file extension", func(t *testing.T) {
-			cfg, err := ReadConfig("not-found")
+		assert.Nil(t, cfg)
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+	})
 
-			assert.Empty(t, cfg)
-			if assert.Error(t, err) {
-				expectedError := errors.New(ErrorFileNotFound)
-				assert.Equal(t, expectedError, err)
-			}
-		})
+	t.Run("against healthcheck route", func(t *testing.T) {
+		configLoader := &Loader{
+			ConfigReader: &MockReader{
+				OutputCfg: &Cfg{
+					HealthCheckRoute: true,
+				},
+				OutputError: nil,
+			},
+		}
+		cfg, err := configLoader.LoadConfig("")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+	})
+
+	t.Run("against concurrency route creator limit", func(t *testing.T) {
+		configLoader := &Loader{
+			ConfigReader: &MockReader{
+				OutputCfg: &Cfg{
+					Concurrency: Concurrency{
+						RouteCreatorLimit: 0,
+					},
+				},
+				OutputError: nil,
+			},
+		}
+		cfg, err := configLoader.LoadConfig("")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
 	})
 }

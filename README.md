@@ -1,14 +1,14 @@
 <div align="center">
     <p>
         <h1 size="10rem">Inzibat 🪖</h1>
-        This word comes from Turkish Language, which means Military Police.
+        <small>This word comes from Turkish Language, which means Military Police.</small>
     </p>
 </div>
 
 <br/>
 
 <div align="center">
-    <strong>Light-weight REST API Gateway</strong>
+    <strong>REST API Gateway</strong>
     <a href="https://github.com/Lynicis/inzibat/actions/workflows/ci.yaml/badge.svg?branch=master&event=push"></a>
     <div>
         <a href="https://github.com/lynicis/inzibat/blob/master/LICENSE">
@@ -53,24 +53,25 @@ go install github.com/Lynicis/inzibat
 <h2>Usage</h2>
 
 ```bash
-go run inzibat
+make run
 ```
+<br />
 
-With custom json file:
+You pass custom config file via define "CONFIG_FN" environment variable
 ```bash
-go run inzibat -c config.json
+export CONFIG_FN="custom.json"
+make run
 ```
 
 <br/>
 
 ### TODO For v1.0.0:
 - [x] Basic Routing
-- [ ] Health Check
+- [x] Mock Routes
+- [x] Client Routes Without Business Logic
+- [x] Health Check
+- [ ] Body Validation
 - [ ] Configurable Logging
 - [ ] Configurable Rate Limiting
 - [ ] Token-Based Authentication
 - [ ] UI
-
-<br/>
-
-

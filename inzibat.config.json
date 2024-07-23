@@ -1,0 +1,16 @@
+{
+  "serverPort": 8080,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/1",
+      "mock": {
+        "body": {
+          "test": "test"
+        },
+        "status": 200
+      }
+    }
+  ],
+  "healthCheckRoute": true
+}

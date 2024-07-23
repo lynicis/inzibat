@@ -1,0 +1,35 @@
+serverPort = 8080
+
+[[routes]]
+method = "GET"
+path = "/route-one"
+
+[routes.requestTo]
+method = "POST"
+host = "http://localhost:8081"
+path = "/route-one"
+passWithRequestHeaders = true
+passWithRequestBody = true
+
+[routes.requestTo.headers]
+xTestHeader = "TestHeaderValue"
+
+[routes.requestTo.body]
+testKey = "testValue"
+
+[[routes]]
+method = "GET"
+path = "/route-two"
+
+[routes.requestTo]
+host = "http://localhost:8081"
+path = "/route-two"
+method = "GET"
+passWithRequestBody = true
+passWithRequestHeaders = true
+
+[routes.requestTo.headers]
+xTestHeader = "TestHeaderValue"
+
+[concurrency]
+routeCreatorLimit = 5

@@ -3,7 +3,6 @@ package client
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
@@ -17,46 +16,50 @@ type Client interface {
 	Delete(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error)
 }
 
-type client struct {
-	httpClient *fasthttp.Client
+type HttpClient struct {
+	FasthttpClient *fasthttp.Client
 }
 
-func NewClient() Client {
-	httpClient := &fasthttp.Client{
-		ReadTimeout:                   10 * time.Second,
-		WriteTimeout:                  10 * time.Second,
-		MaxIdleConnDuration:           10 * time.Second,
-		NoDefaultUserAgentHeader:      true,
-		DisableHeaderNamesNormalizing: true,
-		DisablePathNormalizing:        true,
-	}
-
-	return &client{
-		httpClient: httpClient,
-	}
+func (httpClient *HttpClient) Get(
+	uri string,
+	requestHeader map[string]string,
+) (*HttpResponse, error) {
+	return httpClient.makeRequest(uri, http.MethodGet, requestHeader, nil)
 }
 
-func (c *client) Get(uri string, requestHeader map[string]string) (*HttpResponse, error) {
-	return c.makeRequest(uri, http.MethodGet, requestHeader, nil)
+func (httpClient *HttpClient) Post(
+	uri string,
+	requestHeader map[string]string,
+	requestBody []byte,
+) (*HttpResponse, error) {
+	return httpClient.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
 }
 
-func (c *client) Post(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
-	return c.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
+func (httpClient *HttpClient) Put(
+	uri string,
+	requestHeader map[string]string,
+	requestBody []byte,
+) (*HttpResponse, error) {
+	return httpClient.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
 }
 
-func (c *client) Put(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
-	return c.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
+func (httpClient *HttpClient) Patch(
+	uri string,
+	requestHeader map[string]string,
+	requestBody []byte,
+) (*HttpResponse, error) {
+	return httpClient.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
 }
 
-func (c *client) Patch(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
-	return c.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
+func (httpClient *HttpClient) Delete(
+	uri string,
+	requestHeader map[string]string,
+	requestBody []byte,
+) (*HttpResponse, error) {
+	return httpClient.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
 }
 
-func (c *client) Delete(uri string, requestHeader map[string]string, requestBody []byte) (*HttpResponse, error) {
-	return c.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
-}
-
-func (c *client) makeRequest(
+func (httpClient *HttpClient) makeRequest(
 	uri string,
 	method string,
 	requestHeader map[string]string,
@@ -88,7 +91,7 @@ func (c *client) makeRequest(
 	}
 
 	if response.StatusCode() >= http.StatusMultipleChoices {
-		return nil, errors.New(ErrResponseFailed)
+		return nil, errors.New(ErrorResponseFailed)
 	}
 
 	return &HttpResponse{

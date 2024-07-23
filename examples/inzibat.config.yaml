@@ -1,12 +1,32 @@
 serverPort: 8080
+
 routes:
-  method: GET
-  path: /
-  requestTo:
+  - method: GET
     host: http://localhost:8081
-    path: /health
+    path: /route-one
     headers:
-      - Content-Type: application/json
-    passWith:
-      requestBody: true
-      requestHeaders: true
+      - xTestHeader: TestHeaderValue
+    body:
+      - testKey: testValue
+    passWithRequestHeaders: true,
+    passWithRequestBody: true,
+
+  - method: GET
+    path: /route-two
+    mock:
+      headers:
+        - xTestHeader: TestHeaderValue
+      bodyString: "OK"
+      status: 200
+
+  - method: GET
+    path: /route-three
+    mock:
+      headers:
+        - xTestHeader: TestHeaderValue
+      body:
+        - testKey: testValue
+      status: 200
+
+concurrency:
+  routeCreatorLimit: 5

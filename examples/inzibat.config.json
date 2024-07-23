@@ -3,18 +3,37 @@
   "routes": [
     {
       "method": "GET",
-      "path": "/",
+      "path": "/route-one",
+      "requestTo": {
+        "method": "POST",
+        "host": "http://localhost:8081",
+        "path": "/route-one",
+        "headers": {
+          "xTestHeader": "TestHeaderValue"
+        },
+        "body": {
+          "testKey": "testValue"
+        },
+        "passWithRequestHeaders": true,
+        "passWithRequestBody": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/route-two",
       "requestTo": {
         "host": "http://localhost:8081",
-        "path": "/health",
+        "path": "/route-two",
+        "method": "GET",
         "headers": {
-          "Content-Type": "application/json"
+          "xTestHeader": "TestHeaderValue"
         },
-        "passWith": {
-          "requestBody": true,
-          "requestHeaders": true
-        }
+        "passWithRequestBody": true,
+        "passWithRequestHeaders": true
       }
     }
-  ]
+  ],
+  "concurrency": {
+    "routeCreatorLimit": 5
+  }
 }

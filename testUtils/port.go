@@ -1,21 +1,18 @@
 package testUtils
 
-import (
-	"net"
-	"strconv"
-)
+import "net"
 
-func GetFreePort() (string, error) {
+func GetFreePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	tcpListener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	defer tcpListener.Close()
 
-	return strconv.Itoa(tcpListener.Addr().(*net.TCPAddr).Port), nil
+	return tcpListener.Addr().(*net.TCPAddr).Port, nil
 }

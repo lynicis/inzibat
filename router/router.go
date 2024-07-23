@@ -1,130 +1,80 @@
 package router
 
 import (
-	"errors"
-	"strings"
+	"sync"
 
-	"github.com/goccy/go-reflect"
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 
-	"github.com/Lynicis/inzibat/client"
 	"github.com/Lynicis/inzibat/config"
 )
 
 type Router interface {
 	CreateRoutes()
-	HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error
-	HandleMockMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error
 }
 
-type router struct {
-	config *config.Config
-	app    *fiber.App
-	client client.Client
+type Handler interface {
+	CreateRoute(indexOfRoute int) func(ctx *fiber.Ctx) error
 }
 
-func NewRouter(config *config.Config, app *fiber.App, client client.Client) Router {
-	return &router{
-		config: config,
-		app:    app,
-		client: client,
+type MainRouter struct {
+	Config        *config.Cfg
+	FiberApp      *fiber.App
+	MockHandler   Handler
+	ClientHandler Handler
+}
+
+func NewMainRouter(
+	cfg *config.Cfg,
+	fiberApp *fiber.App,
+	mockHandler Handler,
+	clientHandler Handler,
+) Router {
+	return &MainRouter{
+		Config:        cfg,
+		FiberApp:      fiberApp,
+		MockHandler:   mockHandler,
+		ClientHandler: clientHandler,
 	}
 }
 
-func (r *router) CreateRoutes() {
-	workerCount := r.config.Concurrency.RouteCreatorLimit
-	routeChannel := make(chan config.Route, workerCount)
-	defer close(routeChannel)
-
-	for _, route := range r.config.Routes {
-		routeChannel <- route
-		r.routeCreatorWorker(routeChannel)
-	}
-}
-
-func (r *router) routeCreatorWorker(routeChannel chan config.Route) {
+func (mainRouter *MainRouter) CreateRoutes() {
 	var (
-		route         = <-routeChannel
-		routeFunction func(ctx *fiber.Ctx) error
+		workerCount = mainRouter.Config.Concurrency.RouteCreatorLimit
+		routes      = mainRouter.Config.Routes
 	)
 
-	if reflect.ValueOf(route.RequestTo).IsValid() {
-		routeFunction = r.HandleClientMethod(&route)
-	}
+	routeChannel := make(chan *RouteChannel, workerCount)
+	defer close(routeChannel)
 
-	if reflect.ValueOf(route.Mock).IsValid() {
-		routeFunction = r.HandleMockMethod(&route)
+	var waitGroup sync.WaitGroup
+	for indexOfRoute, route := range routes {
+		waitGroup.Add(1)
+		routeChannel <- &RouteChannel{
+			Route:        route,
+			IndexOfRoute: indexOfRoute,
+		}
+		mainRouter.routeCreatorWorker(routeChannel, &waitGroup)
 	}
-
-	r.app.Add(route.Method, route.Path, routeFunction)
+	waitGroup.Wait()
 }
 
-func (r *router) HandleClientMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
-	return func(ctx *fiber.Ctx) error {
-		var ConfigRequestToMethod = routeConfig.RequestTo.Method
-		cloneOfClientStruct := r.client
+func (mainRouter *MainRouter) routeCreatorWorker(routeChannel chan *RouteChannel, waitGroup *sync.WaitGroup) {
+	var (
+		resultOfChannel = <-routeChannel
+		routeFunction   func(ctx *fiber.Ctx) error
+	)
 
-		methodName := cases.Title(language.Und).String(strings.ToLower(ConfigRequestToMethod))
-		requestMethod := reflect.ValueOf(cloneOfClientStruct).MethodByName(methodName)
-
-		var (
-			ConfigRequestToURL = routeConfig.RequestTo.Host + routeConfig.RequestTo.Path
-			RequestWithHeaders map[string]string
-			RequestWithBody    = ctx.Body()
-		)
-
-		if routeConfig.RequestTo.Headers != nil {
-			RequestWithHeaders = routeConfig.RequestTo.Headers
-		}
-
-		methodArgumentsForClient := []reflect.Value{
-			reflect.ValueOf(ConfigRequestToURL),
-			reflect.ValueOf(RequestWithHeaders),
-			reflect.ValueOf(RequestWithBody),
-		}
-
-		if ConfigRequestToMethod == fiber.MethodGet {
-			methodArgumentsForClient = methodArgumentsForClient[:len(methodArgumentsForClient)-1]
-		}
-
-		returnedArguments := requestMethod.Call(methodArgumentsForClient)
-
-		var isSafeToGetReturnArguments bool
-		var returnedHttpResponse *client.HttpResponse
-		returnedHttpResponse, isSafeToGetReturnArguments = returnedArguments[0].Interface().(*client.HttpResponse)
-		if !isSafeToGetReturnArguments {
-			return errors.New(ErrorTypeCasting)
-		}
-
-		returnedError := returnedArguments[1].Interface()
-		if returnedError != nil {
-			if routeConfig.RequestTo.InErrorReturn500 {
-				return ctx.SendStatus(fiber.StatusInternalServerError)
-			}
-
-			return returnedError.(error)
-		}
-
-		return ctx.Status(returnedHttpResponse.Status).Send(returnedHttpResponse.Body)
+	if resultOfChannel.Route.RequestTo.Method != "" {
+		routeFunction = mainRouter.ClientHandler.CreateRoute(resultOfChannel.IndexOfRoute)
 	}
-}
 
-func (r *router) HandleMockMethod(routeConfig *config.Route) func(ctx *fiber.Ctx) error {
-	return func(ctx *fiber.Ctx) error {
-		var (
-			Headers = routeConfig.Mock.Headers
-			Body    = routeConfig.Mock.Body
-			Status  = routeConfig.Mock.Status
-		)
-
-		if len(Headers) > 0 {
-			for headerKey, headerValue := range Headers {
-				ctx.Set(headerKey, headerValue)
-			}
-		}
-
-		return ctx.Status(Status).JSON(Body)
+	if resultOfChannel.Route.Mock.StatusCode > 0 {
+		routeFunction = mainRouter.MockHandler.CreateRoute(resultOfChannel.IndexOfRoute)
 	}
+
+	if routeFunction != nil {
+		mainRouter.FiberApp.Add(resultOfChannel.Route.Method, resultOfChannel.Route.Path, routeFunction)
+	}
+
+	waitGroup.Done()
 }
