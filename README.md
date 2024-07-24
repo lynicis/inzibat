@@ -44,12 +44,6 @@
 
 <p>You need install Go 1.20 or higher version, You can download from <a href="https://golang.org/dl/">here</a>.</p>
 
-```bash
-go install github.com/Lynicis/inzibat
-```
-
-<br/>
-
 <h2>Usage</h2>
 
 ```bash
