@@ -1,5 +1,11 @@
 package config
 
+import (
+	"errors"
+	"net/url"
+	"path/filepath"
+)
+
 const (
 	EnvironmentVariableConfigFileName = "CONFIG_FN"
 	DefaultConfigFileName             = "inzibat.config.json"
@@ -13,10 +19,10 @@ type Cfg struct {
 }
 
 type Route struct {
-	Method    string
-	Path      string
-	RequestTo RequestTo
-	Mock      Mock
+	Method       string
+	Path         string
+	RequestTo    RequestTo
+	FakeResponse FakeResponse
 }
 
 type Concurrency struct {
@@ -34,7 +40,16 @@ type RequestTo struct {
 	InErrorReturn500       bool
 }
 
-type Mock struct {
+func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
+	parsedUrl, err := url.Parse(filepath.Join(requestTo.Host, requestTo.Path))
+	if err != nil {
+		return nil, errors.New("failed to parse url")
+	}
+
+	return parsedUrl, nil
+}
+
+type FakeResponse struct {
 	Headers    map[string]string
 	Body       map[string]interface{}
 	BodyString string

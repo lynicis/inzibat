@@ -5,7 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/Lynicis/inzibat/config"
+	"inzibat/config"
+	"inzibat/handler"
 )
 
 type Router interface {
@@ -13,68 +14,61 @@ type Router interface {
 }
 
 type Handler interface {
-	CreateRoute(indexOfRoute int) func(ctx *fiber.Ctx) error
+	CreateHandler(handlerIndex int) func(ctx *fiber.Ctx) error
 }
 
 type MainRouter struct {
-	Config        *config.Cfg
-	FiberApp      *fiber.App
-	MockHandler   Handler
-	ClientHandler Handler
-}
-
-func NewMainRouter(
-	cfg *config.Cfg,
-	fiberApp *fiber.App,
-	mockHandler Handler,
-	clientHandler Handler,
-) Router {
-	return &MainRouter{
-		Config:        cfg,
-		FiberApp:      fiberApp,
-		MockHandler:   mockHandler,
-		ClientHandler: clientHandler,
-	}
+	Config          *config.Cfg
+	FiberApp        *fiber.App
+	EndpointHandler Handler
+	ClientHandler   Handler
 }
 
 func (mainRouter *MainRouter) CreateRoutes() {
 	var (
 		workerCount = mainRouter.Config.Concurrency.RouteCreatorLimit
 		routes      = mainRouter.Config.Routes
+		routeCount  = len(routes)
 	)
 
-	routeChannel := make(chan *RouteChannel, workerCount)
+	routeChannel := make(chan *handler.RouteChannel, routeCount)
 	defer close(routeChannel)
 
 	var waitGroup sync.WaitGroup
-	for indexOfRoute, route := range routes {
-		waitGroup.Add(1)
-		routeChannel <- &RouteChannel{
-			Route:        route,
-			IndexOfRoute: indexOfRoute,
-		}
-		mainRouter.routeCreatorWorker(routeChannel, &waitGroup)
+	waitGroup.Add(routeCount)
+
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for route := range routeChannel {
+				mainRouter.processRoute(route, &waitGroup)
+			}
+		}()
 	}
+
+	for routeIndex, route := range routes {
+		routeChannel <- &handler.RouteChannel{
+			Route:      route,
+			RouteIndex: routeIndex,
+		}
+	}
+
 	waitGroup.Wait()
 }
 
-func (mainRouter *MainRouter) routeCreatorWorker(routeChannel chan *RouteChannel, waitGroup *sync.WaitGroup) {
-	var (
-		resultOfChannel = <-routeChannel
-		routeFunction   func(ctx *fiber.Ctx) error
-	)
+func (mainRouter *MainRouter) processRoute(routeChannel *handler.RouteChannel, waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
 
-	if resultOfChannel.Route.RequestTo.Method != "" {
-		routeFunction = mainRouter.ClientHandler.CreateRoute(resultOfChannel.IndexOfRoute)
+	var routeFunction func(ctx *fiber.Ctx) error
+
+	if routeChannel.Route.RequestTo.Method != "" {
+		routeFunction = mainRouter.ClientHandler.CreateHandler(routeChannel.RouteIndex)
 	}
 
-	if resultOfChannel.Route.Mock.StatusCode > 0 {
-		routeFunction = mainRouter.MockHandler.CreateRoute(resultOfChannel.IndexOfRoute)
+	if routeChannel.Route.FakeResponse.StatusCode > 0 {
+		routeFunction = mainRouter.EndpointHandler.CreateHandler(routeChannel.RouteIndex)
 	}
 
 	if routeFunction != nil {
-		mainRouter.FiberApp.Add(resultOfChannel.Route.Method, resultOfChannel.Route.Path, routeFunction)
+		mainRouter.FiberApp.Add(routeChannel.Route.Method, routeChannel.Route.Path, routeFunction)
 	}
-
-	waitGroup.Done()
 }

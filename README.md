@@ -9,9 +9,9 @@
 
 <div align="center">
     <strong>REST API Gateway</strong>
-    <a href="https://github.com/Lynicis/inzibat/actions/workflows/ci.yaml/badge.svg?branch=master&event=push"></a>
+    <a href="https://inzibat/actions/workflows/ci.yaml/badge.svg?branch=master&event=push"></a>
     <div>
-        <a href="https://github.com/lynicis/inzibat/blob/master/LICENSE">
+        <a href="https://inzibat/blob/master/LICENSE">
             <img 
                 src="https://img.shields.io/github/license/Lynicis/inzibat"
                 alt="License"
@@ -59,13 +59,3 @@ make run
 
 <br/>
 
-### TODO For v1.0.0:
-- [x] Basic Routing
-- [x] Mock Routes
-- [x] Client Routes Without Business Logic
-- [x] Health Check
-- [ ] Body Validation
-- [ ] Configurable Logging
-- [ ] Configurable Rate Limiting
-- [ ] Token-Based Authentication
-- [ ] UI

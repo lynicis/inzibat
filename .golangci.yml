@@ -1,31 +1,45 @@
+version: "2"
 run:
   concurrency: 4
-  timeout: 3m
-  go: "1.21"
+  go: "1.25.3"
   tests: false
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    - errcheck
-    - gomodguard
     - cyclop
-    - gocritic
+    - errcheck
+    - funlen
     - goconst
-    - whitespace
+    - gocritic
+    - gomodguard
+    - lll
     - unused
     - varnamelen
-    - funlen
-    - goimports
-    - lll
-    - varnamelen
-    - funlen
-
-linters-settings:
-  cyclop:
-    max-complexity: 11
-  funlen:
-    lines: 100
-
+    - whitespace
+  settings:
+    cyclop:
+      max-complexity: 11
+    funlen:
+      lines: 100
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 severity:
-  default-severity: error
+  default: error
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -1,7 +1,8 @@
-package client
+package http
 
 import (
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -9,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valyala/fasthttp"
-
-	"github.com/Lynicis/inzibat/testUtils"
 )
 
 const (
@@ -27,11 +26,11 @@ var (
 
 func TestClient_Get(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -56,18 +55,18 @@ func TestClient_Get(t *testing.T) {
 		assert.Equal(t, []string{
 			TestReqHeaderValue,
 		}, xTestKeyHeader)
-		assert.Equal(t, &HttpResponse{
+		assert.Equal(t, &Response{
 			Status: fiber.StatusOK,
 			Body:   TestReqBody,
 		}, response)
 	})
 
 	t.Run("when HttpClient return error", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -88,11 +87,11 @@ func TestClient_Get(t *testing.T) {
 
 func TestClient_Post(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -115,18 +114,18 @@ func TestClient_Post(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
-		assert.Equal(t, &HttpResponse{
+		assert.Equal(t, &Response{
 			Status: fiber.StatusOK,
 			Body:   TestRespBody,
 		}, response)
 	})
 
 	t.Run("when HttpClient return error", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -147,11 +146,11 @@ func TestClient_Post(t *testing.T) {
 
 func TestClient_Put(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -174,18 +173,18 @@ func TestClient_Put(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
-		assert.Equal(t, &HttpResponse{
+		assert.Equal(t, &Response{
 			Status: fiber.StatusOK,
 			Body:   TestRespBody,
 		}, response)
 	})
 
 	t.Run("when HttpClient return error", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -206,11 +205,11 @@ func TestClient_Put(t *testing.T) {
 
 func TestClient_Delete(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -233,18 +232,18 @@ func TestClient_Delete(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
-		assert.Equal(t, &HttpResponse{
+		assert.Equal(t, &Response{
 			Status: fiber.StatusOK,
 			Body:   TestRespBody,
 		}, response)
 	})
 
 	t.Run("when HttpClient return error", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -265,11 +264,11 @@ func TestClient_Delete(t *testing.T) {
 
 func TestClient_Patch(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -292,18 +291,18 @@ func TestClient_Patch(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestReqBody, requestBodyBytes)
-		assert.Equal(t, &HttpResponse{
+		assert.Equal(t, &Response{
 			Status: fiber.StatusOK,
 			Body:   TestRespBody,
 		}, response)
 	})
 
 	t.Run("when HttpClient return error", func(t *testing.T) {
-		freePort, err := testUtils.GetFreePort()
+		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := &HttpClient{
-			FasthttpClient: &fasthttp.Client{},
+			client: &fasthttp.Client{},
 		}
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
@@ -320,4 +319,19 @@ func TestClient_Patch(t *testing.T) {
 
 		assert.Error(t, err)
 	})
+}
+
+func GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	tcpListener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer tcpListener.Close()
+
+	return tcpListener.Addr().(*net.TCPAddr).Port, nil
 }

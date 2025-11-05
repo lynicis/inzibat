@@ -4,7 +4,7 @@
     {
       "method": "GET",
       "path": "/1",
-      "mock": {
+      "requestTo": {
         "body": {
           "test": "test"
         },

@@ -1,26 +1,21 @@
 package config
 
 import (
-	"errors"
 	"net/http"
 	"runtime"
 )
 
-type Config interface {
-	LoadConfig(filename string) (*Cfg, error)
+type Reader struct {
+	ConfigReader ReaderStrategy
 }
 
-type Loader struct {
-	ConfigReader Reader
-}
-
-func (loader *Loader) LoadConfig(filename string) (*Cfg, error) {
-	config, err := loader.ConfigReader.ReadConfig(filename)
+func (reader *Reader) Read(filename string) (*Cfg, error) {
+	config, err := reader.ConfigReader.Read(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	for indexOfRoute, route := range config.Routes {
+	for routeIndex, route := range config.Routes {
 		var (
 			RequestToMethod = route.RequestTo.Method
 			RequestToBody   = route.RequestTo.Body
@@ -31,11 +26,11 @@ func (loader *Loader) LoadConfig(filename string) (*Cfg, error) {
 		}
 
 		if RequestToMethod == http.MethodGet && RequestToBody != nil {
-			return nil, errors.New(ErrorGetSendBody)
+			return nil, ErrorGetSendBody
 		}
 
-		config.Routes[indexOfRoute].Method = route.Method
-		config.Routes[indexOfRoute].RequestTo.Method = route.RequestTo.Method
+		config.Routes[routeIndex].Method = route.Method
+		config.Routes[routeIndex].RequestTo.Method = route.RequestTo.Method
 	}
 
 	if config.HealthCheckRoute {
@@ -44,7 +39,7 @@ func (loader *Loader) LoadConfig(filename string) (*Cfg, error) {
 			Route{
 				Method: "GET",
 				Path:   "/health",
-				Mock: Mock{
+				FakeResponse: FakeResponse{
 					StatusCode: http.StatusOK,
 				},
 			},
@@ -55,5 +50,5 @@ func (loader *Loader) LoadConfig(filename string) (*Cfg, error) {
 		config.Concurrency.RouteCreatorLimit = runtime.GOMAXPROCS(3)
 	}
 
-	return config, nil
+	return &config, nil
 }

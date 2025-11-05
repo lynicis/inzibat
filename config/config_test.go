@@ -56,10 +56,10 @@ func TestLoader_LoadConfig(t *testing.T) {
 			OutputError: nil,
 		}
 
-		cfgLoader := &Loader{
+		cfgLoader := &Reader{
 			ConfigReader: mockReader,
 		}
-		cfg, err := cfgLoader.LoadConfig("test-file-name")
+		cfg, err := cfgLoader.Read("test-file-name")
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedCfg, cfg)
@@ -72,10 +72,10 @@ func TestLoader_LoadConfig(t *testing.T) {
 			OutputError: expectedError,
 		}
 
-		cfgLoader := &Loader{
+		cfgLoader := &Reader{
 			ConfigReader: mockReader,
 		}
-		cfg, err := cfgLoader.LoadConfig("test-file-name")
+		cfg, err := cfgLoader.Read("test-file-name")
 
 		assert.Nil(t, cfg)
 		assert.Error(t, err)
@@ -83,7 +83,7 @@ func TestLoader_LoadConfig(t *testing.T) {
 	})
 
 	t.Run("against healthcheck route", func(t *testing.T) {
-		configLoader := &Loader{
+		configLoader := &Reader{
 			ConfigReader: &MockReader{
 				OutputCfg: &Cfg{
 					HealthCheckRoute: true,
@@ -91,14 +91,14 @@ func TestLoader_LoadConfig(t *testing.T) {
 				OutputError: nil,
 			},
 		}
-		cfg, err := configLoader.LoadConfig("")
+		cfg, err := configLoader.Read("")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
 	})
 
 	t.Run("against concurrency route creator limit", func(t *testing.T) {
-		configLoader := &Loader{
+		configLoader := &Reader{
 			ConfigReader: &MockReader{
 				OutputCfg: &Cfg{
 					Concurrency: Concurrency{
@@ -108,7 +108,7 @@ func TestLoader_LoadConfig(t *testing.T) {
 				OutputError: nil,
 			},
 		}
-		cfg, err := configLoader.LoadConfig("")
+		cfg, err := configLoader.Read("")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)

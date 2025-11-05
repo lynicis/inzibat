@@ -9,37 +9,37 @@ import (
 
 func TestNewReader(t *testing.T) {
 	t.Run("json reader", func(t *testing.T) {
-		jsonReader, err := NewReader(".json")
+		jsonReader, err := NewReaderStrategy(".json")
 
 		assert.NoError(t, err)
-		assert.Implements(t, (*Reader)(nil), jsonReader)
+		assert.Implements(t, (*ReaderStrategy)(nil), jsonReader)
 	})
 
 	t.Run("yaml reader", func(t *testing.T) {
 		t.Run("with .yaml extension", func(t *testing.T) {
-			yamlReader, err := NewReader(".yaml")
+			yamlReader, err := NewReaderStrategy(".yaml")
 
 			assert.NoError(t, err)
-			assert.Implements(t, (*Reader)(nil), yamlReader)
+			assert.Implements(t, (*ReaderStrategy)(nil), yamlReader)
 		})
 
 		t.Run("with .yml extension", func(t *testing.T) {
-			yamlReader, err := NewReader(".yml")
+			yamlReader, err := NewReaderStrategy(".yml")
 
 			assert.NoError(t, err)
-			assert.Implements(t, (*Reader)(nil), yamlReader)
+			assert.Implements(t, (*ReaderStrategy)(nil), yamlReader)
 		})
 	})
 
 	t.Run("toml reader", func(t *testing.T) {
-		tomlReader, err := NewReader(".toml")
+		tomlReader, err := NewReaderStrategy(".toml")
 
 		assert.NoError(t, err)
-		assert.Implements(t, (*Reader)(nil), tomlReader)
+		assert.Implements(t, (*ReaderStrategy)(nil), tomlReader)
 	})
 
 	t.Run("unknown file extension", func(t *testing.T) {
-		unknownReader, err := NewReader(".unknown")
+		unknownReader, err := NewReaderStrategy(".unknown")
 
 		assert.Error(t, err)
 		assert.Nil(t, unknownReader)
@@ -52,7 +52,7 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &JsonReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("../examples/inzibat.config.json")
+			cfg, err := jsonReader.Read("../examples/inzibat.config.json")
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
@@ -62,7 +62,7 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &YamlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("../examples/inzibat.config.yaml")
+			cfg, err := jsonReader.Read("../examples/inzibat.config.yaml")
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
@@ -72,7 +72,7 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &TomlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("../examples/inzibat.config.toml")
+			cfg, err := jsonReader.Read("../examples/inzibat.config.toml")
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
@@ -84,9 +84,9 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &JsonReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("")
+			cfg, err := jsonReader.Read("")
 
-			assert.Errorf(t, err, ErrorReadFile)
+			assert.Error(t, err, ErrorReadFile)
 			assert.Nil(t, cfg)
 		})
 
@@ -94,9 +94,9 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &YamlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("")
+			cfg, err := jsonReader.Read("")
 
-			assert.Errorf(t, err, ErrorReadFile)
+			assert.Error(t, err, ErrorReadFile)
 			assert.Nil(t, cfg)
 		})
 
@@ -104,9 +104,9 @@ func TestReader_ReadConfig(t *testing.T) {
 			jsonReader := &TomlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.ReadConfig("")
+			cfg, err := jsonReader.Read("")
 
-			assert.Errorf(t, err, ErrorReadFile)
+			assert.Error(t, err, ErrorReadFile)
 			assert.Nil(t, cfg)
 		})
 	})

@@ -1,4 +1,4 @@
-package router
+package handler
 
 import (
 	"bytes"
@@ -11,18 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Lynicis/inzibat/config"
+	"inzibat/config"
 )
 
 func TestMockRoute_CreateRoute(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		t.Run("GET Method", func(t *testing.T) {
-			mockRoute := &MockHandler{
-				RouteConfig: []config.Route{
+			mockRoute := &EndpointHandler{
+				RouteConfig: &[]config.Route{
 					{
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
-						Mock: config.Mock{
+						FakeResponse: config.FakeResponse{
 							Headers: map[string]string{
 								"X-Test-Header": "test-header-value",
 							},
@@ -35,7 +35,7 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 					},
 				},
 			}
-			handler := mockRoute.CreateRoute(0)
+			handler := mockRoute.CreateHandler(0)
 
 			fiberApp := fiber.New()
 			fiberApp.Get("/user", handler)
@@ -58,12 +58,12 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 		})
 
 		t.Run("Other HTTP Method", func(t *testing.T) {
-			mockRoute := &MockHandler{
-				RouteConfig: []config.Route{
+			mockRoute := &EndpointHandler{
+				RouteConfig: &[]config.Route{
 					{
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
-						Mock: config.Mock{
+						FakeResponse: config.FakeResponse{
 							Headers: map[string]string{
 								"X-Test-Header": "test-header-value",
 							},
@@ -75,7 +75,7 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 					},
 				},
 			}
-			handler := mockRoute.CreateRoute(0)
+			handler := mockRoute.CreateHandler(0)
 
 			fiberApp := fiber.New()
 			fiberApp.Post("/user", handler)

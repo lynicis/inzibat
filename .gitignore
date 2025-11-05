@@ -2,4 +2,4 @@
 .vscode/
 coverage.out
 inzibat
-./inzibat.config.json
+*.json

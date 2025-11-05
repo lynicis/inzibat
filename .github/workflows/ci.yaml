@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version: 1.25.3
 
       - uses: golangci/golangci-lint-action@v3
         with:
@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version: 1.25.3
 
       - run: CGO_ENABLED=0 GOOS=linux go build -o inzibat .
 
@@ -41,7 +41,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.21
+          go-version: 1.25.3
 
       - run: go test -tags=unit -coverprofile=coverage.out -covermode=atomic ./...
 

@@ -1,15 +1,12 @@
-run:
-	go run .
+.PHONY: generate-mock
+generate-mock:
+	mockgen -source=config/reader.go -destination=config/reader_mock.go -package=config
 
-build:
-	go build .
-
+.PHONY: lint
 lint:
 	golangci-lint --verbose run ./...
 
-test:
-	go test ./...
-
+.PHONY: coverage
 coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out

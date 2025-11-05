@@ -3,16 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 
-	"github.com/goccy/go-json"
+	json "github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v2"
-	"github.com/valyala/fasthttp"
 
-	"github.com/Lynicis/inzibat/client"
-	"github.com/Lynicis/inzibat/config"
-	"github.com/Lynicis/inzibat/router"
+	"inzibat/client/http"
+	"inzibat/config"
+	"inzibat/handler"
+	"inzibat/router"
 )
 
 func main() {
@@ -31,26 +33,34 @@ func main() {
 
 	extensionOfFilePath := path.Ext(configFileName)
 	if extensionOfFilePath == "" {
-		configFileName = path.Clean(
-			fmt.Sprintf("%s.json", configFileName),
-		)
+		configFileName = path.Clean(fmt.Sprintf("%s.json", configFileName))
 	}
 	configFilePath := path.Join(workingDirectory, configFileName)
 
-	var configReader config.Reader
-	configReader, err = config.NewReader(extensionOfFilePath)
+	var configReader config.ReaderStrategy
+	configReader, err = config.NewReaderStrategy(extensionOfFilePath)
 	if err != nil {
 		panic(err)
 	}
 
-	configLoader := &config.Loader{
+	configLoader := &config.Reader{
 		ConfigReader: configReader,
 	}
 
 	var cfg *config.Cfg
-	cfg, err = configLoader.LoadConfig(configFilePath)
+	cfg, err = configLoader.Read(configFilePath)
 	if err != nil {
 		panic(err)
+	}
+
+	httpClient := http.NewHttpClient()
+
+	endpointHandler := &handler.EndpointHandler{
+		RouteConfig: &cfg.Routes,
+	}
+	clientHandler := &handler.ClientHandler{
+		Client:      httpClient,
+		RouteConfig: &cfg.Routes,
 	}
 
 	fiberApp := fiber.New(fiber.Config{
@@ -58,26 +68,12 @@ func main() {
 		JSONDecoder:           json.Unmarshal,
 		JSONEncoder:           json.Marshal,
 	})
-
-	httpClient := &client.HttpClient{
-		FasthttpClient: &fasthttp.Client{
-			ReadTimeout:                   10 * time.Second,
-			WriteTimeout:                  10 * time.Second,
-			MaxIdleConnDuration:           10 * time.Second,
-			NoDefaultUserAgentHeader:      true,
-			DisableHeaderNamesNormalizing: true,
-			DisablePathNormalizing:        true,
-		},
+	mainRouter := &router.MainRouter{
+		Config:          cfg,
+		FiberApp:        fiberApp,
+		EndpointHandler: endpointHandler,
+		ClientHandler:   clientHandler,
 	}
-
-	mockHandler := router.NewMockHandler(cfg.Routes)
-	clientHandler := router.NewClientHandler(httpClient, cfg.Routes)
-	mainRouter := router.NewMainRouter(
-		cfg,
-		fiberApp,
-		mockHandler,
-		clientHandler,
-	)
 	mainRouter.CreateRoutes()
 
 	fmt.Print(
@@ -90,9 +86,17 @@ func main() {
 		),
 	)
 
-	serverPort := fmt.Sprintf(":%d", cfg.ServerPort)
-	err = fiberApp.Listen(serverPort)
-	if err != nil {
+	go func() {
+		if err = fiberApp.Listen(fmt.Sprintf(":%d", cfg.ServerPort)); err != nil {
+			panic(err)
+		}
+	}()
+
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+	<-signalChannel
+
+	if err = fiberApp.ShutdownWithTimeout(5 * time.Second); err != nil {
 		panic(err)
 	}
 }
