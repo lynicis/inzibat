@@ -25,19 +25,14 @@ type MainRouter struct {
 }
 
 func (mainRouter *MainRouter) CreateRoutes() {
-	var (
-		workerCount = mainRouter.Config.Concurrency.RouteCreatorLimit
-		routes      = mainRouter.Config.Routes
-		routeCount  = len(routes)
-	)
-
+	routeCount := len(mainRouter.Config.Routes)
 	routeChannel := make(chan *handler.RouteChannel, routeCount)
 	defer close(routeChannel)
 
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(routeCount)
 
-	for i := 0; i < workerCount; i++ {
+	for workerCount := 0; workerCount < mainRouter.Config.Concurrency; workerCount++ {
 		go func() {
 			for route := range routeChannel {
 				mainRouter.processRoute(route, &waitGroup)
@@ -45,7 +40,7 @@ func (mainRouter *MainRouter) CreateRoutes() {
 		}()
 	}
 
-	for routeIndex, route := range routes {
+	for routeIndex, route := range mainRouter.Config.Routes {
 		routeChannel <- &handler.RouteChannel{
 			Route:      route,
 			RouteIndex: routeIndex,
@@ -55,11 +50,16 @@ func (mainRouter *MainRouter) CreateRoutes() {
 	waitGroup.Wait()
 }
 
-func (mainRouter *MainRouter) processRoute(routeChannel *handler.RouteChannel, waitGroup *sync.WaitGroup) {
+// TODO:
+// make it open/closed
+// probably command pattern
+func (mainRouter *MainRouter) processRoute(
+	routeChannel *handler.RouteChannel,
+	waitGroup *sync.WaitGroup,
+) {
 	defer waitGroup.Done()
 
-	var routeFunction func(ctx *fiber.Ctx) error
-
+	var routeFunction fiber.Handler
 	if routeChannel.Route.RequestTo.Method != "" {
 		routeFunction = mainRouter.ClientHandler.CreateHandler(routeChannel.RouteIndex)
 	}

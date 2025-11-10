@@ -11,7 +11,7 @@ import (
 )
 
 type ReaderStrategy interface {
-	Read(filename string) (Cfg, error)
+	Read(filename string) (*Cfg, error)
 }
 
 func NewReaderStrategy(fileExtension string) (ReaderStrategy, error) {
@@ -35,19 +35,17 @@ type JsonReader struct {
 	KoanfInstance *koanf.Koanf
 }
 
-func (jsonReader *JsonReader) Read(filename string) (Cfg, error) {
-	err := jsonReader.KoanfInstance.Load(
+func (jsonReader *JsonReader) Read(filename string) (*Cfg, error) {
+	if err := jsonReader.KoanfInstance.Load(
 		file.Provider(filename),
 		json.Parser(),
-	)
-	if err != nil {
-		return Cfg{}, ErrorReadFile
+	); err != nil {
+		return nil, ErrorReadFile
 	}
 
-	var config Cfg
-	err = jsonReader.KoanfInstance.Unmarshal(filename, &config)
-	if err != nil {
-		return Cfg{}, ErrorUnmarshalling
+	var config *Cfg
+	if err := jsonReader.KoanfInstance.Unmarshal("", &config); err != nil {
+		return nil, ErrorUnmarshalling
 	}
 
 	return config, nil
@@ -57,19 +55,17 @@ type YamlReader struct {
 	KoanfInstance *koanf.Koanf
 }
 
-func (yamlReader *YamlReader) Read(filename string) (Cfg, error) {
-	err := yamlReader.KoanfInstance.Load(
+func (yamlReader *YamlReader) Read(filename string) (*Cfg, error) {
+	if err := yamlReader.KoanfInstance.Load(
 		file.Provider(filename),
 		yaml.Parser(),
-	)
-	if err != nil {
-		return Cfg{}, ErrorReadFile
+	); err != nil {
+		return nil, ErrorReadFile
 	}
 
-	var config Cfg
-	err = yamlReader.KoanfInstance.Unmarshal(filename, &config)
-	if err != nil {
-		return Cfg{}, ErrorUnmarshalling
+	var config *Cfg
+	if err := yamlReader.KoanfInstance.Unmarshal("", &config); err != nil {
+		return nil, ErrorUnmarshalling
 	}
 
 	return config, nil
@@ -79,19 +75,17 @@ type TomlReader struct {
 	KoanfInstance *koanf.Koanf
 }
 
-func (tomlReader *TomlReader) Read(filename string) (Cfg, error) {
-	err := tomlReader.KoanfInstance.Load(
+func (tomlReader *TomlReader) Read(filename string) (*Cfg, error) {
+	if err := tomlReader.KoanfInstance.Load(
 		file.Provider(filename),
 		toml.Parser(),
-	)
-	if err != nil {
-		return Cfg{}, ErrorReadFile
+	); err != nil {
+		return nil, ErrorReadFile
 	}
 
-	var config Cfg
-	err = tomlReader.KoanfInstance.Unmarshal(filename, &config)
-	if err != nil {
-		return Cfg{}, ErrorUnmarshalling
+	var config *Cfg
+	if err := tomlReader.KoanfInstance.Unmarshal("", &config); err != nil {
+		return nil, ErrorUnmarshalling
 	}
 
 	return config, nil

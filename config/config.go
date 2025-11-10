@@ -46,9 +46,9 @@ func (reader *Reader) Read(filename string) (*Cfg, error) {
 		)
 	}
 
-	if config.Concurrency.RouteCreatorLimit == 0 {
-		config.Concurrency.RouteCreatorLimit = runtime.GOMAXPROCS(3)
+	if config.Concurrency == 0 {
+		config.Concurrency = runtime.GOMAXPROCS(3)
 	}
 
-	return &config, nil
+	return config, nil
 }

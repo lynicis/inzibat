@@ -40,10 +40,10 @@ func (m *MockReaderStrategy) EXPECT() *MockReaderStrategyMockRecorder {
 }
 
 // Read mocks base method.
-func (m *MockReaderStrategy) Read(filename string) (Cfg, error) {
+func (m *MockReaderStrategy) Read(filename string) (*Cfg, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read", filename)
-	ret0, _ := ret[0].(Cfg)
+	ret0, _ := ret[0].(*Cfg)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

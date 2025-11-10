@@ -2,30 +2,21 @@ package http
 
 import (
 	"errors"
+	"net"
 	"net/http"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 )
 
-type Client interface {
-	Get(uri string, requestHeader map[string]string) (*Response, error)
-	Post(uri string, requestHeader map[string]string, requestBody []byte) (*Response, error)
-	Put(uri string, requestHeader map[string]string, requestBody []byte) (*Response, error)
-	Patch(uri string, requestHeader map[string]string, requestBody []byte) (*Response, error)
-	Delete(uri string, requestHeader map[string]string, requestBody []byte) (*Response, error)
+type Client struct {
+	client *fasthttp.Client
 }
 
-type HttpClient struct {
-	client       *fasthttp.Client
-	requestPool  sync.Pool
-	responsePool sync.Pool
-}
-
-func NewHttpClient() *HttpClient {
-	return &HttpClient{
+func NewHttpClient() *Client {
+	return &Client{
 		client: &fasthttp.Client{
 			ReadTimeout:                   10 * time.Second,
 			WriteTimeout:                  10 * time.Second,
@@ -35,76 +26,68 @@ func NewHttpClient() *HttpClient {
 			NoDefaultUserAgentHeader:      true,
 			DisableHeaderNamesNormalizing: true,
 			DisablePathNormalizing:        true,
-		},
-		requestPool: sync.Pool{
-			New: func() interface{} {
-				return &fasthttp.Request{}
-			},
-		},
-		responsePool: sync.Pool{
-			New: func() interface{} {
-				return &fasthttp.Response{}
-			},
+			Dial: (&fasthttp.TCPDialer{
+				Concurrency:      4096,
+				DNSCacheDuration: time.Hour,
+			}).Dial,
 		},
 	}
 }
 
-func (httpClient *HttpClient) Get(
+func (httpClient *Client) Get(
 	uri string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 ) (*Response, error) {
 	return httpClient.makeRequest(uri, http.MethodGet, requestHeader, nil)
 }
 
-func (httpClient *HttpClient) Post(
+func (httpClient *Client) Post(
 	uri string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
 	return httpClient.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
 }
 
-func (httpClient *HttpClient) Put(
+func (httpClient *Client) Put(
 	uri string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
 	return httpClient.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
 }
 
-func (httpClient *HttpClient) Patch(
+func (httpClient *Client) Patch(
 	uri string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
 	return httpClient.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
 }
 
-func (httpClient *HttpClient) Delete(
+func (httpClient *Client) Delete(
 	uri string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
 	return httpClient.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
 }
 
-func (httpClient *HttpClient) makeRequest(
+// TODO: implement retry mechanism
+func (httpClient *Client) makeRequest(
 	uri string,
 	method string,
-	requestHeader map[string]string,
+	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
-	req := httpClient.requestPool.Get().(*fasthttp.Request)
-	defer httpClient.requestPool.Put(req)
-	req.Reset()
-
+	req := fasthttp.AcquireRequest()
 	req.SetRequestURI(uri)
 	req.Header.SetMethod(method)
 	req.Header.SetContentType(fiber.MIMEApplicationJSON)
 
 	if len(requestHeader) > 0 {
 		for headerKey, headerValue := range requestHeader {
-			req.Header.Set(headerKey, headerValue)
+			req.Header.Set(headerKey, strings.Join(headerValue, ""))
 		}
 	}
 
@@ -112,12 +95,8 @@ func (httpClient *HttpClient) makeRequest(
 		req.SetBody(requestBody)
 	}
 
-	resp := httpClient.responsePool.Get().(*fasthttp.Response)
-	defer httpClient.responsePool.Put(resp)
-	resp.Reset()
-
-	err := httpClient.client.Do(req, resp)
-	if err != nil {
+	resp := fasthttp.AcquireResponse()
+	if err := httpClient.client.Do(req, resp); err != nil {
 		return nil, err
 	}
 
@@ -127,6 +106,21 @@ func (httpClient *HttpClient) makeRequest(
 
 	return &Response{
 		Status: resp.StatusCode(),
-		Body:   append([]byte(nil), resp.Body()...),
+		Body:   resp.Body(),
 	}, nil
+}
+
+func GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	tcpListener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer tcpListener.Close()
+
+	return tcpListener.Addr().(*net.TCPAddr).Port, nil
 }

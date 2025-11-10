@@ -2,14 +2,13 @@ package http
 
 import (
 	"fmt"
-	"net"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -29,9 +28,7 @@ func TestClient_Get(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -47,8 +44,8 @@ func TestClient_Get(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Get(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		response, err := httpClient.Get(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		})
 
 		assert.NoError(t, err)
@@ -65,9 +62,7 @@ func TestClient_Get(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -77,8 +72,8 @@ func TestClient_Get(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Get(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		_, err = httpClient.Get(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		})
 
 		assert.Error(t, err)
@@ -90,9 +85,7 @@ func TestClient_Post(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -108,8 +101,8 @@ func TestClient_Post(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Post(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		response, err := httpClient.Post(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.NoError(t, err)
@@ -124,9 +117,7 @@ func TestClient_Post(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -136,8 +127,8 @@ func TestClient_Post(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Post(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		_, err = httpClient.Post(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.Error(t, err)
@@ -149,9 +140,7 @@ func TestClient_Put(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -167,8 +156,8 @@ func TestClient_Put(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Put(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		response, err := httpClient.Put(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.NoError(t, err)
@@ -183,9 +172,7 @@ func TestClient_Put(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -195,8 +182,8 @@ func TestClient_Put(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Put(uri, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		_, err = httpClient.Put(uri, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.Error(t, err)
@@ -208,9 +195,7 @@ func TestClient_Delete(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -226,8 +211,8 @@ func TestClient_Delete(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Delete(url, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		response, err := httpClient.Delete(url, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.NoError(t, err)
@@ -242,9 +227,7 @@ func TestClient_Delete(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -254,8 +237,8 @@ func TestClient_Delete(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Delete(url, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		_, err = httpClient.Delete(url, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.Error(t, err)
@@ -267,9 +250,7 @@ func TestClient_Patch(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -285,8 +266,8 @@ func TestClient_Patch(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Patch(url, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		response, err := httpClient.Patch(url, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.NoError(t, err)
@@ -301,9 +282,7 @@ func TestClient_Patch(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
-		httpClient := &HttpClient{
-			client: &fasthttp.Client{},
-		}
+		httpClient := NewHttpClient()
 		mockServer := fiber.New(fiber.Config{
 			DisableStartupMessage: true,
 		})
@@ -313,25 +292,10 @@ func TestClient_Patch(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Patch(url, map[string]string{
-			TestReqHeaderKey: TestReqHeaderValue,
+		_, err = httpClient.Patch(url, http.Header{
+			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
 		assert.Error(t, err)
 	})
-}
-
-func GetFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	tcpListener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer tcpListener.Close()
-
-	return tcpListener.Addr().(*net.TCPAddr).Port, nil
 }

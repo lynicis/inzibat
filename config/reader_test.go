@@ -1,10 +1,13 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewReader(t *testing.T) {
@@ -48,31 +51,35 @@ func TestNewReader(t *testing.T) {
 
 func TestReader_ReadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
+		cwd, err := getCwd()
+		require.NoError(t, err)
+
 		t.Run("json reader", func(t *testing.T) {
 			jsonReader := &JsonReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.Read("../examples/inzibat.config.json")
+
+			cfg, err := jsonReader.Read(filepath.Join(cwd, "examples", DefaultConfigFileName))
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
 		})
 
 		t.Run("yaml reader", func(t *testing.T) {
-			jsonReader := &YamlReader{
+			yamlReader := &YamlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.Read("../examples/inzibat.config.yaml")
+			cfg, err := yamlReader.Read(filepath.Join(cwd, "examples", "inzibat.yaml"))
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
 		})
 
 		t.Run("toml reader", func(t *testing.T) {
-			jsonReader := &TomlReader{
+			tomlReader := &TomlReader{
 				KoanfInstance: koanf.New("."),
 			}
-			cfg, err := jsonReader.Read("../examples/inzibat.config.toml")
+			cfg, err := tomlReader.Read(filepath.Join(cwd, "examples", "inzibat.toml"))
 
 			assert.NoError(t, err)
 			assert.NotNil(t, cfg)
@@ -110,4 +117,13 @@ func TestReader_ReadConfig(t *testing.T) {
 			assert.Nil(t, cfg)
 		})
 	})
+}
+
+func getCwd() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(cwd, "../"), nil
 }

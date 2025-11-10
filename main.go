@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	json "github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 
 	"inzibat/client/http"
 	"inzibat/config"
 	"inzibat/handler"
+	_ "inzibat/log"
 	"inzibat/router"
 )
 
@@ -28,19 +30,19 @@ func main() {
 	var workingDirectory string
 	workingDirectory, err = os.Getwd()
 	if err != nil {
-		panic(err)
+		zap.L().Fatal("failed to get current working directory path", zap.Error(err))
 	}
 
-	extensionOfFilePath := path.Ext(configFileName)
+	extensionOfFilePath := filepath.Ext(configFileName)
 	if extensionOfFilePath == "" {
-		configFileName = path.Clean(fmt.Sprintf("%s.json", configFileName))
+		configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
 	}
-	configFilePath := path.Join(workingDirectory, configFileName)
+	configFilePath := filepath.Join(workingDirectory, configFileName)
 
 	var configReader config.ReaderStrategy
 	configReader, err = config.NewReaderStrategy(extensionOfFilePath)
 	if err != nil {
-		panic(err)
+		zap.L().Fatal("failed to create config reader strategy", zap.Error(err))
 	}
 
 	configLoader := &config.Reader{
@@ -50,14 +52,13 @@ func main() {
 	var cfg *config.Cfg
 	cfg, err = configLoader.Read(configFilePath)
 	if err != nil {
-		panic(err)
+		zap.L().Fatal("failed to read config", zap.Error(err))
 	}
-
-	httpClient := http.NewHttpClient()
 
 	endpointHandler := &handler.EndpointHandler{
 		RouteConfig: &cfg.Routes,
 	}
+	httpClient := http.NewHttpClient()
 	clientHandler := &handler.ClientHandler{
 		Client:      httpClient,
 		RouteConfig: &cfg.Routes,
@@ -87,8 +88,8 @@ func main() {
 	)
 
 	go func() {
-		if err = fiberApp.Listen(fmt.Sprintf(":%d", cfg.ServerPort)); err != nil {
-			panic(err)
+		if err = fiberApp.Listen(cfg.GetServerAddr()); err != nil {
+			zap.L().Fatal("failed to start http server", zap.Error(err))
 		}
 	}()
 
@@ -97,6 +98,6 @@ func main() {
 	<-signalChannel
 
 	if err = fiberApp.ShutdownWithTimeout(5 * time.Second); err != nil {
-		panic(err)
+		zap.L().Fatal("failed to shutdown gracefully", zap.Error(err))
 	}
 }

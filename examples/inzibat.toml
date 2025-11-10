@@ -1,4 +1,5 @@
 serverPort = 8080
+concurrency = 5
 
 [[routes]]
 method = "GET"
@@ -11,10 +12,10 @@ path = "/route-one"
 passWithRequestHeaders = true
 passWithRequestBody = true
 
-[routes.requestTo.headers]
+[[routes.requestTo.headers]]
 xTestHeader = "TestHeaderValue"
 
-[routes.requestTo.body]
+[routes.requestTo.bodyString]
 testKey = "testValue"
 
 [[routes]]
@@ -28,8 +29,5 @@ method = "GET"
 passWithRequestBody = true
 passWithRequestHeaders = true
 
-[routes.requestTo.headers]
+[[routes.requestTo.headers]]
 xTestHeader = "TestHeaderValue"
-
-[concurrency]
-routeCreatorLimit = 5

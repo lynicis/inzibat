@@ -7,9 +7,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
-func TestLoader_LoadConfig(t *testing.T) {
+func TestReader_Read(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	t.Run("happy path", func(t *testing.T) {
 		expectedCfg := &Cfg{
 			ServerPort: 8080,
@@ -46,15 +50,14 @@ func TestLoader_LoadConfig(t *testing.T) {
 					},
 				},
 			},
-			Concurrency: Concurrency{
-				RouteCreatorLimit: 5,
-			},
+			Concurrency: 5,
 		}
 
-		mockReader := &MockReader{
-			OutputCfg:   expectedCfg,
-			OutputError: nil,
-		}
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(expectedCfg, nil).
+			Times(1)
 
 		cfgLoader := &Reader{
 			ConfigReader: mockReader,
@@ -66,11 +69,11 @@ func TestLoader_LoadConfig(t *testing.T) {
 	})
 
 	t.Run("when reader return error should return it", func(t *testing.T) {
-		expectedError := errors.New("something went wrong")
-		mockReader := &MockReader{
-			OutputCfg:   nil,
-			OutputError: expectedError,
-		}
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(nil, errors.New("something went wrong")).
+			Times(1)
 
 		cfgLoader := &Reader{
 			ConfigReader: mockReader,
@@ -78,37 +81,39 @@ func TestLoader_LoadConfig(t *testing.T) {
 		cfg, err := cfgLoader.Read("test-file-name")
 
 		assert.Nil(t, cfg)
-		assert.Error(t, err)
-		assert.Equal(t, expectedError, err)
+		assert.Errorf(t, err, "something went wrong")
 	})
 
 	t.Run("against healthcheck route", func(t *testing.T) {
-		configLoader := &Reader{
-			ConfigReader: &MockReader{
-				OutputCfg: &Cfg{
-					HealthCheckRoute: true,
-				},
-				OutputError: nil,
-			},
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(&Cfg{HealthCheckRoute: true}, nil).
+			Times(1)
+
+		configReader := &Reader{
+			ConfigReader: mockReader,
 		}
-		cfg, err := configLoader.Read("")
+
+		cfg, err := configReader.Read("")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
 	})
 
 	t.Run("against concurrency route creator limit", func(t *testing.T) {
-		configLoader := &Reader{
-			ConfigReader: &MockReader{
-				OutputCfg: &Cfg{
-					Concurrency: Concurrency{
-						RouteCreatorLimit: 0,
-					},
-				},
-				OutputError: nil,
-			},
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(&Cfg{
+				Concurrency: 0,
+			}, nil).
+			Times(1)
+
+		configReader := &Reader{
+			ConfigReader: mockReader,
 		}
-		cfg, err := configLoader.Read("")
+		cfg, err := configReader.Read("")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
