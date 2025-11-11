@@ -22,6 +22,7 @@ This repository provides a configurable mock server written in Go. It reads simp
     - [From Releases (Recommended)](#from-releases-recommended)
     - [From Source](#from-source)
   - [🚀 Quick Start (Hello, World!)](#-quick-start-hello-world)
+  - [🧪 Testing](#-testing)
   - [🤝 Contributing](#-contributing)
   - [📜 License](#-license)
 
@@ -53,56 +54,33 @@ This is the easiest way to get `inzibat` for most users.
 # Example for Linux/macOS
 tar -xzf inzibat_linux_amd64.tar.gz
 sudo mv inzibat /usr/local/bin/
-````
-
-\<details\>
-\<summary\>\<b\>Advanced Download (using \<code\>gh\</code\> or \<code\>curl\</code\>)\</b\>\</summary\>
-
-**Using GitHub CLI (`gh`):**
-
-```bash
-# Downloads the latest 'darwin_arm64' asset
-gh release download -R Lynicis/inzibat -p "*_darwin_arm64.tar.gz"
-tar -xzf inzibat_*.tar.gz
-sudo mv inzibat /usr/local/bin/
 ```
-
-**Using `curl` + `jq` (Linux amd64 example):**
-
-```bash
-ASSET_URL=$(curl -s [https://api.github.com/repos/Lynicis/inzibat/releases/latest](https://api.github.com/repos/Lynicis/inzibat/releases/latest) | jq -r '.assets[] | select(.name|test("linux.*amd64")) | .browser_download_url')
-curl -L -o /tmp/inzibat.tar.gz "$ASSET_URL"
-tar -xzf /tmp/inzibat.tar.gz -C /tmp
-sudo mv /tmp/inzibat /usr/local/bin/
-```
-
-\</details\>
 
 ### From Source
 
-If you have Go (1.25+) installed, you can build and install `inzibat` from source.
+If you have Go (1.25+) installed, you can build `inzibat` from source.
 
-**Option 1: `go install` (Quickest)**
+Option 1: go install (quick)
 
 ```bash
-go install [github.com/Lynicis/inzibat@latest](https://github.com/Lynicis/inzibat@latest)
+go install github.com/Lynicis/inzibat@latest
 ```
 
-**Option 2: Build from Clone (for development)**
+Option 2: Build from Clone (for development)
 
 ```bash
-git clone [https://github.com/Lynicis/inzibat.git](https://github.com/Lynicis/inzibat.git)
+git clone https://github.com/Lynicis/inzibat.git
 cd inzibat
 go build -o inzibat .
 ```
 
------
+---
 
 ## 🚀 Quick Start (Hello, World\!)
 
 Let's get a mock server running in 30 seconds.
 
-**1. Create a config file**
+1. Create a config file
 
 Create a file named `config.yml`:
 
@@ -119,15 +97,21 @@ routes:
       body: '{"message": "Hello, World!"}'
 ```
 
-**2. Run Inzibat**
+1. Run Inzibat
 
-Start the server, pointing it to your new config file:
+Start the server by running the binary (ensure your config file is next to the binary):
 
 ```bash
-**2. Run Inzibat**
-Inzibat is configured using a single file, which can be in **YAML**, **JSON**, or **TOML** format.
+./inzibat
+```
 
-Place your config file in the same directory as the binary and name it `inzibat.yml`, `inzibat.json`, or `inzibat.toml`.
+1. Test it!
+
+In another terminal, use curl to send a request:
+
+```bash
+curl http://localhost:8080/api/hello
+```
 
 ## 🧪 Testing
 
@@ -139,16 +123,16 @@ go test ./... -v
 
 ## 🤝 Contributing
 
-Contributions are welcome\! Please follow these steps:
+Contributions are welcome! Please follow these steps:
 
-1.  Fork the repository.
-2.  Create a new feature branch (`git checkout -b feature/my-new-feature`).
-3.  Make your changes and add tests for any new behavior.
-4.  Run the tests (`go test ./...`).
+1. Fork the repository.
+2. Create a new feature branch (`git checkout -b feature/my-new-feature`).
+3. Make your changes and add tests for any new behavior.
+4. Run the tests (`go test ./...`).
 5. Open a Pull Request describing your changes.
 
 For bug reports or feature requests, please [open an issue](https://github.com/Lynicis/inzibat/issues) with a reproducible example.
 
 ## 📜 License
 
-This project is licensed under the MIT License — see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
