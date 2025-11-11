@@ -3,3 +3,5 @@
 coverage.out
 inzibat
 *.json
+!examples/*.json
+!examples/**/*.json
