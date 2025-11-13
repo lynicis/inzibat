@@ -77,6 +77,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: securego/gosec@master
+      - uses: actions/setup-go@v6
         with:
-          args: ./...
+          go-version: ${{ env.GO_VERSION }}
+
+      - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - run: gosec ./...
+
