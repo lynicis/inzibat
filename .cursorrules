@@ -1,0 +1,93 @@
+# Inzibat - Cursor AI Rules
+
+You are working on **Inzibat**, a lightweight HTTP mock server written in Go.
+
+## Project Context
+
+- **Language**: Go 1.25.4
+- **Framework**: Fiber v2 (using fasthttp)
+- **Testing**: testify (assert, mock), go.uber.org/mock
+- **Logging**: zap (go.uber.org/zap)
+- **Config**: Supports JSON, TOML, YAML via koanf
+- **Validation**: go-playground/validator/v10
+
+## Code Style & Conventions
+
+### General Go Practices
+- Follow standard Go conventions and idioms
+- Use meaningful variable names
+- Keep functions focused and single-purpose
+- Prefer composition over inheritance
+- Handle errors explicitly (no silent failures)
+- Use `zap.L()` for logging throughout the codebase
+
+### Package Structure
+- `config/`: Configuration reading and validation
+- `handler/`: HTTP request handlers (EndpointHandler, ClientHandler)
+- `router/`: Route registration and setup
+- `client/`: HTTP client implementations
+- `log/`: Logging initialization
+
+### Error Handling
+- Return errors explicitly, don't panic (except in constructors for nil dependencies)
+- Use custom error types in `config/error.go` when appropriate
+- Log errors with context using zap fields
+
+### Testing Standards
+- All tests must follow AAA pattern (Arrange, Act, Assert) with clear comments
+- Use `github.com/stretchr/testify/assert` for assertions
+- Use `github.com/stretchr/testify/mock` for mocking
+- Test happy paths and error scenarios
+- For constructors: test panics when critical dependencies are nil
+- For handlers: test that errors return proper HTTP status codes, not panics
+- Use `net/http/httptest` for HTTP handler testing
+
+### HTTP Handler Patterns
+- Handlers use Fiber context (`*fiber.Ctx`)
+- Return errors from handlers (Fiber handles them)
+- Set status codes explicitly: `ctx.Status(code)`
+- Use `ctx.SendString()` for string responses
+- Use `ctx.JSON()` for JSON responses
+
+### Configuration
+- Config files: `inzibat.json`, `inzibat.toml`, `inzibat.yaml`
+- Config is validated using go-playground/validator
+- Default config filename: `inzibat.json`
+- Environment variable override: `INZIBAT_CONFIG_FILE`
+
+### Code Generation
+- Use `go.uber.org/mock` for generating mocks
+- Run `make generate-mock` to regenerate mocks
+- Mock files: `*_mock.go` (e.g., `config/reader_mock.go`)
+
+## When Writing Code
+
+1. **New Handlers**: Follow the pattern in `handler/endpoint.go` and `handler/client.go`
+2. **New Routes**: Add to router in `router/router.go` following existing patterns
+3. **Config Changes**: Update `config/model.go` and ensure validation rules are added
+4. **Tests**: Always write tests alongside code, following the AAA pattern
+5. **Logging**: Use structured logging with zap, include relevant context
+
+## Dependencies
+
+Key dependencies to be aware of:
+- `github.com/gofiber/fiber/v2` - Web framework
+- `github.com/knadh/koanf/v2` - Configuration management
+- `github.com/go-playground/validator/v10` - Struct validation
+- `go.uber.org/zap` - Structured logging
+- `github.com/stretchr/testify` - Testing utilities
+
+## Build & Development
+
+- Run tests: `go test ./... -v`
+- Generate coverage: `make coverage`
+- Lint: `make lint`
+- Generate mocks: `make generate-mock`
+
+## Important Notes
+
+- This is a mock server - focus on simplicity and configurability
+- Routes are defined in config files, not hardcoded
+- The server supports both mock responses and proxying to real services
+- Health check route can be enabled via config
+

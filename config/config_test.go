@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -22,17 +23,21 @@ func TestReader_Read(t *testing.T) {
 					Method: fiber.MethodGet,
 					Path:   "/route-one",
 					RequestTo: RequestTo{
-						Method: http.MethodPost,
+						Method: http.MethodPut,
 						Headers: map[string][]string{
 							"X-Test-Header": {"Test-Header-Value"},
 						},
-						Body: map[string]interface{}{
+						Body: HttpBody{
 							"testKey": "testValue",
 						},
 						Host:                   "http://localhost:8081",
 						Path:                   "/route-one",
 						PassWithRequestBody:    true,
 						PassWithRequestHeaders: true,
+					},
+					FakeResponse: FakeResponse{
+						Body:       HttpBody{},
+						StatusCode: http.StatusOK,
 					},
 				},
 				{
@@ -48,6 +53,10 @@ func TestReader_Read(t *testing.T) {
 						PassWithRequestBody:    true,
 						PassWithRequestHeaders: true,
 					},
+					FakeResponse: FakeResponse{
+						Body:       HttpBody{},
+						StatusCode: http.StatusOK,
+					},
 				},
 			},
 			Concurrency: 5,
@@ -61,6 +70,7 @@ func TestReader_Read(t *testing.T) {
 
 		cfgLoader := &Reader{
 			ConfigReader: mockReader,
+			Validator:    validator.New(),
 		}
 		cfg, err := cfgLoader.Read("test-file-name")
 

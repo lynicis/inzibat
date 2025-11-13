@@ -1,9 +1,11 @@
 package handler
 
 import (
-	"inzibat/config"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+
+	"inzibat/config"
 )
 
 type EndpointHandler struct {
@@ -17,7 +19,7 @@ func (mockRoute *EndpointHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 
 		if len(resp.Headers) > 0 {
 			for headerKey, headerValue := range resp.Headers {
-				ctx.Set(headerKey, headerValue)
+				ctx.Set(headerKey, strings.Join(headerValue, ","))
 			}
 		}
 

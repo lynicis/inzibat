@@ -3,16 +3,25 @@ package config
 import (
 	"net/http"
 	"runtime"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Reader struct {
 	ConfigReader ReaderStrategy
+	Validator    *validator.Validate
 }
 
 func (reader *Reader) Read(filename string) (*Cfg, error) {
 	config, err := reader.ConfigReader.Read(filename)
 	if err != nil {
 		return nil, err
+	}
+
+	if reader.Validator != nil {
+		if err = reader.Validator.Struct(config); err != nil {
+			return nil, err
+		}
 	}
 
 	for routeIndex, route := range config.Routes {

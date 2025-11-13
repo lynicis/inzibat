@@ -1,0 +1,41 @@
+# Cursor ignore file
+# Files and directories to exclude from Cursor's context
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vendor/
+
+# Generated files (but keep mocks as they're part of the codebase)
+# *_mock.go files are kept as they're version controlled
+
+# Temporary files
+*.tmp
+*.log
+
+# Git
+.git/
+
+# Cursor internal (but keep rules)
+.cursor/*
+!.cursor/rules/
+

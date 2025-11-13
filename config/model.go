@@ -14,8 +14,8 @@ const (
 )
 
 type Cfg struct {
-	ServerPort       int     `koanf:"serverPort"`
-	Routes           []Route `koanf:"routes"`
+	ServerPort       int     `koanf:"serverPort" validate:"required"`
+	Routes           []Route `koanf:"routes" validate:"required,gt=0,dive,required"`
 	Concurrency      int     `koanf:"concurrency"`
 	HealthCheckRoute bool    `koanf:"isHealthCheckRouteEnabled"`
 }
@@ -25,21 +25,21 @@ func (cfg *Cfg) GetServerAddr() string {
 }
 
 type Route struct {
-	Method       string       `koanf:"method" validate:"oneof=GET,PUT,PATCH,DELETE"`
-	Path         string       `koanf:"path"`
+	Method       string       `koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
+	Path         string       `koanf:"path" validate:"required,startswith=/"`
 	RequestTo    RequestTo    `koanf:"requestTo"`
 	FakeResponse FakeResponse `koanf:"fakeResponse"`
 }
 
 type RequestTo struct {
-	Method                 string                 `koanf:"method" validate:"oneof=GET,PUT,PATCH,DELETE"`
-	Headers                http.Header            `koanf:"headers"`
-	Body                   map[string]interface{} `koanf:"body"`
-	Host                   string                 `koanf:"host" validate:"url"`
-	Path                   string                 `koanf:"path"`
-	PassWithRequestBody    bool                   `koanf:"passWithRequestBody"`
-	PassWithRequestHeaders bool                   `koanf:"passWithRequestHeaders"`
-	InErrorReturn500       bool                   `koanf:"inErrorReturn500"`
+	Method                 string      `koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
+	Headers                http.Header `koanf:"headers"`
+	Body                   HttpBody    `koanf:"body"`
+	Host                   string      `koanf:"host" validate:"url"`
+	Path                   string      `koanf:"path" validate:"required,startswith=/"`
+	PassWithRequestBody    bool        `koanf:"passWithRequestBody"`
+	PassWithRequestHeaders bool        `koanf:"passWithRequestHeaders"`
+	InErrorReturn500       bool        `koanf:"inErrorReturn500"`
 }
 
 func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
@@ -51,9 +51,11 @@ func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
 	return parsedUrl, nil
 }
 
+type HttpBody map[string]any
+
 type FakeResponse struct {
-	Headers    map[string]string      `koanf:"headers"`
-	Body       map[string]interface{} `koanf:"body"`
-	BodyString string                 `koanf:"bodyString"`
-	StatusCode int                    `koanf:"statusCode"`
+	Headers    http.Header `koanf:"headers"`
+	Body       HttpBody    `koanf:"body" validate:"required_without=BodyString"`
+	BodyString string      `koanf:"bodyString" validate:"required_without=Body"`
+	StatusCode int         `koanf:"statusCode" validate:"required"`
 }

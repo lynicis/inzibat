@@ -57,7 +57,7 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 
 			return ctx.
 				Status(fiber.StatusInternalServerError).
-				SendString(err.Error())
+				SendString(returnedError.Error())
 		}
 
 		return ctx.

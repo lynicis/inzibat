@@ -32,7 +32,7 @@ func TestClientHandler_CreateEndpoint(t *testing.T) {
 						Headers: http.Header{
 							"Test-Header": {"Test"},
 						},
-						Body: map[string]interface{}{
+						Body: config.HttpBody{
 							"Test": "Test",
 						},
 						Host:                   host,

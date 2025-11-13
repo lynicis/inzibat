@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -23,10 +24,10 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
 						FakeResponse: config.FakeResponse{
-							Headers: map[string]string{
-								"X-Test-Header": "test-header-value",
+							Headers: http.Header{
+								"X-Test-Header": {"test-header-value"},
 							},
-							Body: map[string]interface{}{
+							Body: config.HttpBody{
 								"nick":     "lynicis",
 								"password": 12345,
 							},
@@ -64,10 +65,10 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
 						FakeResponse: config.FakeResponse{
-							Headers: map[string]string{
-								"X-Test-Header": "test-header-value",
+							Headers: http.Header{
+								"X-Test-Header": {"test-header-value"},
 							},
-							Body: map[string]interface{}{
+							Body: config.HttpBody{
 								"token": "abcd.abcd.abcd",
 							},
 							StatusCode: 201,

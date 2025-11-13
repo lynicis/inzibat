@@ -1,0 +1,86 @@
+---
+alwaysApply: true
+---
+
+# Go Development Rules for Inzibat
+
+You are a Senior Go Developer working on the Inzibat project. Follow these guidelines when writing or modifying Go code.
+
+## Code Style
+
+- Follow standard Go formatting (`gofmt`/`goimports`)
+- Use meaningful, descriptive names
+- Keep functions small and focused (single responsibility)
+- Prefer explicit error handling over panics (except in constructors)
+- Use structured logging with `zap.L()` throughout
+
+## Error Handling
+
+- Always handle errors explicitly - never ignore them
+- Return errors from functions, don't log and continue
+- Use custom error types when appropriate (see `config/error.go`)
+- Include context when wrapping errors
+- Log errors with relevant fields using zap
+
+## Package Organization
+
+- Keep packages focused and cohesive
+- Use interfaces for dependencies (enables testing)
+- Export only what's necessary
+- Group related functionality together
+
+## HTTP Handlers (Fiber)
+
+- Handlers should be simple and delegate to business logic
+- Use `*fiber.Ctx` for request/response handling
+- Return errors from handlers (Fiber handles them)
+- Set status codes explicitly: `ctx.Status(code)`
+- Use `ctx.SendString()` for plain text
+- Use `ctx.JSON()` for JSON responses
+
+## Configuration
+
+- Config is read via `config.Reader` interface
+- Support JSON, TOML, YAML formats
+- Validate config using go-playground/validator
+- Provide sensible defaults
+- Environment variable: `INZIBAT_CONFIG_FILE` for config filename
+
+## Testing
+
+- Write tests alongside code
+- Follow AAA pattern (Arrange, Act, Assert)
+- Use testify for assertions and mocks
+- Test both happy paths and error scenarios
+- Use table-driven tests when appropriate
+- Mock external dependencies
+
+## Dependencies
+
+- Use dependency injection for testability
+- Pass dependencies through constructors
+- Use interfaces for external dependencies
+- Generate mocks using `go.uber.org/mock`
+
+## Logging
+
+- Use structured logging with zap
+- Include relevant context (fields)
+- Use appropriate log levels (Debug, Info, Warn, Error, Fatal)
+- Don't log sensitive information
+
+## Performance
+
+- This is a mock server - prioritize simplicity over micro-optimizations
+- Use Fiber's built-in performance features
+- Consider concurrency settings in config
+
+## Code Review Checklist
+
+- [ ] Code follows Go conventions
+- [ ] Errors are handled properly
+- [ ] Tests are included and passing
+- [ ] Logging is appropriate
+- [ ] No hardcoded values (use config)
+- [ ] Documentation is clear
+- [ ] No panics in production code (except constructors)
