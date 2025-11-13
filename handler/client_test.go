@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,55 +14,199 @@ import (
 	"inzibat/config"
 )
 
-func TestClientHandler_CreateEndpoint(t *testing.T) {
-	port, err := httpPkg.GetFreePort()
-	require.NoError(t, err)
-
-	host := fmt.Sprintf("http://127.0.0.1:%d", port)
-
+func TestClientHandler_CreateHandler(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		httpClient := httpPkg.NewHttpClient()
-		c := &ClientHandler{
-			Client: httpClient,
-			RouteConfig: &[]config.Route{
-				{
-					Method: http.MethodGet,
-					Path:   "/test",
-					RequestTo: config.RequestTo{
+		t.Run("GET method", func(t *testing.T) {
+			targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"message":"success"}`))
+			}))
+			defer targetServer.Close()
+
+			httpClient := httpPkg.NewHttpClient()
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
 						Method: http.MethodGet,
-						Headers: http.Header{
-							"Test-Header": {"Test"},
+						Path:   "/proxy",
+						RequestTo: config.RequestTo{
+							Method: http.MethodGet,
+							Headers: http.Header{
+								"X-Custom-Header": {"test-value"},
+							},
+							Host:                   targetServer.URL,
+							Path:                   "/",
+							PassWithRequestBody:    false,
+							PassWithRequestHeaders: false,
+							InErrorReturn500:       false,
 						},
-						Body: config.HttpBody{
-							"Test": "Test",
-						},
-						Host:                   host,
-						Path:                   "/test",
-						PassWithRequestBody:    false,
-						PassWithRequestHeaders: false,
-						InErrorReturn500:       false,
 					},
 				},
-			},
-		}
+			}
 
-		handler := c.CreateHandler(0)
-		srv := fiber.New()
-		srv.Get("/test", func(ctx *fiber.Ctx) error {
-			return ctx.Status(200).SendString("OK")
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Get("/proxy", handler)
+
+			request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			response, err := fiberApp.Test(request)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusOK, response.StatusCode)
+
+			responseBody, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			assert.Contains(t, string(responseBody), "success")
 		})
 
-		go func() {
-			err = srv.Listen(fmt.Sprintf(":%d", port))
+		t.Run("POST method", func(t *testing.T) {
+			targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte(`{"id":123}`))
+			}))
+			defer targetServer.Close()
+
+			httpClient := httpPkg.NewHttpClient()
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
+						Method: http.MethodPost,
+						Path:   "/proxy",
+						RequestTo: config.RequestTo{
+							Method: http.MethodPost,
+							Headers: http.Header{
+								"Content-Type": {"application/json"},
+							},
+							Body: config.HttpBody{
+								"name": "test",
+							},
+							Host:                   targetServer.URL,
+							Path:                   "/",
+							PassWithRequestBody:    false,
+							PassWithRequestHeaders: false,
+							InErrorReturn500:       false,
+						},
+					},
+				},
+			}
+
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Post("/proxy", handler)
+
+			request := httptest.NewRequest(http.MethodPost, "/proxy", nil)
+			response, err := fiberApp.Test(request)
+
 			require.NoError(t, err)
-		}()
-		srv.ShutdownWithContext(t.Context())
+			assert.Equal(t, http.StatusCreated, response.StatusCode)
 
-		srv.Get("/mock", func(ctx *fiber.Ctx) error {
-			err = handler(ctx)
-			assert.NoError(t, err)
+			responseBody, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			assert.Contains(t, string(responseBody), "123")
+		})
+	})
 
-			return nil
+	t.Run("error scenarios", func(t *testing.T) {
+		t.Run("invalid URL parsing", func(t *testing.T) {
+			httpClient := httpPkg.NewHttpClient()
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
+						Method: http.MethodGet,
+						Path:   "/proxy",
+						RequestTo: config.RequestTo{
+							Method: http.MethodGet,
+							Host:   "://invalid-url",
+							Path:   "/test",
+						},
+					},
+				},
+			}
+
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Get("/proxy", handler)
+
+			request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			response, err := fiberApp.Test(request)
+
+			require.NoError(t, err)
+			assert.Equal(t, fiber.StatusInternalServerError, response.StatusCode)
+		})
+
+		t.Run("HTTP client error with InErrorReturn500 false", func(t *testing.T) {
+			httpClient := httpPkg.NewHttpClient()
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
+						Method: http.MethodGet,
+						Path:   "/proxy",
+						RequestTo: config.RequestTo{
+							Method:                 http.MethodGet,
+							Host:                   "http://127.0.0.1:99999",
+							Path:                   "/test",
+							PassWithRequestBody:    false,
+							PassWithRequestHeaders: false,
+							InErrorReturn500:       false,
+						},
+					},
+				},
+			}
+
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Get("/proxy", handler)
+
+			request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			response, err := fiberApp.Test(request)
+
+			require.NoError(t, err)
+			assert.Equal(t, fiber.StatusInternalServerError, response.StatusCode)
+
+			responseBody, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			assert.NotEmpty(t, string(responseBody))
+		})
+
+		t.Run("HTTP client error with InErrorReturn500 true", func(t *testing.T) {
+			httpClient := httpPkg.NewHttpClient()
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
+						Method: http.MethodGet,
+						Path:   "/proxy",
+						RequestTo: config.RequestTo{
+							Method:                 http.MethodGet,
+							Host:                   "http://127.0.0.1:99999",
+							Path:                   "/test",
+							PassWithRequestBody:    false,
+							PassWithRequestHeaders: false,
+							InErrorReturn500:       true,
+						},
+					},
+				},
+			}
+
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Get("/proxy", handler)
+
+			request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			response, err := fiberApp.Test(request)
+
+			require.NoError(t, err)
+			assert.Equal(t, fiber.StatusInternalServerError, response.StatusCode)
+
+			responseBody, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			assert.Empty(t, string(responseBody))
 		})
 	})
 }

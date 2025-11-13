@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
 )
 
 const (
@@ -43,7 +42,7 @@ type RequestTo struct {
 }
 
 func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
-	parsedUrl, err := url.Parse(filepath.Join(requestTo.Host, requestTo.Path))
+	parsedUrl, err := url.Parse(requestTo.Host + requestTo.Path)
 	if err != nil {
 		return nil, errors.New("failed to parse url")
 	}

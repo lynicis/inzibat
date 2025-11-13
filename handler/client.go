@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -26,10 +27,18 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 			return err
 		}
 
+		var bodyBytes []byte
+		if len(requestTo.Body) > 0 {
+			bodyBytes, err = json.Marshal(requestTo.Body)
+			if err != nil {
+				return err
+			}
+		}
+
 		methodArgumentsForClient := []reflect.Value{
 			reflect.ValueOf(parsedUrl.String()),
 			reflect.ValueOf(requestTo.Headers),
-			reflect.ValueOf(requestTo.Body),
+			reflect.ValueOf(bodyBytes),
 		}
 
 		if requestTo.Method == fiber.MethodGet {
@@ -52,7 +61,8 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 
 		if returnedError != nil {
 			if requestTo.InErrorReturn500 {
-				return ctx.SendStatus(fiber.StatusInternalServerError)
+				ctx.Status(fiber.StatusInternalServerError)
+				return ctx.Send(nil)
 			}
 
 			return ctx.
