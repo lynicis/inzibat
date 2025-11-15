@@ -10,13 +10,14 @@ import (
 const (
 	EnvironmentVariableConfigFileName = "CONFIG_FN"
 	DefaultConfigFileName             = "inzibat.json"
+	GlobalConfigFileName              = ".inzibat.config.json"
 )
 
 type Cfg struct {
-	ServerPort       int     `koanf:"serverPort" validate:"required"`
-	Routes           []Route `koanf:"routes" validate:"required,gt=0,dive,required"`
-	Concurrency      int     `koanf:"concurrency"`
-	HealthCheckRoute bool    `koanf:"isHealthCheckRouteEnabled"`
+	ServerPort       int     `json:"serverPort" koanf:"serverPort" validate:"required"`
+	Routes           []Route `json:"routes" koanf:"routes" validate:"required,gt=0,dive,required"`
+	Concurrency      int     `json:"concurrency" koanf:"concurrency"`
+	HealthCheckRoute bool    `json:"healthCheckRoute" koanf:"isHealthCheckRouteEnabled"`
 }
 
 func (cfg *Cfg) GetServerAddr() string {
@@ -24,21 +25,21 @@ func (cfg *Cfg) GetServerAddr() string {
 }
 
 type Route struct {
-	Method       string       `koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
-	Path         string       `koanf:"path" validate:"required,startswith=/"`
-	RequestTo    RequestTo    `koanf:"requestTo"`
-	FakeResponse FakeResponse `koanf:"fakeResponse"`
+	Method       string       `json:"method" koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
+	Path         string       `json:"path" koanf:"path" validate:"required,startswith=/"`
+	RequestTo    RequestTo    `json:"requestTo,omitempty" koanf:"requestTo"`
+	FakeResponse FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse"`
 }
 
 type RequestTo struct {
-	Method                 string      `koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
-	Headers                http.Header `koanf:"headers"`
-	Body                   HttpBody    `koanf:"body"`
-	Host                   string      `koanf:"host" validate:"url"`
-	Path                   string      `koanf:"path" validate:"required,startswith=/"`
-	PassWithRequestBody    bool        `koanf:"passWithRequestBody"`
-	PassWithRequestHeaders bool        `koanf:"passWithRequestHeaders"`
-	InErrorReturn500       bool        `koanf:"inErrorReturn500"`
+	Method                 string      `json:"method" koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
+	Headers                http.Header `json:"headers" koanf:"headers"`
+	Body                   HttpBody    `json:"body,omitempty" koanf:"body"`
+	Host                   string      `json:"host" koanf:"host" validate:"url"`
+	Path                   string      `json:"path" koanf:"path" validate:"required,startswith=/"`
+	PassWithRequestBody    bool        `json:"passWithRequestBody,omitempty" koanf:"passWithRequestBody"`
+	PassWithRequestHeaders bool        `json:"passWithRequestHeaders,omitempty" koanf:"passWithRequestHeaders"`
+	InErrorReturn500       bool        `json:"inErrorReturn500,omitempty" koanf:"inErrorReturn500"`
 }
 
 func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
@@ -53,8 +54,8 @@ func (requestTo *RequestTo) GetParsedUrl() (*url.URL, error) {
 type HttpBody map[string]any
 
 type FakeResponse struct {
-	Headers    http.Header `koanf:"headers"`
-	Body       HttpBody    `koanf:"body" validate:"required_without=BodyString"`
-	BodyString string      `koanf:"bodyString" validate:"required_without=Body"`
-	StatusCode int         `koanf:"statusCode" validate:"required"`
+	Headers    http.Header `json:"headers" koanf:"headers"`
+	Body       HttpBody    `json:"body,omitempty" koanf:"body" validate:"required_without=BodyString"`
+	BodyString string      `json:"bodyString,omitempty" koanf:"bodyString" validate:"required_without=Body"`
+	StatusCode int         `json:"statusCode" koanf:"statusCode" validate:"required"`
 }

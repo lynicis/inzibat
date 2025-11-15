@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
+	validatorPkg "github.com/go-playground/validator/v10"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 
 	"inzibat/client/http"
+	"inzibat/cmd"
 	"inzibat/config"
 	"inzibat/handler"
 	_ "inzibat/log"
@@ -20,37 +22,19 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		if err := config.InitGlobalConfig(); err != nil {
+			log.Fatal("failed to initialize global config")
+		}
+		cmd.Execute()
+		return
+	}
+
 	var err error
 
-	configFileName := os.Getenv(config.EnvironmentVariableConfigFileName)
-	if configFileName == "" {
-		configFileName = config.DefaultConfigFileName
-	}
-
-	var workingDirectory string
-	workingDirectory, err = os.Getwd()
-	if err != nil {
-		zap.L().Fatal("failed to get current working directory path", zap.Error(err))
-	}
-
-	extensionOfFilePath := filepath.Ext(configFileName)
-	if extensionOfFilePath == "" {
-		configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
-	}
-	configFilePath := filepath.Join(workingDirectory, configFileName)
-
-	var configReader config.ReaderStrategy
-	configReader, err = config.NewReaderStrategy(extensionOfFilePath)
-	if err != nil {
-		zap.L().Fatal("failed to create config reader strategy", zap.Error(err))
-	}
-
-	configLoader := &config.Reader{
-		ConfigReader: configReader,
-	}
-
-	var cfg *config.Cfg
-	cfg, err = configLoader.Read(configFilePath)
+	validator := validatorPkg.New()
+	configLoader := config.NewLoader(validator, false)
+	cfg, err := configLoader.Read()
 	if err != nil {
 		zap.L().Fatal("failed to read config", zap.Error(err))
 	}
