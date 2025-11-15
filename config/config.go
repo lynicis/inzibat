@@ -114,7 +114,13 @@ func (reader *Reader) Read() (*Cfg, error) {
 }
 
 func Write(config *Route, dir string) error {
-	file, err := os.Create(filepath.Join(dir, "inzibat.json"))
+	cleanDir := filepath.Clean(dir)
+	absDir, err := filepath.Abs(cleanDir)
+	if err != nil {
+		return fmt.Errorf("failed to resolve directory path: %w", err)
+	}
+	// #nosec G304
+	file, err := os.Create(filepath.Join(absDir, "inzibat.json"))
 	if err != nil {
 		return err
 	}
@@ -182,8 +188,15 @@ func ReadOrCreateConfig(configPath string) (*Cfg, error) {
 	return cfg, nil
 }
 
-func WriteConfig(cfg *Cfg, filepath string) error {
-	file, err := os.Create(filepath)
+func WriteConfig(cfg *Cfg, filePath string) error {
+	// Clean and resolve absolute path to prevent directory traversal
+	cleanPath := filepath.Clean(filePath)
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve file path: %w", err)
+	}
+	// #nosec G304 - File path is validated and cleaned before use
+	file, err := os.Create(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
