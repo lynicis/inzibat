@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"go.uber.org/zap"
@@ -15,7 +14,7 @@ import (
 func main() {
 	if len(os.Args) > 1 {
 		if err := config.InitGlobalConfig(); err != nil {
-			log.Fatal("failed to initialize global config")
+			zap.L().Fatal("failed to initialize global config", zap.Error(err))
 		}
 		cmd.Execute()
 		return

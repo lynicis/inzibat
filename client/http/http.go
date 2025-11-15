@@ -11,8 +11,25 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type RetryConfig struct {
+	MaxRetries      int
+	InitialBackoff time.Duration
+	MaxBackoff      time.Duration
+	BackoffMultiplier float64
+}
+
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxRetries:      3,
+		InitialBackoff:  100 * time.Millisecond,
+		MaxBackoff:      2 * time.Second,
+		BackoffMultiplier: 2.0,
+	}
+}
+
 type Client struct {
-	client *fasthttp.Client
+	client      *fasthttp.Client
+	retryConfig RetryConfig
 }
 
 func NewHttpClient() *Client {
@@ -31,7 +48,12 @@ func NewHttpClient() *Client {
 				DNSCacheDuration: time.Hour,
 			}).Dial,
 		},
+		retryConfig: DefaultRetryConfig(),
 	}
+}
+
+func (httpClient *Client) SetRetryConfig(config RetryConfig) {
+	httpClient.retryConfig = config
 }
 
 func (httpClient *Client) Get(
@@ -73,41 +95,109 @@ func (httpClient *Client) Delete(
 	return httpClient.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
 }
 
-// TODO: implement retry mechanism
+func isRetryableError(err error, statusCode int) bool {
+	if err != nil {
+		return true
+	}
+	return statusCode >= http.StatusInternalServerError && statusCode < 600
+}
+
+func (httpClient *Client) calculateBackoff(attempt int) time.Duration {
+	backoff := time.Duration(float64(httpClient.retryConfig.InitialBackoff) * 
+		pow(httpClient.retryConfig.BackoffMultiplier, float64(attempt)))
+	if backoff > httpClient.retryConfig.MaxBackoff {
+		backoff = httpClient.retryConfig.MaxBackoff
+	}
+	return backoff
+}
+
+func pow(base, exp float64) float64 {
+	result := 1.0
+	for i := 0; i < int(exp); i++ {
+		result *= base
+	}
+	return result
+}
+
 func (httpClient *Client) makeRequest(
 	uri string,
 	method string,
 	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
-	req := fasthttp.AcquireRequest()
-	req.SetRequestURI(uri)
-	req.Header.SetMethod(method)
-	req.Header.SetContentType(fiber.MIMEApplicationJSON)
+	var lastErr error
+	var lastResponse *Response
 
-	if len(requestHeader) > 0 {
-		for headerKey, headerValue := range requestHeader {
-			req.Header.Set(headerKey, strings.Join(headerValue, ""))
+	for attempt := 0; attempt <= httpClient.retryConfig.MaxRetries; attempt++ {
+		if attempt > 0 {
+			backoff := httpClient.calculateBackoff(attempt - 1)
+			time.Sleep(backoff)
 		}
+
+		req := fasthttp.AcquireRequest()
+		req.SetRequestURI(uri)
+		req.Header.SetMethod(method)
+		req.Header.SetContentType(fiber.MIMEApplicationJSON)
+
+		if len(requestHeader) > 0 {
+			for headerKey, headerValue := range requestHeader {
+				req.Header.Set(headerKey, strings.Join(headerValue, ""))
+			}
+		}
+
+		if requestBody != nil {
+			req.SetBody(requestBody)
+		}
+
+		resp := fasthttp.AcquireResponse()
+		err := httpClient.client.Do(req, resp)
+		
+		if err != nil {
+			lastErr = err
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+			
+			if isRetryableError(err, 0) && attempt < httpClient.retryConfig.MaxRetries {
+				continue
+			}
+			return nil, err
+		}
+
+		statusCode := resp.StatusCode()
+		
+		if statusCode >= http.StatusMultipleChoices {
+			lastErr = errors.New("response failed")
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+			
+			if isRetryableError(nil, statusCode) && attempt < httpClient.retryConfig.MaxRetries {
+				continue
+			}
+			return nil, lastErr
+		}
+
+		body := make([]byte, len(resp.Body()))
+		copy(body, resp.Body())
+		
+		lastResponse = &Response{
+			Status: statusCode,
+			Body:   body,
+		}
+
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+		break
 	}
 
-	if requestBody != nil {
-		req.SetBody(requestBody)
+	if lastResponse != nil {
+		return lastResponse, nil
 	}
 
-	resp := fasthttp.AcquireResponse()
-	if err := httpClient.client.Do(req, resp); err != nil {
-		return nil, err
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
-	if resp.StatusCode() >= http.StatusMultipleChoices {
-		return nil, errors.New("response failed")
-	}
-
-	return &Response{
-		Status: resp.StatusCode(),
-		Body:   resp.Body(),
-	}, nil
+	return nil, errors.New("request failed after all retries")
 }
 
 func GetFreePort() (int, error) {

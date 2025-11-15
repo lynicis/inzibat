@@ -4,9 +4,11 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 
 	"inzibat/config"
 	"inzibat/handler"
+	_ "inzibat/log"
 )
 
 type Router interface {
@@ -50,25 +52,37 @@ func (mainRouter *MainRouter) CreateRoutes() {
 	waitGroup.Wait()
 }
 
-// TODO:
-// make it open/closed
-// probably command pattern
 func (mainRouter *MainRouter) processRoute(
 	routeChannel *handler.RouteChannel,
 	waitGroup *sync.WaitGroup,
 ) {
 	defer waitGroup.Done()
 
-	var routeFunction fiber.Handler
-	if routeChannel.Route.RequestTo.Method != "" {
-		routeFunction = mainRouter.ClientHandler.CreateHandler(routeChannel.RouteIndex)
-	}
+	commands := CreateRouteCommands(
+		routeChannel.Route,
+		routeChannel.RouteIndex,
+		mainRouter.EndpointHandler,
+		mainRouter.ClientHandler,
+	)
 
-	if routeChannel.Route.FakeResponse.StatusCode > 0 {
-		routeFunction = mainRouter.EndpointHandler.CreateHandler(routeChannel.RouteIndex)
-	}
+	for _, cmd := range commands {
+		if !cmd.ShouldExecute() {
+			continue
+		}
 
-	if routeFunction != nil {
-		mainRouter.FiberApp.Add(routeChannel.Route.Method, routeChannel.Route.Path, routeFunction)
+		routeFunction, err := cmd.Execute()
+		if err != nil {
+			zap.L().Warn("failed to execute route command",
+				zap.String("method", routeChannel.Route.Method),
+				zap.String("path", routeChannel.Route.Path),
+				zap.Int("route_index", routeChannel.RouteIndex),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		if routeFunction != nil {
+			mainRouter.FiberApp.Add(routeChannel.Route.Method, routeChannel.Route.Path, routeFunction)
+		}
 	}
 }

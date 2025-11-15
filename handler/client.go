@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/goccy/go-reflect"
@@ -24,14 +24,14 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 		requestTo := (*clientRoute.RouteConfig)[routeIndex].RequestTo
 		parsedUrl, err := requestTo.GetParsedUrl()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse request URL: %w", err)
 		}
 
 		var bodyBytes []byte
 		if len(requestTo.Body) > 0 {
 			bodyBytes, err = json.Marshal(requestTo.Body)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to marshal request body: %w", err)
 			}
 		}
 
@@ -51,7 +51,7 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 
 		returnedHttpResponse, ok := returnedArguments[0].Interface().(*httpPkg.Response)
 		if !ok {
-			return errors.New("failed to cast response to http.Response")
+			return fmt.Errorf("failed to cast response to http.Response for method %s", requestTo.Method)
 		}
 
 		var returnedError error

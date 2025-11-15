@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,9 +9,11 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"inzibat/cmd/form_builder"
 	"inzibat/config"
+	_ "inzibat/log"
 )
 
 var (
@@ -66,7 +67,11 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 		return nil, fmt.Errorf("failed to get status code: %w", err)
 	}
 
-	statusCode, _ := strconv.Atoi(statusForm.GetString("statusCode"))
+	statusCodeStr := statusForm.GetString("statusCode")
+	statusCode, err := strconv.Atoi(statusCodeStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse status code %q: %w", statusCodeStr, err)
+	}
 
 	headers, err := form_builder.CollectHeaders()
 	if err != nil {
@@ -248,27 +253,27 @@ var createCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		route, err := createRoute()
 		if err != nil {
-			log.Fatalf("failed to create route: %v", err)
+			zap.L().Fatal("failed to create route", zap.Error(err))
 		}
 
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatal("failed to get current user's home directory")
+			zap.L().Fatal("failed to get current user's home directory", zap.Error(err))
 		}
 
 		globalConfigFilePath := filepath.Join(homeDir, config.DefaultConfigFileName)
 		cfg, err := config.ReadOrCreateConfig(globalConfigFilePath)
 		if err != nil {
-			log.Fatalf("failed to read/create config: %v", err)
+			zap.L().Fatal("failed to read/create config", zap.Error(err))
 		}
 
 		cfg.Routes = append(cfg.Routes, *route)
 
 		if err := config.WriteConfig(cfg, globalConfigFilePath); err != nil {
-			log.Fatalf("failed to write config: %v", err)
+			zap.L().Fatal("failed to write config", zap.Error(err))
 		}
 
-		log.Printf("Route created successfully and added to %s", globalConfigFilePath)
+		zap.L().Info("Route created successfully", zap.String("config_file", globalConfigFilePath))
 	},
 }
 

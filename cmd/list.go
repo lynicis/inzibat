@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"inzibat/config"
-	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+
+	_ "inzibat/log"
 )
 
 var listCmd = &cobra.Command{
@@ -18,10 +20,10 @@ var listCmd = &cobra.Command{
 
 		cfg, err := cfgLoader.Read()
 		if err != nil {
-			log.Fatalf("failed to list routes")
+			zap.L().Fatal("failed to list routes", zap.Error(err))
 		}
 
-		log.Print(cfg.Routes)
+		zap.L().Info("Routes", zap.Any("routes", cfg.Routes))
 	},
 }
 

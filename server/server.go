@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 
 func StartServer(configFile string) error {
 	if configFile != "" {
-		absPath, err := filepath.Abs(configFile)
+		absPath, err := config.ResolveAbsolutePath(configFile)
 		if err != nil {
 			return fmt.Errorf("failed to resolve config file path: %w", err)
 		}
@@ -31,13 +30,19 @@ func StartServer(configFile string) error {
 		originalEnv := os.Getenv(config.EnvironmentVariableConfigFileName)
 		defer func() {
 			if originalEnv != "" {
-				_ = os.Setenv(config.EnvironmentVariableConfigFileName, originalEnv)
+				if err := os.Setenv(config.EnvironmentVariableConfigFileName, originalEnv); err != nil {
+					zap.L().Warn("failed to restore environment variable", zap.Error(err))
+				}
 			} else {
-				_ = os.Unsetenv(config.EnvironmentVariableConfigFileName)
+				if err := os.Unsetenv(config.EnvironmentVariableConfigFileName); err != nil {
+					zap.L().Warn("failed to unset environment variable", zap.Error(err))
+				}
 			}
 		}()
 
-		_ = os.Setenv(config.EnvironmentVariableConfigFileName, configFile)
+		if err := os.Setenv(config.EnvironmentVariableConfigFileName, configFile); err != nil {
+			return fmt.Errorf("failed to set environment variable: %w", err)
+		}
 	}
 
 	validator := validatorPkg.New()
@@ -69,14 +74,9 @@ func StartServer(configFile string) error {
 	}
 	mainRouter.CreateRoutes()
 
-	fmt.Print(
-		"🫡 INZIBAT 🪖\n",
-		fmt.Sprintf(
-			"Open Routes: %d\n", len(cfg.Routes),
-		),
-		fmt.Sprintf(
-			"Server Port: %d\n", cfg.ServerPort,
-		),
+	zap.L().Info("🫡 INZIBAT 🪖",
+		zap.Int("open_routes", len(cfg.Routes)),
+		zap.Int("server_port", cfg.ServerPort),
 	)
 
 	go func() {

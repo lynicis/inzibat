@@ -113,28 +113,35 @@ func (reader *Reader) Read() (*Cfg, error) {
 	return config, nil
 }
 
-func Write(config *Route, dir string) error {
-	cleanDir := filepath.Clean(dir)
-	absDir, err := filepath.Abs(cleanDir)
+func writeJSONToFile(filePath string, data interface{}) error {
+	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve directory path: %w", err)
+		return fmt.Errorf("failed to resolve file path: %w", err)
 	}
-	// #nosec G304
-	file, err := os.Create(filepath.Join(absDir, "inzibat.json"))
+	// #nosec G304 - File path is validated and cleaned before use
+	file, err := os.Create(absPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer file.Close()
 
-	if err = json.NewEncoder(file).Encode(config); err != nil {
-		return err
+	if err = json.NewEncoder(file).Encode(data); err != nil {
+		return fmt.Errorf("failed to encode JSON: %w", err)
 	}
 
 	if err = file.Sync(); err != nil {
-		return err
+		return fmt.Errorf("failed to sync file: %w", err)
 	}
 
 	return nil
+}
+
+func Write(config *Route, dir string) error {
+	absDir, err := ResolveAbsolutePath(dir)
+	if err != nil {
+		return fmt.Errorf("failed to resolve directory path: %w", err)
+	}
+	return writeJSONToFile(filepath.Join(absDir, "inzibat.json"), config)
 }
 
 func InitGlobalConfig() error {
@@ -189,27 +196,5 @@ func ReadOrCreateConfig(configPath string) (*Cfg, error) {
 }
 
 func WriteConfig(cfg *Cfg, filePath string) error {
-	// Clean and resolve absolute path to prevent directory traversal
-	cleanPath := filepath.Clean(filePath)
-	absPath, err := filepath.Abs(cleanPath)
-	if err != nil {
-		return fmt.Errorf("failed to resolve file path: %w", err)
-	}
-	// #nosec G304 - File path is validated and cleaned before use
-	file, err := os.Create(absPath)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer file.Close()
-
-	err = json.NewEncoder(file).Encode(&cfg)
-	if err != nil {
-		return fmt.Errorf("failed to encode config: %w", err)
-	}
-
-	if err := file.Sync(); err != nil {
-		return fmt.Errorf("failed to sync file: %w", err)
-	}
-
-	return nil
+	return writeJSONToFile(filePath, cfg)
 }

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/goccy/go-json"
 )
@@ -17,11 +16,9 @@ type FileLoader interface {
 type HeadersLoader struct{}
 
 func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
-	// Clean and resolve absolute path to prevent directory traversal
-	cleanPath := filepath.Clean(filePath)
-	absPath, err := filepath.Abs(cleanPath)
+	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve file path: %w", err)
+		return nil, err
 	}
 	// #nosec G304 - File path is validated and cleaned before use
 	file, err := os.Open(absPath)
@@ -51,11 +48,9 @@ func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
 type BodyLoader struct{}
 
 func (l *BodyLoader) Load(filePath string) (interface{}, error) {
-	// Clean and resolve absolute path to prevent directory traversal
-	cleanPath := filepath.Clean(filePath)
-	absPath, err := filepath.Abs(cleanPath)
+	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve file path: %w", err)
+		return nil, err
 	}
 	// #nosec G304 - File path is validated and cleaned before use
 	file, err := os.Open(absPath)
@@ -80,10 +75,9 @@ func (l *BodyLoader) Load(filePath string) (interface{}, error) {
 type BodyStringLoader struct{}
 
 func (l *BodyStringLoader) Load(filePath string) (interface{}, error) {
-	cleanPath := filepath.Clean(filePath)
-	absPath, err := filepath.Abs(cleanPath)
+	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve file path: %w", err)
+		return "", err
 	}
 	// #nosec G304
 	file, err := os.Open(absPath)
