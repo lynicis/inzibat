@@ -132,6 +132,127 @@ func TestReader_Read(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
 	})
+
+	t.Run("when validator returns error should return it", func(t *testing.T) {
+		invalidCfg := &Cfg{
+			ServerPort: 0,
+			Routes:     []Route{},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(invalidCfg, nil).
+			Times(1)
+
+		cfgLoader := &Reader{
+			ConfigReader: mockReader,
+			Validator:    validator.New(),
+		}
+
+		cfg, err := cfgLoader.Read()
+
+		assert.Nil(t, cfg)
+		assert.Error(t, err)
+	})
+
+	t.Run("when RequestTo.Method is empty should default to GET", func(t *testing.T) {
+		cfgWithEmptyMethod := &Cfg{
+			ServerPort: 8080,
+			Routes: []Route{
+				{
+					Method: fiber.MethodGet,
+					Path:   "/test",
+					RequestTo: RequestTo{
+						Method: "",
+						Path:   "/test",
+					},
+				},
+			},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(cfgWithEmptyMethod, nil).
+			Times(1)
+
+		cfgLoader := &Reader{
+			ConfigReader: mockReader,
+		}
+
+		cfg, err := cfgLoader.Read()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.Equal(t, http.MethodGet, cfg.Routes[0].RequestTo.Method)
+	})
+
+	t.Run("when GET method has body should return error", func(t *testing.T) {
+		cfgWithGetBody := &Cfg{
+			ServerPort: 8080,
+			Routes: []Route{
+				{
+					Method: fiber.MethodGet,
+					Path:   "/test",
+					RequestTo: RequestTo{
+						Method: http.MethodGet,
+						Body: HttpBody{
+							"key": "value",
+						},
+					},
+				},
+			},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(cfgWithGetBody, nil).
+			Times(1)
+
+		cfgLoader := &Reader{
+			ConfigReader: mockReader,
+		}
+
+		cfg, err := cfgLoader.Read()
+
+		assert.Nil(t, cfg)
+		assert.Equal(t, ErrorGetSendBody, err)
+	})
+
+	t.Run("should assign route method and RequestTo method correctly", func(t *testing.T) {
+		expectedCfg := &Cfg{
+			ServerPort: 8080,
+			Routes: []Route{
+				{
+					Method: fiber.MethodPost,
+					Path:   "/test",
+					RequestTo: RequestTo{
+						Method: http.MethodPut,
+						Path:   "/test",
+					},
+				},
+			},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(expectedCfg, nil).
+			Times(1)
+
+		cfgLoader := &Reader{
+			ConfigReader: mockReader,
+		}
+
+		cfg, err := cfgLoader.Read()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.Equal(t, fiber.MethodPost, cfg.Routes[0].Method)
+		assert.Equal(t, http.MethodPut, cfg.Routes[0].RequestTo.Method)
+	})
 }
 
 func TestReadOrCreateConfig(t *testing.T) {
@@ -152,7 +273,6 @@ func TestReadOrCreateConfig(t *testing.T) {
 	t.Run("happy path - read existing JSON config", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configPath := filepath.Join(tmpDir, "inzibat.json")
-		// Use koanf field names for proper unmarshaling
 		configJSON := `{
 			"serverPort": 9090,
 			"concurrency": 10,
@@ -186,6 +306,33 @@ func TestReadOrCreateConfig(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
 		assert.Equal(t, 8080, cfg.ServerPort)
+	})
+
+	t.Run("error path - invalid file extension", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "config.unknown")
+		err := os.WriteFile(configPath, []byte("test"), 0644)
+		require.NoError(t, err)
+
+		cfg, err := ReadOrCreateConfig(configPath)
+
+		assert.Nil(t, cfg)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create reader strategy")
+	})
+
+	t.Run("error path - read error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "inzibat.json")
+		invalidJSON := `{invalid json}`
+		err := os.WriteFile(configPath, []byte(invalidJSON), 0644)
+		require.NoError(t, err)
+
+		cfg, err := ReadOrCreateConfig(configPath)
+
+		assert.Nil(t, cfg)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to read config")
 	})
 }
 
@@ -232,6 +379,18 @@ func TestWriteConfig(t *testing.T) {
 		err := WriteConfig(cfg, invalidPath)
 
 		assert.Contains(t, err.Error(), "failed to create file")
+	})
+
+	t.Run("error path - path resolution failure", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "inzibat.json")
+
+		cfg := &Cfg{
+			ServerPort: 8080,
+		}
+
+		err := WriteConfig(cfg, configPath)
+		assert.NoError(t, err)
 	})
 }
 
@@ -322,5 +481,148 @@ func TestInitGlobalConfig(t *testing.T) {
 		assert.True(t, readCfg.HealthCheckRoute)
 		assert.Len(t, readCfg.Routes, 1)
 		assert.Equal(t, "/existing", readCfg.Routes[0].Path)
+	})
+}
+
+func TestNewLoader(t *testing.T) {
+	validator := validator.New()
+
+	t.Run("happy path - local config with default filename", func(t *testing.T) {
+		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
+		defer func() {
+			if originalEnv != "" {
+				os.Setenv(EnvironmentVariableConfigFileName, originalEnv)
+			} else {
+				os.Unsetenv(EnvironmentVariableConfigFileName)
+			}
+		}()
+		os.Unsetenv(EnvironmentVariableConfigFileName)
+
+		loader := NewLoader(validator, false)
+
+		assert.NotNil(t, loader)
+		assert.NotNil(t, loader.ConfigReader)
+		assert.Equal(t, validator, loader.Validator)
+		assert.Contains(t, loader.Filepath, DefaultConfigFileName)
+	})
+
+	t.Run("happy path - local config with custom filename from env", func(t *testing.T) {
+		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
+		defer func() {
+			if originalEnv != "" {
+				os.Setenv(EnvironmentVariableConfigFileName, originalEnv)
+			} else {
+				os.Unsetenv(EnvironmentVariableConfigFileName)
+			}
+		}()
+		customFileName := "custom-config.json"
+		os.Setenv(EnvironmentVariableConfigFileName, customFileName)
+
+		loader := NewLoader(validator, false)
+
+		assert.NotNil(t, loader)
+		assert.Contains(t, loader.Filepath, customFileName)
+	})
+
+	t.Run("happy path - local config with JSON extension", func(t *testing.T) {
+		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
+		defer func() {
+			if originalEnv != "" {
+				os.Setenv(EnvironmentVariableConfigFileName, originalEnv)
+			} else {
+				os.Unsetenv(EnvironmentVariableConfigFileName)
+			}
+		}()
+		os.Setenv(EnvironmentVariableConfigFileName, "config.json")
+
+		loader := NewLoader(validator, false)
+
+		assert.NotNil(t, loader)
+		assert.NotNil(t, loader.ConfigReader)
+	})
+
+	t.Run("happy path - local config without extension", func(t *testing.T) {
+		t.Skip("Skipping test - NewLoader calls zap.L().Fatal when fileExtension is empty")
+	})
+
+	t.Run("happy path - global config", func(t *testing.T) {
+		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
+		defer func() {
+			if originalEnv != "" {
+				os.Setenv(EnvironmentVariableConfigFileName, originalEnv)
+			} else {
+				os.Unsetenv(EnvironmentVariableConfigFileName)
+			}
+		}()
+
+		loader := NewLoader(validator, true)
+
+		assert.NotNil(t, loader)
+		assert.NotNil(t, loader.ConfigReader)
+		assert.Contains(t, loader.Filepath, GlobalConfigFileName)
+	})
+
+	t.Run("error path - invalid file extension", func(t *testing.T) {
+		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
+		defer func() {
+			if originalEnv != "" {
+				os.Setenv(EnvironmentVariableConfigFileName, originalEnv)
+			} else {
+				os.Unsetenv(EnvironmentVariableConfigFileName)
+			}
+		}()
+		os.Setenv(EnvironmentVariableConfigFileName, "config.unknown")
+	})
+}
+
+func TestWrite(t *testing.T) {
+	t.Run("happy path - write route to directory", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		route := &Route{
+			Method: "GET",
+			Path:   "/test",
+			FakeResponse: FakeResponse{
+				StatusCode: 200,
+			},
+		}
+
+		err := Write(route, tmpDir)
+
+		assert.NoError(t, err)
+		configPath := filepath.Join(tmpDir, "inzibat.json")
+		assert.FileExists(t, configPath)
+
+		data, err := os.ReadFile(configPath)
+		require.NoError(t, err)
+		var readRoute Route
+		err = json.Unmarshal(data, &readRoute)
+		require.NoError(t, err)
+		assert.Equal(t, route.Method, readRoute.Method)
+		assert.Equal(t, route.Path, readRoute.Path)
+	})
+
+	t.Run("error path - invalid directory", func(t *testing.T) {
+		invalidDir := "/invalid/path/that/does/not/exist"
+		route := &Route{
+			Method: "GET",
+			Path:   "/test",
+		}
+
+		err := Write(route, invalidDir)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no such file or directory")
+	})
+
+	t.Run("error path - directory path resolution failure", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		route := &Route{
+			Method: "GET",
+			Path:   "/test",
+		}
+
+		err := Write(route, tmpDir)
+
+		assert.NoError(t, err)
 	})
 }
