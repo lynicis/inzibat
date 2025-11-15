@@ -12,17 +12,17 @@ import (
 )
 
 type RetryConfig struct {
-	MaxRetries      int
-	InitialBackoff time.Duration
-	MaxBackoff      time.Duration
+	MaxRetries        int
+	InitialBackoff    time.Duration
+	MaxBackoff        time.Duration
 	BackoffMultiplier float64
 }
 
 func DefaultRetryConfig() RetryConfig {
 	return RetryConfig{
-		MaxRetries:      3,
-		InitialBackoff:  100 * time.Millisecond,
-		MaxBackoff:      2 * time.Second,
+		MaxRetries:        3,
+		InitialBackoff:    100 * time.Millisecond,
+		MaxBackoff:        2 * time.Second,
 		BackoffMultiplier: 2.0,
 	}
 }
@@ -103,7 +103,7 @@ func isRetryableError(err error, statusCode int) bool {
 }
 
 func (httpClient *Client) calculateBackoff(attempt int) time.Duration {
-	backoff := time.Duration(float64(httpClient.retryConfig.InitialBackoff) * 
+	backoff := time.Duration(float64(httpClient.retryConfig.InitialBackoff) *
 		pow(httpClient.retryConfig.BackoffMultiplier, float64(attempt)))
 	if backoff > httpClient.retryConfig.MaxBackoff {
 		backoff = httpClient.retryConfig.MaxBackoff
@@ -119,6 +119,65 @@ func pow(base, exp float64) float64 {
 	return result
 }
 
+func (httpClient *Client) buildRequest(
+	uri, method string,
+	requestHeader http.Header,
+	requestBody []byte,
+) *fasthttp.Request {
+	req := fasthttp.AcquireRequest()
+	req.SetRequestURI(uri)
+	req.Header.SetMethod(method)
+	req.Header.SetContentType(fiber.MIMEApplicationJSON)
+
+	if len(requestHeader) > 0 {
+		for headerKey, headerValue := range requestHeader {
+			req.Header.Set(headerKey, strings.Join(headerValue, ""))
+		}
+	}
+
+	if requestBody != nil {
+		req.SetBody(requestBody)
+	}
+
+	return req
+}
+
+func (httpClient *Client) executeRequest(req *fasthttp.Request) (*fasthttp.Response, error) {
+	resp := fasthttp.AcquireResponse()
+	err := httpClient.client.Do(req, resp)
+	if err != nil {
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (httpClient *Client) handleResponse(resp *fasthttp.Response, req *fasthttp.Request) (*Response, error) {
+	statusCode := resp.StatusCode()
+
+	if statusCode >= http.StatusMultipleChoices {
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+		return nil, errors.New("response failed")
+	}
+
+	body := make([]byte, len(resp.Body()))
+	copy(body, resp.Body())
+
+	fasthttp.ReleaseRequest(req)
+	fasthttp.ReleaseResponse(resp)
+
+	return &Response{
+		Status: statusCode,
+		Body:   body,
+	}, nil
+}
+
+func (httpClient *Client) shouldRetry(err error, statusCode, attempt int) bool {
+	return isRetryableError(err, statusCode) && attempt < httpClient.retryConfig.MaxRetries
+}
+
 func (httpClient *Client) makeRequest(
 	uri string,
 	method string,
@@ -126,7 +185,6 @@ func (httpClient *Client) makeRequest(
 	requestBody []byte,
 ) (*Response, error) {
 	var lastErr error
-	var lastResponse *Response
 
 	for attempt := 0; attempt <= httpClient.retryConfig.MaxRetries; attempt++ {
 		if attempt > 0 {
@@ -134,63 +192,27 @@ func (httpClient *Client) makeRequest(
 			time.Sleep(backoff)
 		}
 
-		req := fasthttp.AcquireRequest()
-		req.SetRequestURI(uri)
-		req.Header.SetMethod(method)
-		req.Header.SetContentType(fiber.MIMEApplicationJSON)
+		req := httpClient.buildRequest(uri, method, requestHeader, requestBody)
+		resp, err := httpClient.executeRequest(req)
 
-		if len(requestHeader) > 0 {
-			for headerKey, headerValue := range requestHeader {
-				req.Header.Set(headerKey, strings.Join(headerValue, ""))
-			}
-		}
-
-		if requestBody != nil {
-			req.SetBody(requestBody)
-		}
-
-		resp := fasthttp.AcquireResponse()
-		err := httpClient.client.Do(req, resp)
-		
 		if err != nil {
 			lastErr = err
-			fasthttp.ReleaseRequest(req)
-			fasthttp.ReleaseResponse(resp)
-			
-			if isRetryableError(err, 0) && attempt < httpClient.retryConfig.MaxRetries {
+			if httpClient.shouldRetry(err, 0, attempt) {
 				continue
 			}
 			return nil, err
 		}
 
-		statusCode := resp.StatusCode()
-		
-		if statusCode >= http.StatusMultipleChoices {
-			lastErr = errors.New("response failed")
-			fasthttp.ReleaseRequest(req)
-			fasthttp.ReleaseResponse(resp)
-			
-			if isRetryableError(nil, statusCode) && attempt < httpClient.retryConfig.MaxRetries {
+		response, err := httpClient.handleResponse(resp, req)
+		if err != nil {
+			lastErr = err
+			if httpClient.shouldRetry(nil, resp.StatusCode(), attempt) {
 				continue
 			}
 			return nil, lastErr
 		}
 
-		body := make([]byte, len(resp.Body()))
-		copy(body, resp.Body())
-		
-		lastResponse = &Response{
-			Status: statusCode,
-			Body:   body,
-		}
-
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(resp)
-		break
-	}
-
-	if lastResponse != nil {
-		return lastResponse, nil
+		return response, nil
 	}
 
 	if lastErr != nil {

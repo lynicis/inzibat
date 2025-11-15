@@ -13,4 +13,3 @@ func ResolveAbsolutePath(filePath string) (string, error) {
 	}
 	return absPath, nil
 }
-
