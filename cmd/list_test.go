@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -197,4 +199,44 @@ func TestListCmd_Run(t *testing.T) {
 		_, err = os.Stat(globalConfigPath)
 		assert.NoError(t, err)
 	})
+
+	t.Run("error path - fails when config file is invalid (subprocess)", func(t *testing.T) {
+		_, testFile, _, ok := runtime.Caller(0)
+		require.True(t, ok, "failed to get test file path")
+
+		testDir := filepath.Dir(testFile)
+		projectRoot := filepath.Dir(testDir)
+		projectRoot, err := filepath.Abs(projectRoot)
+		require.NoError(t, err)
+
+		binaryPath := filepath.Join(projectRoot, "inzibat")
+
+		if _, statErr := os.Stat(binaryPath); os.IsNotExist(statErr) {
+			buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
+			buildCmd.Dir = projectRoot
+			buildErr := buildCmd.Run()
+			require.NoError(t, buildErr, "failed to build binary")
+		}
+
+		tmpHomeDir := t.TempDir()
+		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
+
+		// Write invalid JSON to cause config read to fail
+		invalidJSON := `{"invalid": json}`
+		err = os.WriteFile(globalConfigPath, []byte(invalidJSON), 0644)
+		require.NoError(t, err)
+
+		cmd := exec.Command(binaryPath, "list")
+		cmd.Env = append(os.Environ(), "HOME="+tmpHomeDir)
+		err = cmd.Run()
+
+		if exitError, ok := err.(*exec.ExitError); ok {
+			assert.Equal(t, 1, exitError.ExitCode(), "list command should exit with code 1 on config read error")
+		} else if err != nil {
+			t.Fatalf("unexpected error type: %v (expected ExitError)", err)
+		} else {
+			t.Fatalf("expected command to fail with exit code 1, but it succeeded")
+		}
+	})
+
 }

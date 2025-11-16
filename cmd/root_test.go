@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -100,5 +102,35 @@ func TestExecute_ErrorPath(t *testing.T) {
 		} else {
 			t.Fatalf("expected command to fail with exit code 1, but it succeeded")
 		}
+	})
+
+	t.Run("error path - Execute() calls exitFunc with code 1 when rootCmd.Execute() returns error", func(t *testing.T) {
+		// Arrange
+		originalExitFunc := exitFunc
+		originalRootCmd := rootCmd
+		defer func() {
+			exitFunc = originalExitFunc
+			rootCmd = originalRootCmd
+		}()
+
+		var capturedExitCode int
+		exitFunc = func(code int) {
+			capturedExitCode = code
+		}
+
+		// Create a command that returns an error
+		errorCmd := &cobra.Command{
+			Use: "test-error-cmd",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return errors.New("test error")
+			},
+		}
+		rootCmd = errorCmd
+
+		// Act
+		Execute()
+
+		// Assert
+		assert.Equal(t, 1, capturedExitCode, "Execute() should call exitFunc with code 1 when rootCmd.Execute() returns error")
 	})
 }

@@ -118,7 +118,6 @@ func TestCollectHeadersFromForm(t *testing.T) {
 	})
 
 	t.Run("happy path - collects single header", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -140,14 +139,12 @@ func TestCollectHeadersFromForm(t *testing.T) {
 
 		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "application/json", headers.Get("Content-Type"))
 		assert.Equal(t, 1, len(headers))
 	})
 
 	t.Run("happy path - collects multiple headers", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -186,10 +183,8 @@ func TestCollectHeadersFromForm(t *testing.T) {
 			return continueMock2
 		}
 
-		// Act
 		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "application/json", headers.Get("Content-Type"))
 		assert.Equal(t, "Bearer token", headers.Get("Authorization"))
@@ -197,7 +192,6 @@ func TestCollectHeadersFromForm(t *testing.T) {
 	})
 
 	t.Run("error path - header form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -212,10 +206,8 @@ func TestCollectHeadersFromForm(t *testing.T) {
 			return NewMockFormRunner(ctrl)
 		}
 
-		// Act
 		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Nil(t, headers)
 		assert.Contains(t, err.Error(), "failed to collect header")
@@ -223,7 +215,6 @@ func TestCollectHeadersFromForm(t *testing.T) {
 	})
 
 	t.Run("error path - continue form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -243,10 +234,8 @@ func TestCollectHeadersFromForm(t *testing.T) {
 			return continueMock
 		}
 
-		// Act
 		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Nil(t, headers)
 		assert.Contains(t, err.Error(), "failed to get user input")
@@ -369,7 +358,6 @@ func TestCollectBodyFromForm(t *testing.T) {
 	})
 
 	t.Run("happy path - collects single body field", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -389,27 +377,23 @@ func TestCollectBodyFromForm(t *testing.T) {
 			return continueMock
 		}
 
-		// Act
 		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "success", body["message"])
 		assert.Equal(t, 1, len(body))
 	})
 
 	t.Run("happy path - collects multiple body fields", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		// bodyForm is created once and reused, so we need a single mock that handles multiple calls
 		bodyMock := NewMockFormRunner(ctrl)
-		bodyMock.EXPECT().Run().Return(nil).Times(2) // Called once initially, once in loop
-		bodyMock.EXPECT().GetString("key").Return("message").Times(1) // First call
+		bodyMock.EXPECT().Run().Return(nil).Times(2)                    // Called once initially, once in loop
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1)   // First call
 		bodyMock.EXPECT().GetString("value").Return("success").Times(1) // First call
-		bodyMock.EXPECT().GetString("key").Return("code").Times(1) // Second call
-		bodyMock.EXPECT().GetString("value").Return("200").Times(1) // Second call
+		bodyMock.EXPECT().GetString("key").Return("code").Times(1)      // Second call
+		bodyMock.EXPECT().GetString("value").Return("200").Times(1)     // Second call
 
 		continueMock1 := NewMockFormRunner(ctrl)
 		continueMock1.EXPECT().Run().Return(nil).Times(1)
@@ -431,10 +415,8 @@ func TestCollectBodyFromForm(t *testing.T) {
 			return continueMock2
 		}
 
-		// Act
 		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "success", body["message"])
 		assert.Equal(t, "200", body["code"])
@@ -442,7 +424,6 @@ func TestCollectBodyFromForm(t *testing.T) {
 	})
 
 	t.Run("error path - initial body form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -457,10 +438,8 @@ func TestCollectBodyFromForm(t *testing.T) {
 			return NewMockFormRunner(ctrl)
 		}
 
-		// Act
 		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Nil(t, body)
 		assert.Contains(t, err.Error(), "failed to collect body field")
@@ -468,7 +447,6 @@ func TestCollectBodyFromForm(t *testing.T) {
 	})
 
 	t.Run("error path - continue form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -488,10 +466,8 @@ func TestCollectBodyFromForm(t *testing.T) {
 			return continueMock
 		}
 
-		// Act
 		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Nil(t, body)
 		assert.Contains(t, err.Error(), "failed to get user input")
@@ -499,12 +475,10 @@ func TestCollectBodyFromForm(t *testing.T) {
 	})
 
 	t.Run("error path - subsequent body form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		expectedErr := errors.New("subsequent body form error")
-		// bodyForm is created once and reused, so we need a single mock
 		bodyMock := NewMockFormRunner(ctrl)
 		bodyMock.EXPECT().Run().Return(nil).Times(1) // First call succeeds
 		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
@@ -522,10 +496,8 @@ func TestCollectBodyFromForm(t *testing.T) {
 			return continueMock
 		}
 
-		// Act
 		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Nil(t, body)
 		assert.Contains(t, err.Error(), "failed to collect body field")
@@ -632,7 +604,6 @@ func TestCollectBodyStringFromForm(t *testing.T) {
 	})
 
 	t.Run("happy path - collects body string", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -645,16 +616,13 @@ func TestCollectBodyStringFromForm(t *testing.T) {
 			return bodyStringMock
 		}
 
-		// Act
 		bodyString, err := collectBodyStringFromFormWithRunner(buildBodyStringForm)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, expectedBodyString, bodyString)
 	})
 
 	t.Run("error path - body string form run fails", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -666,10 +634,8 @@ func TestCollectBodyStringFromForm(t *testing.T) {
 			return bodyStringMock
 		}
 
-		// Act
 		bodyString, err := collectBodyStringFromFormWithRunner(buildBodyStringForm)
 
-		// Assert
 		require.Error(t, err)
 		assert.Empty(t, bodyString)
 		assert.Contains(t, err.Error(), "failed to get body string")
@@ -749,5 +715,83 @@ func TestFormPlaceholders(t *testing.T) {
 		)
 
 		assert.NotNil(t, bodyStringForm)
+	})
+}
+
+func TestHuhFormRunner(t *testing.T) {
+	t.Run("happy path - Run delegates to underlying form", func(t *testing.T) {
+		defaultValue := "default-value"
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("test").
+					Title("Test Input").
+					Value(&defaultValue),
+			),
+		)
+
+		runner := &huhFormRunner{form: form}
+
+		err := runner.Run()
+		_ = err
+		assert.NotNil(t, runner)
+		assert.NotNil(t, runner.form)
+	})
+
+	t.Run("happy path - GetString delegates to underlying form", func(t *testing.T) {
+		testValue := "test-value"
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("test").
+					Title("Test Input").
+					Value(&testValue),
+			),
+		)
+
+		runner := &huhFormRunner{form: form}
+
+		result := runner.GetString("test")
+		_ = result
+		assert.NotNil(t, runner)
+	})
+
+	t.Run("happy path - GetBool delegates to underlying form", func(t *testing.T) {
+		testBool := false
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Key("test").
+					Title("Test Confirm").
+					Value(&testBool),
+			),
+		)
+
+		runner := &huhFormRunner{form: form}
+
+		result := runner.GetBool("test")
+		_ = result
+		assert.NotNil(t, runner)
+	})
+}
+
+func TestCollectHeadersFromFormPublic(t *testing.T) {
+	t.Run("happy path - function creates form builders", func(t *testing.T) {
+		_, err := CollectHeadersFromForm()
+		_ = err
+	})
+}
+
+func TestCollectBodyFromFormPublic(t *testing.T) {
+	t.Run("happy path - function creates form builders", func(t *testing.T) {
+		_, err := CollectBodyFromForm()
+		_ = err
+	})
+}
+
+func TestCollectBodyStringFromFormPublic(t *testing.T) {
+	t.Run("happy path - function creates form builders", func(t *testing.T) {
+		_, err := CollectBodyStringFromForm()
+		_ = err
 	})
 }

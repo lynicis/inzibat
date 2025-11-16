@@ -92,25 +92,47 @@ func (c *BodyStringCollector) GetFileFormConfig() FilePathFormConfig {
 	}
 }
 
-func CollectData(collector DataCollector) (interface{}, error) {
-	source, err := GetSourceFromForm(collector.GetSourceTitle(), "source")
-	if err != nil {
+func collectDataWithRunners(
+	collector DataCollector,
+	getSourceForm func() FormRunner,
+	getFilePathForm func() FormRunner,
+) (interface{}, error) {
+	sourceForm := getSourceForm()
+	if err := sourceForm.Run(); err != nil {
 		return nil, err
 	}
+	source := sourceForm.GetString("source")
 
-	if source == "skip" {
+	if source == SourceSkip {
 		return collector.GetEmptyValue(), nil
 	}
 
-	if source == "file" {
-		filePath, err := GetFilePathFromForm(collector.GetFileFormConfig())
-		if err != nil {
+	if source == SourceFile {
+		filePathForm := getFilePathForm()
+		if err := filePathForm.Run(); err != nil {
 			return nil, err
 		}
+		filePath := filePathForm.GetString(collector.GetFileFormConfig().Key)
 		return collector.CollectFromFile(filePath)
 	}
 
 	return collector.CollectFromForm()
+}
+
+func CollectData(collector DataCollector) (interface{}, error) {
+	return collectDataWithRunners(
+		collector,
+		func() FormRunner {
+			return &huhFormRunner{
+				form: BuildSourceSelectionForm(collector.GetSourceTitle(), SourceKey),
+			}
+		},
+		func() FormRunner {
+			return &huhFormRunner{
+				form: BuildFilePathForm(collector.GetFileFormConfig()),
+			}
+		},
+	)
 }
 
 func CollectHeaders() (http.Header, error) {

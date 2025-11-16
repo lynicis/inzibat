@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -20,6 +21,12 @@ import (
 )
 
 func StartServer(configFile string) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return StartServerWithContext(ctx, configFile)
+}
+
+func StartServerWithContext(ctx context.Context, configFile string) error {
 	if configFile != "" {
 		absPath, err := config.ResolveAbsolutePath(configFile)
 		if err != nil {
@@ -85,9 +92,7 @@ func StartServer(configFile string) error {
 		}
 	}()
 
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-	<-signalChannel
+	<-ctx.Done()
 
 	if err = fiberApp.ShutdownWithTimeout(5 * time.Second); err != nil {
 		return fmt.Errorf("failed to shutdown gracefully: %w", err)

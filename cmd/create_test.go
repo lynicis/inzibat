@@ -378,7 +378,6 @@ func TestStatusCodeParsing(t *testing.T) {
 
 func TestCreateMockResponseFormWithDeps(t *testing.T) {
 	t.Run("happy path - with body type body", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -401,7 +400,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -410,7 +408,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, 200, result.StatusCode)
@@ -420,7 +417,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 	})
 
 	t.Run("happy path - with body type bodyString", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -441,7 +437,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 		bodyStringCollector.EXPECT().Collect().Return(bodyString, nil).Times(1)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -450,7 +445,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, 201, result.StatusCode)
@@ -459,7 +453,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 	})
 
 	t.Run("happy path - with body type skip", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -478,7 +471,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -487,7 +479,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, 204, result.StatusCode)
@@ -496,7 +487,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 	})
 
 	t.Run("error path - status form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -508,7 +498,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -517,14 +506,12 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to get status code")
 	})
 
 	t.Run("error path - invalid status code", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -537,7 +524,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -546,14 +532,12 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to parse status code")
 	})
 
 	t.Run("error path - headers collector error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -568,7 +552,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -577,14 +560,12 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to collect headers")
 	})
 
 	t.Run("error path - body type form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -602,7 +583,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -611,14 +591,12 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to select body type")
 	})
 
 	t.Run("error path - body collector error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -639,7 +617,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -648,14 +625,12 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to collect body")
 	})
 
 	t.Run("error path - body string collector error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -675,7 +650,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 		bodyStringCollector := NewMockBodyStringCollector(ctrl)
 		bodyStringCollector.EXPECT().Collect().Return("", assert.AnError).Times(1)
 
-		// Act
 		result, err := createMockResponseFormWithDeps(
 			statusFormRunner,
 			headersCollector,
@@ -684,7 +658,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 			bodyStringCollector,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to collect body string")
@@ -693,7 +666,6 @@ func TestCreateMockResponseFormWithDeps(t *testing.T) {
 
 func TestCreateClientRequestFormWithDeps(t *testing.T) {
 	t.Run("happy path - with structured body", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -722,7 +694,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		optionsFormRunner.EXPECT().GetBool("passWithRequestHeaders").Return(true).Times(1)
 		optionsFormRunner.EXPECT().GetBool("inErrorReturn500").Return(true).Times(1)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -731,7 +702,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "http://localhost:8081", result.Host)
@@ -743,7 +713,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 	})
 
 	t.Run("happy path - with skip body", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -768,7 +737,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		optionsFormRunner.EXPECT().GetBool("passWithRequestHeaders").Return(false).Times(1)
 		optionsFormRunner.EXPECT().GetBool("inErrorReturn500").Return(false).Times(1)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -777,7 +745,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Nil(t, result.Body)
@@ -787,7 +754,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 	})
 
 	t.Run("error path - basic form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -799,7 +765,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		optionsFormRunner := NewMockFormRunner(ctrl)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -808,14 +773,12 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to get basic request info")
 	})
 
 	t.Run("error path - headers collector error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -832,7 +795,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		optionsFormRunner := NewMockFormRunner(ctrl)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -841,14 +803,12 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to collect headers")
 	})
 
 	t.Run("error path - body type form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -868,7 +828,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		bodyCollector := NewMockBodyCollector(ctrl)
 		optionsFormRunner := NewMockFormRunner(ctrl)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -877,14 +836,12 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to select body type")
 	})
 
 	t.Run("error path - body collector error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -907,7 +864,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 
 		optionsFormRunner := NewMockFormRunner(ctrl)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -916,14 +872,12 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to collect body")
 	})
 
 	t.Run("error path - options form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -945,7 +899,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 		optionsFormRunner := NewMockFormRunner(ctrl)
 		optionsFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
 
-		// Act
 		result, err := createClientRequestFormWithDeps(
 			basicFormRunner,
 			headersCollector,
@@ -954,7 +907,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 			optionsFormRunner,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to get options")
@@ -963,7 +915,6 @@ func TestCreateClientRequestFormWithDeps(t *testing.T) {
 
 func TestCreateRouteWithDeps(t *testing.T) {
 	t.Run("happy path - mock route type", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -982,21 +933,18 @@ func TestCreateRouteWithDeps(t *testing.T) {
 
 		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
 
-		// Act
 		result, err := createRouteWithDeps(
 			routeFormRunner,
 			mockResponseCreator,
 			clientRequestCreator,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, fakeResponse.StatusCode, result.FakeResponse.StatusCode)
 	})
 
 	t.Run("happy path - client route type", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -1015,14 +963,12 @@ func TestCreateRouteWithDeps(t *testing.T) {
 		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
 		clientRequestCreator.EXPECT().Create().Return(requestTo, nil).Times(1)
 
-		// Act
 		result, err := createRouteWithDeps(
 			routeFormRunner,
 			mockResponseCreator,
 			clientRequestCreator,
 		)
 
-		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, requestTo.Host, result.RequestTo.Host)
@@ -1031,7 +977,6 @@ func TestCreateRouteWithDeps(t *testing.T) {
 	})
 
 	t.Run("error path - route form runner error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -1041,21 +986,18 @@ func TestCreateRouteWithDeps(t *testing.T) {
 		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
 		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
 
-		// Act
 		result, err := createRouteWithDeps(
 			routeFormRunner,
 			mockResponseCreator,
 			clientRequestCreator,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to create route")
 	})
 
 	t.Run("error path - mock response creator error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -1070,20 +1012,17 @@ func TestCreateRouteWithDeps(t *testing.T) {
 
 		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
 
-		// Act
 		result, err := createRouteWithDeps(
 			routeFormRunner,
 			mockResponseCreator,
 			clientRequestCreator,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("error path - client request creator error", func(t *testing.T) {
-		// Arrange
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -1097,14 +1036,12 @@ func TestCreateRouteWithDeps(t *testing.T) {
 		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
 		clientRequestCreator.EXPECT().Create().Return(nil, assert.AnError).Times(1)
 
-		// Act
 		result, err := createRouteWithDeps(
 			routeFormRunner,
 			mockResponseCreator,
 			clientRequestCreator,
 		)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, result)
 	})
