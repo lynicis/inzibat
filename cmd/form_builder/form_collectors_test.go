@@ -1,12 +1,14 @@
 package form_builder
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
 	"github.com/charmbracelet/huh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"inzibat/config"
 )
@@ -113,6 +115,142 @@ func TestCollectHeadersFromForm(t *testing.T) {
 		assert.Equal(t, "Bearer token", headers.Get("Authorization"))
 		assert.Equal(t, "value", headers.Get("X-Custom-Header"))
 		assert.Equal(t, 3, len(headers))
+	})
+
+	t.Run("happy path - collects single header", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		headerMock := NewMockFormRunner(ctrl)
+		headerMock.EXPECT().Run().Return(nil).Times(1)
+		headerMock.EXPECT().GetString("key").Return("Content-Type").Times(1)
+		headerMock.EXPECT().GetString("value").Return("application/json").Times(1)
+
+		continueMock := NewMockFormRunner(ctrl)
+		continueMock.EXPECT().Run().Return(nil).Times(1)
+		continueMock.EXPECT().GetBool("continue").Return(false).Times(1)
+
+		buildHeaderForm := func() FormRunner {
+			return headerMock
+		}
+		buildContinueForm := func() FormRunner {
+			return continueMock
+		}
+
+		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "application/json", headers.Get("Content-Type"))
+		assert.Equal(t, 1, len(headers))
+	})
+
+	t.Run("happy path - collects multiple headers", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		headerMock1 := NewMockFormRunner(ctrl)
+		headerMock1.EXPECT().Run().Return(nil).Times(1)
+		headerMock1.EXPECT().GetString("key").Return("Content-Type").Times(1)
+		headerMock1.EXPECT().GetString("value").Return("application/json").Times(1)
+
+		headerMock2 := NewMockFormRunner(ctrl)
+		headerMock2.EXPECT().Run().Return(nil).Times(1)
+		headerMock2.EXPECT().GetString("key").Return("Authorization").Times(1)
+		headerMock2.EXPECT().GetString("value").Return("Bearer token").Times(1)
+
+		continueMock1 := NewMockFormRunner(ctrl)
+		continueMock1.EXPECT().Run().Return(nil).Times(1)
+		continueMock1.EXPECT().GetBool("continue").Return(true).Times(1)
+
+		continueMock2 := NewMockFormRunner(ctrl)
+		continueMock2.EXPECT().Run().Return(nil).Times(1)
+		continueMock2.EXPECT().GetBool("continue").Return(false).Times(1)
+
+		headerCallCount := 0
+		buildHeaderForm := func() FormRunner {
+			headerCallCount++
+			if headerCallCount == 1 {
+				return headerMock1
+			}
+			return headerMock2
+		}
+		continueCallCount := 0
+		buildContinueForm := func() FormRunner {
+			continueCallCount++
+			if continueCallCount == 1 {
+				return continueMock1
+			}
+			return continueMock2
+		}
+
+		// Act
+		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "application/json", headers.Get("Content-Type"))
+		assert.Equal(t, "Bearer token", headers.Get("Authorization"))
+		assert.Equal(t, 2, len(headers))
+	})
+
+	t.Run("error path - header form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("form run error")
+		headerMock := NewMockFormRunner(ctrl)
+		headerMock.EXPECT().Run().Return(expectedErr).Times(1)
+
+		buildHeaderForm := func() FormRunner {
+			return headerMock
+		}
+		buildContinueForm := func() FormRunner {
+			return NewMockFormRunner(ctrl)
+		}
+
+		// Act
+		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Nil(t, headers)
+		assert.Contains(t, err.Error(), "failed to collect header")
+		assert.Contains(t, err.Error(), expectedErr.Error())
+	})
+
+	t.Run("error path - continue form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("continue form error")
+		headerMock := NewMockFormRunner(ctrl)
+		headerMock.EXPECT().Run().Return(nil).Times(1)
+		headerMock.EXPECT().GetString("key").Return("Content-Type").Times(1)
+		headerMock.EXPECT().GetString("value").Return("application/json").Times(1)
+
+		continueMock := NewMockFormRunner(ctrl)
+		continueMock.EXPECT().Run().Return(expectedErr).Times(1)
+
+		buildHeaderForm := func() FormRunner {
+			return headerMock
+		}
+		buildContinueForm := func() FormRunner {
+			return continueMock
+		}
+
+		// Act
+		headers, err := collectHeadersFromFormWithRunner(buildHeaderForm, buildContinueForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Nil(t, headers)
+		assert.Contains(t, err.Error(), "failed to get user input")
+		assert.Contains(t, err.Error(), expectedErr.Error())
 	})
 }
 
@@ -229,6 +367,170 @@ func TestCollectBodyFromForm(t *testing.T) {
 		assert.Equal(t, "new value", body["key"])
 		assert.Equal(t, 1, len(body))
 	})
+
+	t.Run("happy path - collects single body field", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		bodyMock := NewMockFormRunner(ctrl)
+		bodyMock.EXPECT().Run().Return(nil).Times(1)
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
+		bodyMock.EXPECT().GetString("value").Return("success").Times(1)
+
+		continueMock := NewMockFormRunner(ctrl)
+		continueMock.EXPECT().Run().Return(nil).Times(1)
+		continueMock.EXPECT().GetBool("continue").Return(false).Times(1)
+
+		buildBodyForm := func() FormRunner {
+			return bodyMock
+		}
+		buildContinueForm := func() FormRunner {
+			return continueMock
+		}
+
+		// Act
+		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "success", body["message"])
+		assert.Equal(t, 1, len(body))
+	})
+
+	t.Run("happy path - collects multiple body fields", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// bodyForm is created once and reused, so we need a single mock that handles multiple calls
+		bodyMock := NewMockFormRunner(ctrl)
+		bodyMock.EXPECT().Run().Return(nil).Times(2) // Called once initially, once in loop
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1) // First call
+		bodyMock.EXPECT().GetString("value").Return("success").Times(1) // First call
+		bodyMock.EXPECT().GetString("key").Return("code").Times(1) // Second call
+		bodyMock.EXPECT().GetString("value").Return("200").Times(1) // Second call
+
+		continueMock1 := NewMockFormRunner(ctrl)
+		continueMock1.EXPECT().Run().Return(nil).Times(1)
+		continueMock1.EXPECT().GetBool("continue").Return(true).Times(1)
+
+		continueMock2 := NewMockFormRunner(ctrl)
+		continueMock2.EXPECT().Run().Return(nil).Times(1)
+		continueMock2.EXPECT().GetBool("continue").Return(false).Times(1)
+
+		buildBodyForm := func() FormRunner {
+			return bodyMock
+		}
+		continueCallCount := 0
+		buildContinueForm := func() FormRunner {
+			continueCallCount++
+			if continueCallCount == 1 {
+				return continueMock1
+			}
+			return continueMock2
+		}
+
+		// Act
+		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, "success", body["message"])
+		assert.Equal(t, "200", body["code"])
+		assert.Equal(t, 2, len(body))
+	})
+
+	t.Run("error path - initial body form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("body form error")
+		bodyMock := NewMockFormRunner(ctrl)
+		bodyMock.EXPECT().Run().Return(expectedErr).Times(1)
+
+		buildBodyForm := func() FormRunner {
+			return bodyMock
+		}
+		buildContinueForm := func() FormRunner {
+			return NewMockFormRunner(ctrl)
+		}
+
+		// Act
+		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Nil(t, body)
+		assert.Contains(t, err.Error(), "failed to collect body field")
+		assert.Contains(t, err.Error(), expectedErr.Error())
+	})
+
+	t.Run("error path - continue form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("continue form error")
+		bodyMock := NewMockFormRunner(ctrl)
+		bodyMock.EXPECT().Run().Return(nil).Times(1)
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
+		bodyMock.EXPECT().GetString("value").Return("success").Times(1)
+
+		continueMock := NewMockFormRunner(ctrl)
+		continueMock.EXPECT().Run().Return(expectedErr).Times(1)
+
+		buildBodyForm := func() FormRunner {
+			return bodyMock
+		}
+		buildContinueForm := func() FormRunner {
+			return continueMock
+		}
+
+		// Act
+		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Nil(t, body)
+		assert.Contains(t, err.Error(), "failed to get user input")
+		assert.Contains(t, err.Error(), expectedErr.Error())
+	})
+
+	t.Run("error path - subsequent body form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("subsequent body form error")
+		// bodyForm is created once and reused, so we need a single mock
+		bodyMock := NewMockFormRunner(ctrl)
+		bodyMock.EXPECT().Run().Return(nil).Times(1) // First call succeeds
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
+		bodyMock.EXPECT().GetString("value").Return("success").Times(1)
+		bodyMock.EXPECT().Run().Return(expectedErr).Times(1) // Second call fails
+
+		continueMock := NewMockFormRunner(ctrl)
+		continueMock.EXPECT().Run().Return(nil).Times(1)
+		continueMock.EXPECT().GetBool("continue").Return(true).Times(1)
+
+		buildBodyForm := func() FormRunner {
+			return bodyMock
+		}
+		buildContinueForm := func() FormRunner {
+			return continueMock
+		}
+
+		// Act
+		body, err := collectBodyFromFormWithRunner(buildBodyForm, buildContinueForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Nil(t, body)
+		assert.Contains(t, err.Error(), "failed to collect body field")
+		assert.Contains(t, err.Error(), expectedErr.Error())
+	})
 }
 
 func TestCollectBodyStringFromForm(t *testing.T) {
@@ -327,6 +629,51 @@ func TestCollectBodyStringFromForm(t *testing.T) {
 				assert.NoError(t, err, "content: %s", tc.content)
 			})
 		}
+	})
+
+	t.Run("happy path - collects body string", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedBodyString := `{"message": "success"}`
+		bodyStringMock := NewMockFormRunner(ctrl)
+		bodyStringMock.EXPECT().Run().Return(nil).Times(1)
+		bodyStringMock.EXPECT().GetString("bodyString").Return(expectedBodyString).Times(1)
+
+		buildBodyStringForm := func() FormRunner {
+			return bodyStringMock
+		}
+
+		// Act
+		bodyString, err := collectBodyStringFromFormWithRunner(buildBodyStringForm)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, expectedBodyString, bodyString)
+	})
+
+	t.Run("error path - body string form run fails", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		expectedErr := errors.New("body string form error")
+		bodyStringMock := NewMockFormRunner(ctrl)
+		bodyStringMock.EXPECT().Run().Return(expectedErr).Times(1)
+
+		buildBodyStringForm := func() FormRunner {
+			return bodyStringMock
+		}
+
+		// Act
+		bodyString, err := collectBodyStringFromFormWithRunner(buildBodyStringForm)
+
+		// Assert
+		require.Error(t, err)
+		assert.Empty(t, bodyString)
+		assert.Contains(t, err.Error(), "failed to get body string")
+		assert.Contains(t, err.Error(), expectedErr.Error())
 	})
 }
 

@@ -16,6 +16,14 @@ Use net/http/httptest for testing HTTP handlers.
 
 Use github.com/stretchr/testify/assert and github.com/stretchr/testify/mock for all assertions and mocking. Do not use reflect.DeepEqual.
 
+Mocking with mockgen: Use go.uber.org/mock/mockgen to generate mocks for interfaces. When you need to mock an interface dependency:
+- Generate mocks using: `mockgen -source=<source_file> -destination=<destination_file> -package=<package_name>`
+- Or use the Makefile target: `make generate-mock` (if configured)
+- Import generated mocks in your test files
+- Use the generated mock structs (e.g., `MockReader`, `MockClient`) instead of manually creating mocks
+- Set expectations using methods like `EXPECT().MethodName().Return()` or `EXPECT().MethodName().DoAndReturn()`
+- Verify expectations with `mock.AssertExpectations(t)` or let the mock's `Finish()` method handle it
+
 Test Philosophy (Critical):
 
 Happy Paths: Always include a test for the successful, expected behavior.

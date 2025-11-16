@@ -1,14 +1,19 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
+	"github.com/charmbracelet/huh"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
+	"inzibat/cmd/form_builder"
 	"inzibat/config"
 )
 
@@ -136,7 +141,6 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 
 		bodyString, err := config.LoadBodyStringFromFile(nonExistentPath)
 
-
 		assert.Empty(t, bodyString)
 		assert.Contains(t, err.Error(), "failed to open file")
 	})
@@ -149,7 +153,6 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 		require.NoError(t, err)
 
 		bodyString, err := config.LoadBodyStringFromFile(filePath)
-
 
 		assert.Empty(t, bodyString)
 	})
@@ -201,5 +204,908 @@ func TestRouteTypes(t *testing.T) {
 		}
 		assert.True(t, typeValues["mock"])
 		assert.True(t, typeValues["client"])
+	})
+}
+
+func TestCreateRouteForm_Structure(t *testing.T) {
+	t.Run("happy path - form has correct structure", func(t *testing.T) {
+		form := createRouteForm()
+
+		assert.NotNil(t, form)
+	})
+}
+
+func TestCreateMockResponseForm_Structure(t *testing.T) {
+	t.Run("happy path - status code form structure", func(t *testing.T) {
+		status := "200"
+		statusForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("statusCode").
+					Title("Status Code").
+					Placeholder(status).
+					Value(&status).
+					Validate(form_builder.ValidateStatusCode),
+			),
+		)
+
+		assert.NotNil(t, statusForm)
+	})
+
+	t.Run("happy path - body type form structure", func(t *testing.T) {
+		bodyForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Key("bodyType").
+					Title("Body Type").
+					Options([]huh.Option[string]{
+						{Key: "Body (JSON object)", Value: BodyTypeBody},
+						{Key: "BodyString (string)", Value: BodyTypeBodyString},
+						{Key: "Skip", Value: form_builder.SourceSkip},
+					}...),
+			),
+		)
+
+		assert.NotNil(t, bodyForm)
+	})
+
+	t.Run("happy path - body type constants are used correctly", func(t *testing.T) {
+		assert.Equal(t, "body", BodyTypeBody)
+		assert.Equal(t, "bodyString", BodyTypeBodyString)
+		assert.Equal(t, "structured", BodyTypeStructured)
+	})
+}
+
+func TestCreateClientRequestForm_Structure(t *testing.T) {
+	t.Run("happy path - basic form structure", func(t *testing.T) {
+		basicForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("host").
+					Title("Target Host URL").
+					Placeholder("http://localhost:8081").
+					Validate(form_builder.ValidateHost),
+				huh.NewInput().
+					Key("path").
+					Title("Target Path").
+					Placeholder("/api/users").
+					Validate(form_builder.ValidateHost),
+				huh.NewSelect[string]().
+					Key("method").
+					Title("Target HTTP Method").
+					Options(httpMethods...),
+			),
+		)
+
+		assert.NotNil(t, basicForm)
+	})
+
+	t.Run("happy path - request body type form structure", func(t *testing.T) {
+		bodyForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Key("bodyType").
+					Title("Request Body Type").
+					Options([]huh.Option[string]{
+						{Key: "Structured (JSON object)", Value: BodyTypeStructured},
+						{Key: "Skip", Value: form_builder.SourceSkip},
+					}...),
+			),
+		)
+
+		assert.NotNil(t, bodyForm)
+	})
+
+	t.Run("happy path - options form structure", func(t *testing.T) {
+		optionsForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Key("passWithRequestBody").
+					Title("Pass With Request Body"),
+				huh.NewConfirm().
+					Key("passWithRequestHeaders").
+					Title("Pass With Request Headers"),
+				huh.NewConfirm().
+					Key("inErrorReturn500").
+					Title("Return 500 on Error"),
+			),
+		)
+
+		assert.NotNil(t, optionsForm)
+	})
+}
+
+func TestCreateRoute_Constants(t *testing.T) {
+	t.Run("happy path - route type constants match expected values", func(t *testing.T) {
+		assert.Equal(t, "mock", RouteTypeMock)
+		assert.Equal(t, "client", RouteTypeClient)
+	})
+
+	t.Run("happy path - route type constants are used in routeTypes", func(t *testing.T) {
+		typeValues := make(map[string]bool)
+		for _, opt := range routeTypes {
+			typeValues[opt.Value] = true
+		}
+		assert.True(t, typeValues[RouteTypeMock])
+		assert.True(t, typeValues[RouteTypeClient])
+	})
+}
+
+func TestCreateRouteForm_Fields(t *testing.T) {
+	t.Run("happy path - form has path field", func(t *testing.T) {
+		form := createRouteForm()
+		assert.NotNil(t, form)
+	})
+
+	t.Run("happy path - form has method field", func(t *testing.T) {
+		form := createRouteForm()
+		assert.NotNil(t, form)
+	})
+
+	t.Run("happy path - form has routeType field", func(t *testing.T) {
+		form := createRouteForm()
+		assert.NotNil(t, form)
+	})
+}
+
+func TestStatusCodeParsing(t *testing.T) {
+	t.Run("error path - invalid status code string", func(t *testing.T) {
+		invalidStatusCodes := []string{"", "abc", "not-a-number", "9999", "-1"}
+
+		for _, invalidCode := range invalidStatusCodes {
+			t.Run("invalid code: "+invalidCode, func(t *testing.T) {
+				_, err := strconv.Atoi(invalidCode)
+				if invalidCode == "" || invalidCode == "abc" || invalidCode == "not-a-number" {
+					assert.Error(t, err)
+				}
+			})
+		}
+	})
+
+	t.Run("happy path - valid status code strings", func(t *testing.T) {
+		validStatusCodes := []string{"200", "201", "400", "404", "500"}
+
+		for _, validCode := range validStatusCodes {
+			t.Run("valid code: "+validCode, func(t *testing.T) {
+				statusCode, err := strconv.Atoi(validCode)
+				assert.NoError(t, err)
+				assert.GreaterOrEqual(t, statusCode, 100)
+				assert.LessOrEqual(t, statusCode, 599)
+			})
+		}
+	})
+}
+
+func TestCreateMockResponseFormWithDeps(t *testing.T) {
+	t.Run("happy path - with body type body", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("200").Times(1)
+
+		headers := make(http.Header)
+		headers.Set("Content-Type", "application/json")
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeBody).Times(1)
+
+		body := config.HttpBody{"message": "success"}
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyCollector.EXPECT().Collect().Return(body, nil).Times(1)
+
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 200, result.StatusCode)
+		assert.Equal(t, "application/json", result.Headers.Get("Content-Type"))
+		assert.Equal(t, body, result.Body)
+		assert.Empty(t, result.BodyString)
+	})
+
+	t.Run("happy path - with body type bodyString", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("201").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeBodyString).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyString := `{"message": "created"}`
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+		bodyStringCollector.EXPECT().Collect().Return(bodyString, nil).Times(1)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 201, result.StatusCode)
+		assert.Equal(t, bodyString, result.BodyString)
+		assert.Nil(t, result.Body)
+	})
+
+	t.Run("happy path - with body type skip", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("204").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 204, result.StatusCode)
+		assert.Nil(t, result.Body)
+		assert.Empty(t, result.BodyString)
+	})
+
+	t.Run("error path - status form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		headersCollector := NewMockHeadersCollector(ctrl)
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get status code")
+	})
+
+	t.Run("error path - invalid status code", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("invalid").Times(1)
+
+		headersCollector := NewMockHeadersCollector(ctrl)
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse status code")
+	})
+
+	t.Run("error path - headers collector error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("200").Times(1)
+
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(nil, assert.AnError).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect headers")
+	})
+
+	t.Run("error path - body type form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("200").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to select body type")
+	})
+
+	t.Run("error path - body collector error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("200").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeBody).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyCollector.EXPECT().Collect().Return(nil, assert.AnError).Times(1)
+
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body")
+	})
+
+	t.Run("error path - body string collector error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		statusFormRunner := NewMockFormRunner(ctrl)
+		statusFormRunner.EXPECT().Run().Return(nil).Times(1)
+		statusFormRunner.EXPECT().GetString("statusCode").Return("200").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeBodyString).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyStringCollector := NewMockBodyStringCollector(ctrl)
+		bodyStringCollector.EXPECT().Collect().Return("", assert.AnError).Times(1)
+
+		// Act
+		result, err := createMockResponseFormWithDeps(
+			statusFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			bodyStringCollector,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body string")
+	})
+}
+
+func TestCreateClientRequestFormWithDeps(t *testing.T) {
+	t.Run("happy path - with structured body", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8081").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headers := make(http.Header)
+		headers.Set("Authorization", "Bearer token")
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeStructured).Times(1)
+
+		body := config.HttpBody{"id": float64(1)}
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyCollector.EXPECT().Collect().Return(body, nil).Times(1)
+
+		optionsFormRunner := NewMockFormRunner(ctrl)
+		optionsFormRunner.EXPECT().Run().Return(nil).Times(1)
+		optionsFormRunner.EXPECT().GetBool("passWithRequestBody").Return(true).Times(1)
+		optionsFormRunner.EXPECT().GetBool("passWithRequestHeaders").Return(true).Times(1)
+		optionsFormRunner.EXPECT().GetBool("inErrorReturn500").Return(true).Times(1)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "http://localhost:8081", result.Host)
+		assert.Equal(t, body, result.Body)
+		assert.Equal(t, "Bearer token", result.Headers.Get("Authorization"))
+		assert.True(t, result.PassWithRequestBody)
+		assert.True(t, result.PassWithRequestHeaders)
+		assert.True(t, result.InErrorReturn500)
+	})
+
+	t.Run("happy path - with skip body", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8080").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		optionsFormRunner := NewMockFormRunner(ctrl)
+		optionsFormRunner.EXPECT().Run().Return(nil).Times(1)
+		optionsFormRunner.EXPECT().GetBool("passWithRequestBody").Return(false).Times(1)
+		optionsFormRunner.EXPECT().GetBool("passWithRequestHeaders").Return(false).Times(1)
+		optionsFormRunner.EXPECT().GetBool("inErrorReturn500").Return(false).Times(1)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Nil(t, result.Body)
+		assert.False(t, result.PassWithRequestBody)
+		assert.False(t, result.PassWithRequestHeaders)
+		assert.False(t, result.InErrorReturn500)
+	})
+
+	t.Run("error path - basic form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		headersCollector := NewMockHeadersCollector(ctrl)
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyCollector := NewMockBodyCollector(ctrl)
+		optionsFormRunner := NewMockFormRunner(ctrl)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get basic request info")
+	})
+
+	t.Run("error path - headers collector error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8081").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(nil, assert.AnError).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyCollector := NewMockBodyCollector(ctrl)
+		optionsFormRunner := NewMockFormRunner(ctrl)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect headers")
+	})
+
+	t.Run("error path - body type form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8081").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		optionsFormRunner := NewMockFormRunner(ctrl)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to select body type")
+	})
+
+	t.Run("error path - body collector error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8081").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(BodyTypeStructured).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		bodyCollector.EXPECT().Collect().Return(nil, assert.AnError).Times(1)
+
+		optionsFormRunner := NewMockFormRunner(ctrl)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body")
+	})
+
+	t.Run("error path - options form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		basicFormRunner := NewMockFormRunner(ctrl)
+		basicFormRunner.EXPECT().Run().Return(nil).Times(1)
+		basicFormRunner.EXPECT().GetString("host").Return("http://localhost:8081").Times(1)
+		basicFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		basicFormRunner.EXPECT().GetString("method").Return("").Times(1)
+
+		headers := make(http.Header)
+		headersCollector := NewMockHeadersCollector(ctrl)
+		headersCollector.EXPECT().Collect().Return(headers, nil).Times(1)
+
+		bodyTypeFormRunner := NewMockFormRunner(ctrl)
+		bodyTypeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		bodyTypeFormRunner.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip).Times(1)
+
+		bodyCollector := NewMockBodyCollector(ctrl)
+		optionsFormRunner := NewMockFormRunner(ctrl)
+		optionsFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		// Act
+		result, err := createClientRequestFormWithDeps(
+			basicFormRunner,
+			headersCollector,
+			bodyTypeFormRunner,
+			bodyCollector,
+			optionsFormRunner,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get options")
+	})
+}
+
+func TestCreateRouteWithDeps(t *testing.T) {
+	t.Run("happy path - mock route type", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		routeFormRunner := NewMockFormRunner(ctrl)
+		routeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		routeFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("method").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("routeType").Return(RouteTypeMock).Times(1)
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    make(http.Header),
+		}
+		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
+		mockResponseCreator.EXPECT().Create().Return(fakeResponse, nil).Times(1)
+
+		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
+
+		// Act
+		result, err := createRouteWithDeps(
+			routeFormRunner,
+			mockResponseCreator,
+			clientRequestCreator,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, fakeResponse.StatusCode, result.FakeResponse.StatusCode)
+	})
+
+	t.Run("happy path - client route type", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		routeFormRunner := NewMockFormRunner(ctrl)
+		routeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		routeFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("method").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("routeType").Return(RouteTypeClient).Times(1)
+
+		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
+		requestTo := &config.RequestTo{
+			Host:   "http://localhost:8081",
+			Path:   "/api/users",
+			Method: "GET",
+		}
+		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
+		clientRequestCreator.EXPECT().Create().Return(requestTo, nil).Times(1)
+
+		// Act
+		result, err := createRouteWithDeps(
+			routeFormRunner,
+			mockResponseCreator,
+			clientRequestCreator,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, requestTo.Host, result.RequestTo.Host)
+		assert.Equal(t, requestTo.Path, result.RequestTo.Path)
+		assert.Equal(t, requestTo.Method, result.RequestTo.Method)
+	})
+
+	t.Run("error path - route form runner error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		routeFormRunner := NewMockFormRunner(ctrl)
+		routeFormRunner.EXPECT().Run().Return(assert.AnError).Times(1)
+
+		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
+		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
+
+		// Act
+		result, err := createRouteWithDeps(
+			routeFormRunner,
+			mockResponseCreator,
+			clientRequestCreator,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create route")
+	})
+
+	t.Run("error path - mock response creator error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		routeFormRunner := NewMockFormRunner(ctrl)
+		routeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		routeFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("method").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("routeType").Return(RouteTypeMock).Times(1)
+
+		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
+		mockResponseCreator.EXPECT().Create().Return(nil, assert.AnError).Times(1)
+
+		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
+
+		// Act
+		result, err := createRouteWithDeps(
+			routeFormRunner,
+			mockResponseCreator,
+			clientRequestCreator,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("error path - client request creator error", func(t *testing.T) {
+		// Arrange
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		routeFormRunner := NewMockFormRunner(ctrl)
+		routeFormRunner.EXPECT().Run().Return(nil).Times(1)
+		routeFormRunner.EXPECT().GetString("path").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("method").Return("").Times(1)
+		routeFormRunner.EXPECT().GetString("routeType").Return(RouteTypeClient).Times(1)
+
+		mockResponseCreator := NewMockMockResponseFormCreator(ctrl)
+		clientRequestCreator := NewMockClientRequestFormCreator(ctrl)
+		clientRequestCreator.EXPECT().Create().Return(nil, assert.AnError).Times(1)
+
+		// Act
+		result, err := createRouteWithDeps(
+			routeFormRunner,
+			mockResponseCreator,
+			clientRequestCreator,
+		)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
 	})
 }
