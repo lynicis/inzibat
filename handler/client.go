@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/goccy/go-reflect"
 	"github.com/gofiber/fiber/v2"

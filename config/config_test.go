@@ -1,12 +1,13 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/goccy/go-json"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"

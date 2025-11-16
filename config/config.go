@@ -1,13 +1,14 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/goccy/go-json"
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
