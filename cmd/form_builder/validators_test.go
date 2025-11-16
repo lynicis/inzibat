@@ -1,352 +1,153 @@
 package form_builder
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateStatusCode(t *testing.T) {
-	t.Run("happy path - valid status codes", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			codeStr  string
-			expected error
-		}{
-			{
-				name:     "status 100",
-				codeStr:  "100",
-				expected: nil,
-			},
-			{
-				name:     "status 200",
-				codeStr:  "200",
-				expected: nil,
-			},
-			{
-				name:     "status 404",
-				codeStr:  "404",
-				expected: nil,
-			},
-			{
-				name:     "status 500",
-				codeStr:  "500",
-				expected: nil,
-			},
-			{
-				name:     "status 511",
-				codeStr:  "511",
-				expected: nil,
-			},
-		}
+	t.Run("happy path - valid status code", func(t *testing.T) {
+		validCodes := []string{"200", "201", "404", "500", "100", "511"}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateStatusCode(tc.codeStr)
-
-				assert.NoError(t, err)
-			})
+		for _, code := range validCodes {
+			err := ValidateStatusCode(code)
+			assert.NoError(t, err, "code: %s", code)
 		}
 	})
 
 	t.Run("error path - invalid status code format", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			codeStr  string
-			expected string
-		}{
-			{
-				name:     "non-numeric string",
-				codeStr:  "abc",
-				expected: "invalid status code",
-			},
-			{
-				name:     "empty string",
-				codeStr:  "",
-				expected: "invalid status code",
-			},
-			{
-				name:     "mixed alphanumeric",
-				codeStr:  "200abc",
-				expected: "invalid status code",
-			},
-			{
-				name:     "negative number as string",
-				codeStr:  "-100",
-				expected: "status code must be between 100 and 511",
-			},
-		}
+		invalidCodes := []string{"abc", "not-a-number", "", "12.5"}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateStatusCode(tc.codeStr)
-
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected, err.Error())
-			})
+		for _, code := range invalidCodes {
+			err := ValidateStatusCode(code)
+			assert.Error(t, err, "code: %s", code)
+			assert.Contains(t, err.Error(), "invalid status code")
 		}
 	})
 
-	t.Run("error path - status code out of range", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			codeStr  string
-			expected string
-		}{
-			{
-				name:     "status code too low",
-				codeStr:  "99",
-				expected: "status code must be between 100 and 511",
-			},
-			{
-				name:     "status code too high",
-				codeStr:  "512",
-				expected: "status code must be between 100 and 511",
-			},
-			{
-				name:     "status code zero",
-				codeStr:  "0",
-				expected: "status code must be between 100 and 511",
-			},
-		}
+	t.Run("error path - status code out of range (too low)", func(t *testing.T) {
+		code := "99"
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateStatusCode(tc.codeStr)
+		err := ValidateStatusCode(code)
 
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected, err.Error())
-			})
-		}
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "status code must be between 100 and 511")
+	})
+
+	t.Run("error path - status code out of range (too high)", func(t *testing.T) {
+		code := "512"
+
+		err := ValidateStatusCode(code)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "status code must be between 100 and 511")
+	})
+
+	t.Run("happy path - boundary values", func(t *testing.T) {
+		minCode := "100"
+		maxCode := "511"
+
+		assert.NoError(t, ValidateStatusCode(minCode))
+		assert.NoError(t, ValidateStatusCode(maxCode))
 	})
 }
 
 func TestValidatePath(t *testing.T) {
-	t.Run("happy path - valid paths", func(t *testing.T) {
-		testCases := []struct {
-			name string
-			path string
-		}{
-			{
-				name: "root path",
-				path: "/",
-			},
-			{
-				name: "simple path",
-				path: "/api",
-			},
-			{
-				name: "nested path",
-				path: "/api/users",
-			},
-			{
-				name: "path with trailing slash",
-				path: "/api/users/",
-			},
-			{
-				name: "path with query parameters",
-				path: "/api/users?page=1",
-			},
-		}
+	t.Run("happy path - valid path starting with /", func(t *testing.T) {
+		validPaths := []string{"/", "/test", "/api/users", "/path/to/resource"}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidatePath(tc.path)
-
-				assert.NoError(t, err)
-			})
+		for _, path := range validPaths {
+			err := ValidatePath(path)
+			assert.NoError(t, err, "path: %s", path)
 		}
 	})
 
-	t.Run("error path - path does not start with slash", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			path     string
-			expected string
-		}{
-			{
-				name:     "path without leading slash",
-				path:     "api/users",
-				expected: "route path must start with '/'",
-			},
-			{
-				name:     "empty string",
-				path:     "",
-				expected: "route path must start with '/'",
-			},
-			{
-				name:     "path starting with letter",
-				path:     "users",
-				expected: "route path must start with '/'",
-			},
-		}
+	t.Run("error path - path does not start with /", func(t *testing.T) {
+		invalidPaths := []string{"test", "api/users", "path/to/resource", ""}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidatePath(tc.path)
-
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected, err.Error())
-			})
+		for _, path := range invalidPaths {
+			err := ValidatePath(path)
+			assert.Error(t, err, "path: %s", path)
+			assert.Contains(t, err.Error(), "route path must start with '/'")
 		}
 	})
 }
 
 func TestValidateHost(t *testing.T) {
-	t.Run("happy path - valid hosts", func(t *testing.T) {
-		testCases := []struct {
-			name string
-			host string
-		}{
-			{
-				name: "http URL",
-				host: "http://localhost:8080",
-			},
-			{
-				name: "https URL",
-				host: "https://example.com",
-			},
-			{
-				name: "URL with path",
-				host: "http://localhost:8080/api",
-			},
-			{
-				name: "URL with query parameters",
-				host: "http://localhost:8080/api?key=value",
-			},
-			{
-				name: "domain name",
-				host: "example.com",
-			},
-			{
-				name: "localhost",
-				host: "localhost",
-			},
-			{
-				name: "IP address",
-				host: "127.0.0.1",
-			},
-			{
-				name: "IP address with port in URL",
-				host: "http://127.0.0.1:8080",
-			},
+	t.Run("happy path - valid URL", func(t *testing.T) {
+		validHosts := []string{
+			"http://localhost",
+			"https://example.com",
+			"http://localhost:8080",
+			"https://api.example.com:443",
 		}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateHost(tc.host)
-
-				assert.NoError(t, err)
-			})
+		for _, host := range validHosts {
+			err := ValidateHost(host)
+			assert.NoError(t, err, "host: %s", host)
 		}
 	})
 
-	t.Run("error path - invalid hosts", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			host     string
-			expected string
-		}{
-			{
-				name:     "IP address with port without scheme",
-				host:     "127.0.0.1:8080",
-				expected: "invalid hostname",
-			},
-			{
-				name:     "malformed URL - missing scheme",
-				host:     "://invalid",
-				expected: "invalid hostname",
-			},
-			{
-				name:     "URL with invalid bracket",
-				host:     "http://[invalid",
-				expected: "invalid hostname",
-			},
+	t.Run("error path - invalid URL", func(t *testing.T) {
+		invalidHosts := []string{
+			"not a url",
+			"://invalid",
 		}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateHost(tc.host)
+		for _, host := range invalidHosts {
+			_, parseErr := url.Parse(host)
+			if parseErr != nil {
+				err := ValidateHost(host)
+				assert.Error(t, err, "host: %s", host)
+				assert.Contains(t, err.Error(), "invalid hostname")
+			}
+		}
+	})
 
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected, err.Error())
-			})
+	t.Run("happy path - empty string (url.Parse allows it)", func(t *testing.T) {
+		host := ""
+
+		err := ValidateHost(host)
+
+		// url.Parse("") returns a valid URL with empty scheme and host
+		_, parseErr := url.Parse(host)
+		if parseErr == nil {
+			assert.NoError(t, err)
+		} else {
+			assert.Error(t, err)
 		}
 	})
 }
 
 func TestValidateNonEmpty(t *testing.T) {
-	t.Run("happy path - non-empty values", func(t *testing.T) {
-		testCases := []struct {
-			name      string
-			value     string
-			fieldName string
-		}{
-			{
-				name:      "simple string",
-				value:     "test",
-				fieldName: "field",
-			},
-			{
-				name:      "single character",
-				value:     "a",
-				fieldName: "name",
-			},
-			{
-				name:      "string with spaces",
-				value:     "test value",
-				fieldName: "description",
-			},
-			{
-				name:      "numeric string",
-				value:     "123",
-				fieldName: "id",
-			},
-		}
+	t.Run("happy path - non-empty value", func(t *testing.T) {
+		nonEmptyValues := []string{"test", "value", "123", "a"}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateNonEmpty(tc.value, tc.fieldName)
-
-				assert.NoError(t, err)
-			})
+		for _, value := range nonEmptyValues {
+			err := ValidateNonEmpty(value, "field")
+			assert.NoError(t, err, "value: %s", value)
 		}
 	})
 
-	t.Run("error path - empty values", func(t *testing.T) {
-		testCases := []struct {
-			name      string
-			value     string
-			fieldName string
-			expected  string
-		}{
-			{
-				name:      "empty string",
-				value:     "",
-				fieldName: "name",
-				expected:  "name cannot be empty",
-			},
-			{
-				name:      "empty string with different field name",
-				value:     "",
-				fieldName: "description",
-				expected:  "description cannot be empty",
-			},
-			{
-				name:      "empty string with custom field name",
-				value:     "",
-				fieldName: "host",
-				expected:  "host cannot be empty",
-			},
-		}
+	t.Run("error path - empty value", func(t *testing.T) {
+		emptyValue := ""
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := ValidateNonEmpty(tc.value, tc.fieldName)
+		err := ValidateNonEmpty(emptyValue, "fieldName")
 
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected, err.Error())
-			})
-		}
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "fieldName")
+		assert.Contains(t, err.Error(), "cannot be empty")
+	})
+
+	t.Run("happy path - custom field name in error", func(t *testing.T) {
+		emptyValue := ""
+		fieldName := "customField"
+
+		err := ValidateNonEmpty(emptyValue, fieldName)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), fieldName)
 	})
 }

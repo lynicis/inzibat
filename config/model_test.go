@@ -1,39 +1,105 @@
 package config
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCfg_GetServerAddr(t *testing.T) {
-	cfg := &Cfg{
-		ServerPort: 8080,
-	}
-	result := cfg.GetServerAddr()
+	t.Run("happy path - returns formatted server address", func(t *testing.T) {
+		cfg := &Cfg{
+			ServerPort: 8080,
+		}
 
-	assert.Equal(t, ":8080", result)
+		addr := cfg.GetServerAddr()
+
+		assert.Equal(t, ":8080", addr)
+	})
+
+	t.Run("happy path - handles different ports", func(t *testing.T) {
+		testCases := []struct {
+			port     int
+			expected string
+		}{
+			{3000, ":3000"},
+			{443, ":443"},
+			{80, ":80"},
+			{9999, ":9999"},
+		}
+
+		for _, tc := range testCases {
+			cfg := &Cfg{ServerPort: tc.port}
+			assert.Equal(t, tc.expected, cfg.GetServerAddr())
+		}
+	})
 }
 
 func TestRequestTo_GetParsedUrl(t *testing.T) {
-	t.Run("happy path", func(t *testing.T) {
-		requestTo := RequestTo{
+	t.Run("happy path - parses valid URL", func(t *testing.T) {
+		requestTo := &RequestTo{
+			Host: "http://localhost",
+			Path: "/api/users",
+		}
+
+		parsedURL, err := requestTo.GetParsedUrl()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, parsedURL)
+		assert.Equal(t, "http://localhost/api/users", parsedURL.String())
+	})
+
+	t.Run("happy path - parses URL with port", func(t *testing.T) {
+		requestTo := &RequestTo{
 			Host: "http://localhost:8080",
 			Path: "/test",
 		}
-		parsedUrl, err := requestTo.GetParsedUrl()
+
+		parsedURL, err := requestTo.GetParsedUrl()
 
 		assert.NoError(t, err)
-		assert.Equal(t, "http://localhost:8080/test", parsedUrl.String())
+		assert.NotNil(t, parsedURL)
+		assert.Equal(t, "http://localhost:8080/test", parsedURL.String())
 	})
 
-	t.Run("invalid host", func(t *testing.T) {
-		requestTo := RequestTo{
-			Host: "http://host%zz",
-			Path: "/path",
+	t.Run("happy path - parses HTTPS URL", func(t *testing.T) {
+		requestTo := &RequestTo{
+			Host: "https://api.example.com",
+			Path: "/v1/data",
 		}
-		_, err := requestTo.GetParsedUrl()
+
+		parsedURL, err := requestTo.GetParsedUrl()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, parsedURL)
+		assert.Equal(t, "https://api.example.com/v1/data", parsedURL.String())
+	})
+
+	t.Run("error path - invalid URL", func(t *testing.T) {
+		requestTo := &RequestTo{
+			Host: "://invalid",
+			Path: "/test",
+		}
+
+		parsedURL, err := requestTo.GetParsedUrl()
 
 		assert.Error(t, err)
+		assert.Nil(t, parsedURL)
+		assert.Contains(t, err.Error(), "failed to parse url")
+	})
+
+	t.Run("happy path - empty path", func(t *testing.T) {
+		requestTo := &RequestTo{
+			Host: "http://localhost",
+			Path: "/",
+		}
+
+		parsedURL, err := requestTo.GetParsedUrl()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, parsedURL)
+		expectedURL, _ := url.Parse("http://localhost/")
+		assert.Equal(t, expectedURL.String(), parsedURL.String())
 	})
 }

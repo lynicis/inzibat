@@ -136,7 +136,6 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 
 		bodyString, err := config.LoadBodyStringFromFile(nonExistentPath)
 
-		// Assert
 
 		assert.Empty(t, bodyString)
 		assert.Contains(t, err.Error(), "failed to open file")
@@ -151,7 +150,6 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 
 		bodyString, err := config.LoadBodyStringFromFile(filePath)
 
-		// Assert
 
 		assert.Empty(t, bodyString)
 	})
@@ -159,10 +157,49 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 
 func TestCreateRouteForm(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		// Arrange & Act
 		form := createRouteForm()
 
-		// Assert
 		assert.NotNil(t, form)
+	})
+}
+
+func TestCreateCmd(t *testing.T) {
+	t.Run("happy path - command is registered", func(t *testing.T) {
+		assert.NotNil(t, createCmd)
+		assert.Equal(t, "create", createCmd.Use)
+		assert.Contains(t, createCmd.Aliases, "create-route")
+		assert.Contains(t, createCmd.Aliases, "c")
+	})
+
+	t.Run("happy path - command has correct properties", func(t *testing.T) {
+		assert.Contains(t, createCmd.Short, "Create")
+		assert.Contains(t, createCmd.Long, "interactively")
+	})
+}
+
+func TestHttpMethods(t *testing.T) {
+	t.Run("happy path - httpMethods contains all methods", func(t *testing.T) {
+		assert.Equal(t, 5, len(httpMethods))
+		methodValues := make(map[string]bool)
+		for _, opt := range httpMethods {
+			methodValues[opt.Value] = true
+		}
+		assert.True(t, methodValues["GET"])
+		assert.True(t, methodValues["POST"])
+		assert.True(t, methodValues["PUT"])
+		assert.True(t, methodValues["PATCH"])
+		assert.True(t, methodValues["DELETE"])
+	})
+}
+
+func TestRouteTypes(t *testing.T) {
+	t.Run("happy path - routeTypes contains both types", func(t *testing.T) {
+		assert.Equal(t, 2, len(routeTypes))
+		typeValues := make(map[string]bool)
+		for _, opt := range routeTypes {
+			typeValues[opt.Value] = true
+		}
+		assert.True(t, typeValues["mock"])
+		assert.True(t, typeValues["client"])
 	})
 }

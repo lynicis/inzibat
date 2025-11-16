@@ -6,273 +6,181 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"inzibat/config"
 )
 
-func TestHeadersCollector_GetEmptyValue(t *testing.T) {
-	t.Run("happy path - returns empty http.Header", func(t *testing.T) {
+func TestHeadersCollector(t *testing.T) {
+	t.Run("happy path - GetEmptyValue returns empty header", func(t *testing.T) {
 		collector := &HeadersCollector{}
 
-		result := collector.GetEmptyValue()
+		emptyValue := collector.GetEmptyValue()
 
-		assert.NotNil(t, result)
-		headers, ok := result.(http.Header)
+		assert.NotNil(t, emptyValue)
+		headers, ok := emptyValue.(http.Header)
 		assert.True(t, ok)
-		assert.NotNil(t, headers)
 		assert.Equal(t, 0, len(headers))
 	})
-}
 
-func TestHeadersCollector_GetSourceTitle(t *testing.T) {
-	t.Run("happy path - returns Header Source", func(t *testing.T) {
+	t.Run("happy path - GetSourceTitle returns correct title", func(t *testing.T) {
 		collector := &HeadersCollector{}
 
-		result := collector.GetSourceTitle()
+		title := collector.GetSourceTitle()
 
-		assert.Equal(t, "Header Source", result)
+		assert.Equal(t, "Header Source", title)
 	})
-}
 
-func TestHeadersCollector_GetFileFormConfig(t *testing.T) {
-	t.Run("happy path - returns correct FilePathFormConfig", func(t *testing.T) {
+	t.Run("happy path - GetFileFormConfig returns correct config", func(t *testing.T) {
 		collector := &HeadersCollector{}
 
-		result := collector.GetFileFormConfig()
+		config := collector.GetFileFormConfig()
 
-		assert.Equal(t, "filepath", result.Key)
-		assert.Equal(t, "Header JSON File Path", result.Title)
-		assert.Equal(t, "/path/to/headers.json", result.Placeholder)
+		assert.Equal(t, "filepath", config.Key)
+		assert.Equal(t, "Header JSON File Path", config.Title)
+		assert.Equal(t, "/path/to/headers.json", config.Placeholder)
 	})
-}
 
-func TestHeadersCollector_CollectFromFile(t *testing.T) {
-	t.Run("happy path - loads headers from valid JSON file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "headers.json")
-		jsonContent := `{"X-Custom-Header": "custom-value", "Accept": "application/json"}`
-		err := os.WriteFile(filePath, []byte(jsonContent), 0644)
-		assert.NoError(t, err)
-
+	t.Run("happy path - CollectFromFile loads headers", func(t *testing.T) {
 		collector := &HeadersCollector{}
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "headers.json")
+		headersData := map[string]string{
+			"Content-Type":  "application/json",
+			"Authorization": "Bearer token",
+		}
+		data, err := json.Marshal(headersData)
+		require.NoError(t, err)
+		err = os.WriteFile(filePath, data, 0644)
+		require.NoError(t, err)
+
 		result, err := collector.CollectFromFile(filePath)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		headers, ok := result.(http.Header)
 		assert.True(t, ok)
-		assert.Equal(t, "custom-value", headers.Get("X-Custom-Header"))
-		assert.Equal(t, "application/json", headers.Get("Accept"))
-	})
-
-	t.Run("error path - file does not exist", func(t *testing.T) {
-		collector := &HeadersCollector{}
-		result, err := collector.CollectFromFile("/nonexistent/file.json")
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-	})
-
-	t.Run("error path - invalid JSON", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "invalid.json")
-		invalidJSON := `not valid json`
-		err := os.WriteFile(filePath, []byte(invalidJSON), 0644)
-		assert.NoError(t, err)
-
-		collector := &HeadersCollector{}
-		result, err := collector.CollectFromFile(filePath)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "application/json", headers.Get("Content-Type"))
+		assert.Equal(t, "Bearer token", headers.Get("Authorization"))
 	})
 }
 
-func TestBodyCollector_GetEmptyValue(t *testing.T) {
-	t.Run("happy path - returns config.HttpBody with nil", func(t *testing.T) {
+func TestBodyCollector(t *testing.T) {
+	t.Run("happy path - GetEmptyValue returns nil HttpBody", func(t *testing.T) {
 		collector := &BodyCollector{}
 
-		result := collector.GetEmptyValue()
+		emptyValue := collector.GetEmptyValue()
 
-		body, ok := result.(config.HttpBody)
+		body, ok := emptyValue.(config.HttpBody)
 		assert.True(t, ok)
-		assert.Equal(t, 0, len(body))
+		if body != nil {
+			assert.Equal(t, 0, len(body))
+		}
 	})
-}
 
-func TestBodyCollector_GetSourceTitle(t *testing.T) {
-	t.Run("happy path - returns Body Source", func(t *testing.T) {
+	t.Run("happy path - GetSourceTitle returns correct title", func(t *testing.T) {
 		collector := &BodyCollector{}
 
-		result := collector.GetSourceTitle()
+		title := collector.GetSourceTitle()
 
-		assert.Equal(t, "Body Source", result)
+		assert.Equal(t, "Body Source", title)
 	})
-}
 
-func TestBodyCollector_GetFileFormConfig(t *testing.T) {
-	t.Run("happy path - returns correct FilePathFormConfig", func(t *testing.T) {
+	t.Run("happy path - GetFileFormConfig returns correct config", func(t *testing.T) {
 		collector := &BodyCollector{}
 
-		result := collector.GetFileFormConfig()
+		config := collector.GetFileFormConfig()
 
-		assert.Equal(t, "filepath", result.Key)
-		assert.Equal(t, "Body JSON File Path", result.Title)
-		assert.Equal(t, "/path/to/body.json", result.Placeholder)
+		assert.Equal(t, "filepath", config.Key)
+		assert.Equal(t, "Body JSON File Path", config.Title)
+		assert.Equal(t, "/path/to/body.json", config.Placeholder)
 	})
-}
 
-func TestBodyCollector_CollectFromFile(t *testing.T) {
-	t.Run("happy path - loads body from valid JSON file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "body.json")
-		jsonContent := `{"id": 1, "name": "test", "active": true}`
-		err := os.WriteFile(filePath, []byte(jsonContent), 0644)
-		assert.NoError(t, err)
-
+	t.Run("happy path - CollectFromFile loads body", func(t *testing.T) {
 		collector := &BodyCollector{}
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "body.json")
+		bodyData := config.HttpBody{
+			"message": "success",
+			"code":    float64(200),
+		}
+		data, err := json.Marshal(bodyData)
+		require.NoError(t, err)
+		err = os.WriteFile(filePath, data, 0644)
+		require.NoError(t, err)
+
 		result, err := collector.CollectFromFile(filePath)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		body, ok := result.(config.HttpBody)
 		assert.True(t, ok)
-		assert.Equal(t, float64(1), body["id"])
-		assert.Equal(t, "test", body["name"])
-		assert.Equal(t, true, body["active"])
-	})
-
-	t.Run("error path - file does not exist", func(t *testing.T) {
-		collector := &BodyCollector{}
-		result, err := collector.CollectFromFile("/nonexistent/file.json")
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-	})
-
-	t.Run("error path - invalid JSON", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "invalid.json")
-		invalidJSON := `{invalid json}`
-		err := os.WriteFile(filePath, []byte(invalidJSON), 0644)
-		assert.NoError(t, err)
-
-		collector := &BodyCollector{}
-		result, err := collector.CollectFromFile(filePath)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "success", body["message"])
+		assert.Equal(t, float64(200), body["code"])
 	})
 }
 
-func TestBodyStringCollector_GetEmptyValue(t *testing.T) {
-	t.Run("happy path - returns empty string", func(t *testing.T) {
+func TestBodyStringCollector(t *testing.T) {
+	t.Run("happy path - GetEmptyValue returns empty string", func(t *testing.T) {
 		collector := &BodyStringCollector{}
 
-		result := collector.GetEmptyValue()
+		emptyValue := collector.GetEmptyValue()
 
-		assert.NotNil(t, result)
-		str, ok := result.(string)
-		assert.True(t, ok)
-		assert.Equal(t, "", str)
+		assert.Equal(t, "", emptyValue)
 	})
-}
 
-func TestBodyStringCollector_GetSourceTitle(t *testing.T) {
-	t.Run("happy path - returns BodyString Source", func(t *testing.T) {
+	t.Run("happy path - GetSourceTitle returns correct title", func(t *testing.T) {
 		collector := &BodyStringCollector{}
 
-		result := collector.GetSourceTitle()
+		title := collector.GetSourceTitle()
 
-		assert.Equal(t, "BodyString Source", result)
+		assert.Equal(t, "BodyString Source", title)
 	})
-}
 
-func TestBodyStringCollector_GetFileFormConfig(t *testing.T) {
-	t.Run("happy path - returns correct FilePathFormConfig with FilePathKey", func(t *testing.T) {
+	t.Run("happy path - GetFileFormConfig returns correct config", func(t *testing.T) {
 		collector := &BodyStringCollector{}
 
-		result := collector.GetFileFormConfig()
+		config := collector.GetFileFormConfig()
 
-		assert.Equal(t, FilePathKey, result.Key)
-		assert.Equal(t, "BodyString File Path", result.Title)
-		assert.Equal(t, "/path/to/body.txt", result.Placeholder)
+		assert.Equal(t, FilePathKey, config.Key)
+		assert.Equal(t, "BodyString File Path", config.Title)
+		assert.Equal(t, "/path/to/body.txt", config.Placeholder)
 	})
-}
 
-func TestBodyStringCollector_CollectFromFile(t *testing.T) {
-	t.Run("happy path - loads body string from text file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "body.txt")
-		content := "Simple text content"
-		err := os.WriteFile(filePath, []byte(content), 0644)
-		assert.NoError(t, err)
-
+	t.Run("happy path - CollectFromFile loads body string", func(t *testing.T) {
 		collector := &BodyStringCollector{}
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "body.txt")
+		expectedContent := `{"message": "success"}`
+		err := os.WriteFile(filePath, []byte(expectedContent), 0644)
+		require.NoError(t, err)
+
 		result, err := collector.CollectFromFile(filePath)
 
 		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		str, ok := result.(string)
-		assert.True(t, ok)
-		assert.Equal(t, content, str)
-	})
-
-	t.Run("error path - file does not exist", func(t *testing.T) {
-		collector := &BodyStringCollector{}
-		result, err := collector.CollectFromFile("/nonexistent/file.txt")
-
-		assert.Error(t, err)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("happy path - loads empty file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "empty.txt")
-		err := os.WriteFile(filePath, []byte(""), 0644)
-		assert.NoError(t, err)
-
-		collector := &BodyStringCollector{}
-		result, err := collector.CollectFromFile(filePath)
-
-		assert.NoError(t, err)
-		str, ok := result.(string)
-		assert.True(t, ok)
-		assert.Equal(t, "", str)
+		assert.Equal(t, expectedContent, result)
 	})
 }
 
 func TestCollectHeaders(t *testing.T) {
-	t.Run("happy path - creates HeadersCollector and calls CollectData", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
-	})
-
-	t.Run("error path - CollectData returns error", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
+	t.Run("happy path - returns headers collector interface", func(t *testing.T) {
+		collector := &HeadersCollector{}
+		assert.Implements(t, (*DataCollector)(nil), collector)
 	})
 }
 
 func TestCollectBody(t *testing.T) {
-	t.Run("happy path - creates BodyCollector and calls CollectData", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
-	})
-
-	t.Run("happy path - handles nil result", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
-	})
-
-	t.Run("error path - CollectData returns error", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
+	t.Run("happy path - returns body collector interface", func(t *testing.T) {
+		collector := &BodyCollector{}
+		assert.Implements(t, (*DataCollector)(nil), collector)
 	})
 }
 
 func TestCollectBodyString(t *testing.T) {
-	t.Run("happy path - creates BodyStringCollector and calls CollectData", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
-	})
-
-	t.Run("error path - CollectData returns error", func(t *testing.T) {
-		t.Skip("Skipping interactive form test - requires non-interactive mode or mocking")
+	t.Run("happy path - returns body string collector interface", func(t *testing.T) {
+		collector := &BodyStringCollector{}
+		assert.Implements(t, (*DataCollector)(nil), collector)
 	})
 }

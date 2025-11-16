@@ -261,7 +261,7 @@ var createCmd = &cobra.Command{
 			zap.L().Fatal("failed to get current user's home directory", zap.Error(err))
 		}
 
-		globalConfigFilePath := filepath.Join(homeDir, config.DefaultConfigFileName)
+		globalConfigFilePath := filepath.Join(homeDir, config.GlobalConfigFileName)
 		cfg, err := config.ReadOrCreateConfig(globalConfigFilePath)
 		if err != nil {
 			zap.L().Fatal("failed to read/create config", zap.Error(err))
