@@ -94,13 +94,9 @@ func (l *BodyStringLoader) Load(filePath string) (interface{}, error) {
 	return string(data), nil
 }
 
-func loadFromFile(filePath string, loader FileLoader) (interface{}, error) {
-	return loader.Load(filePath)
-}
-
 func LoadHeadersFromFile(filePath string) (http.Header, error) {
 	loader := &HeadersLoader{}
-	result, err := loadFromFile(filePath, loader)
+	result, err := loader.Load(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +105,7 @@ func LoadHeadersFromFile(filePath string) (http.Header, error) {
 
 func LoadBodyFromFile(filePath string) (HttpBody, error) {
 	loader := &BodyLoader{}
-	result, err := loadFromFile(filePath, loader)
+	result, err := loader.Load(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +114,7 @@ func LoadBodyFromFile(filePath string) (HttpBody, error) {
 
 func LoadBodyStringFromFile(filePath string) (string, error) {
 	loader := &BodyStringLoader{}
-	result, err := loadFromFile(filePath, loader)
+	result, err := loader.Load(filePath)
 	if err != nil {
 		return "", err
 	}

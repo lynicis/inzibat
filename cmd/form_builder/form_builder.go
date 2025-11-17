@@ -18,56 +18,12 @@ type FilePathFormConfig struct {
 	Key         string
 }
 
-type FormBuilder struct {
-	title       string
-	key         string
-	placeholder string
-	validateFn  func(string) error
-}
-
-func NewFormBuilder() *FormBuilder {
-	return &FormBuilder{}
-}
-
-func (b *FormBuilder) WithTitle(title string) *FormBuilder {
-	b.title = title
-	return b
-}
-
-func (b *FormBuilder) WithKey(key string) *FormBuilder {
-	b.key = key
-	return b
-}
-
-func (b *FormBuilder) WithPlaceholder(placeholder string) *FormBuilder {
-	b.placeholder = placeholder
-	return b
-}
-
-func (b *FormBuilder) WithValidation(validateFn func(string) error) *FormBuilder {
-	b.validateFn = validateFn
-	return b
-}
-
-func (b *FormBuilder) BuildInputForm() *huh.Form {
-	input := huh.NewInput().
-		Key(b.key).
-		Title(b.title).
-		Placeholder(b.placeholder)
-
-	if b.validateFn != nil {
-		input = input.Validate(b.validateFn)
-	}
-
-	return huh.NewForm(huh.NewGroup(input))
-}
-
 func BuildFilePathForm(config FilePathFormConfig) *huh.Form {
-	return NewFormBuilder().
-		WithKey(config.Key).
-		WithTitle(config.Title).
-		WithPlaceholder(config.Placeholder).
-		WithValidation(func(s string) error {
+	input := huh.NewInput().
+		Key(config.Key).
+		Title(config.Title).
+		Placeholder(config.Placeholder).
+		Validate(func(s string) error {
 			if err := ValidateNonEmpty(s, "file path"); err != nil {
 				return err
 			}
@@ -75,8 +31,9 @@ func BuildFilePathForm(config FilePathFormConfig) *huh.Form {
 				return fmt.Errorf("file does not exist")
 			}
 			return nil
-		}).
-		BuildInputForm()
+		})
+
+	return huh.NewForm(huh.NewGroup(input))
 }
 
 func BuildSourceSelectionForm(title string, key string) *huh.Form {

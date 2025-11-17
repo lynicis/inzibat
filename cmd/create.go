@@ -48,93 +48,6 @@ func createRouteForm() *huh.Form {
 	)
 }
 
-type FormRunner interface {
-	Run() error
-	GetString(key string) string
-	GetBool(key string) bool
-}
-
-type HeadersCollector interface {
-	Collect() (http.Header, error)
-}
-
-type BodyCollector interface {
-	Collect() (config.HttpBody, error)
-}
-
-type BodyStringCollector interface {
-	Collect() (string, error)
-}
-
-type realHeadersCollector struct{}
-
-func (c *realHeadersCollector) Collect() (http.Header, error) {
-	return form_builder.CollectHeaders()
-}
-
-type realBodyCollector struct{}
-
-func (c *realBodyCollector) Collect() (config.HttpBody, error) {
-	return form_builder.CollectBody()
-}
-
-type realBodyStringCollector struct{}
-
-func (c *realBodyStringCollector) Collect() (string, error) {
-	return form_builder.CollectBodyString()
-}
-
-func createMockResponseFormWithDeps(
-	statusFormRunner FormRunner,
-	headersCollector HeadersCollector,
-	bodyTypeFormRunner FormRunner,
-	bodyCollector BodyCollector,
-	bodyStringCollector BodyStringCollector,
-) (*config.FakeResponse, error) {
-	if err := statusFormRunner.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get status code: %w", err)
-	}
-
-	statusCodeStr := statusFormRunner.GetString("statusCode")
-	statusCode, err := strconv.Atoi(statusCodeStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse status code %q: %w", statusCodeStr, err)
-	}
-
-	headers, err := headersCollector.Collect()
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect headers: %w", err)
-	}
-
-	if err := bodyTypeFormRunner.Run(); err != nil {
-		return nil, fmt.Errorf("failed to select body type: %w", err)
-	}
-
-	bodyType := bodyTypeFormRunner.GetString("bodyType")
-
-	fakeResponse := &config.FakeResponse{
-		StatusCode: statusCode,
-		Headers:    headers,
-	}
-
-	switch bodyType {
-	case BodyTypeBody:
-		body, err := bodyCollector.Collect()
-		if err != nil {
-			return nil, fmt.Errorf("failed to collect body: %w", err)
-		}
-		fakeResponse.Body = body
-	case BodyTypeBodyString:
-		bodyString, err := bodyStringCollector.Collect()
-		if err != nil {
-			return nil, fmt.Errorf("failed to collect body string: %w", err)
-		}
-		fakeResponse.BodyString = bodyString
-	}
-
-	return fakeResponse, nil
-}
-
 func createMockResponseForm() (*config.FakeResponse, error) {
 	status := strconv.Itoa(http.StatusOK)
 	statusForm := huh.NewForm(
@@ -147,6 +60,21 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 				Validate(form_builder.ValidateStatusCode),
 		),
 	)
+
+	if err := statusForm.Run(); err != nil {
+		return nil, fmt.Errorf("failed to get status code: %w", err)
+	}
+
+	statusCodeStr := statusForm.GetString("statusCode")
+	statusCode, err := strconv.Atoi(statusCodeStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse status code %q: %w", statusCodeStr, err)
+	}
+
+	headers, err := form_builder.CollectHeaders()
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect headers: %w", err)
+	}
 
 	bodyForm := huh.NewForm(
 		huh.NewGroup(
@@ -161,78 +89,33 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 		),
 	)
 
-	return createMockResponseFormWithDeps(
-		&huhFormRunner{form: statusForm},
-		&realHeadersCollector{},
-		&huhFormRunner{form: bodyForm},
-		&realBodyCollector{},
-		&realBodyStringCollector{},
-	)
-}
-
-type huhFormRunner struct {
-	form *huh.Form
-}
-
-func (r *huhFormRunner) Run() error {
-	return r.form.Run()
-}
-
-func (r *huhFormRunner) GetString(key string) string {
-	return r.form.GetString(key)
-}
-
-func (r *huhFormRunner) GetBool(key string) bool {
-	return r.form.GetBool(key)
-}
-
-func createClientRequestFormWithDeps(
-	basicFormRunner FormRunner,
-	headersCollector HeadersCollector,
-	bodyTypeFormRunner FormRunner,
-	bodyCollector BodyCollector,
-	optionsFormRunner FormRunner,
-) (*config.RequestTo, error) {
-	if err := basicFormRunner.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get basic request info: %w", err)
-	}
-
-	host := basicFormRunner.GetString("host")
-	targetPath := basicFormRunner.GetString("path")
-	targetMethod := basicFormRunner.GetString("method")
-
-	headers, err := headersCollector.Collect()
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect headers: %w", err)
-	}
-
-	if err := bodyTypeFormRunner.Run(); err != nil {
+	if err := bodyForm.Run(); err != nil {
 		return nil, fmt.Errorf("failed to select body type: %w", err)
 	}
 
-	var body config.HttpBody
-	bodyType := bodyTypeFormRunner.GetString("bodyType")
-	if bodyType == BodyTypeStructured {
-		body, err = bodyCollector.Collect()
+	bodyType := bodyForm.GetString("bodyType")
+
+	fakeResponse := &config.FakeResponse{
+		StatusCode: statusCode,
+		Headers:    headers,
+	}
+
+	switch bodyType {
+	case BodyTypeBody:
+		body, err := form_builder.CollectBody()
 		if err != nil {
 			return nil, fmt.Errorf("failed to collect body: %w", err)
 		}
+		fakeResponse.Body = body
+	case BodyTypeBodyString:
+		bodyString, err := form_builder.CollectBodyString()
+		if err != nil {
+			return nil, fmt.Errorf("failed to collect body string: %w", err)
+		}
+		fakeResponse.BodyString = bodyString
 	}
 
-	if err := optionsFormRunner.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get options: %w", err)
-	}
-
-	return &config.RequestTo{
-		Host:                   host,
-		Path:                   targetPath,
-		Method:                 targetMethod,
-		Headers:                headers,
-		Body:                   body,
-		PassWithRequestBody:    optionsFormRunner.GetBool("passWithRequestBody"),
-		PassWithRequestHeaders: optionsFormRunner.GetBool("passWithRequestHeaders"),
-		InErrorReturn500:       optionsFormRunner.GetBool("inErrorReturn500"),
-	}, nil
+	return fakeResponse, nil
 }
 
 func createClientRequestForm() (*config.RequestTo, error) {
@@ -255,6 +138,19 @@ func createClientRequestForm() (*config.RequestTo, error) {
 		),
 	)
 
+	if err := basicForm.Run(); err != nil {
+		return nil, fmt.Errorf("failed to get basic request info: %w", err)
+	}
+
+	host := basicForm.GetString("host")
+	targetPath := basicForm.GetString("path")
+	targetMethod := basicForm.GetString("method")
+
+	headers, err := form_builder.CollectHeaders()
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect headers: %w", err)
+	}
+
 	bodyForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
@@ -266,6 +162,19 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				}...),
 		),
 	)
+
+	if err := bodyForm.Run(); err != nil {
+		return nil, fmt.Errorf("failed to select body type: %w", err)
+	}
+
+	var body config.HttpBody
+	bodyType := bodyForm.GetString("bodyType")
+	if bodyType == BodyTypeStructured {
+		body, err = form_builder.CollectBody()
+		if err != nil {
+			return nil, fmt.Errorf("failed to collect body: %w", err)
+		}
+	}
 
 	optionsForm := huh.NewForm(
 		huh.NewGroup(
@@ -281,47 +190,31 @@ func createClientRequestForm() (*config.RequestTo, error) {
 		),
 	)
 
-	return createClientRequestFormWithDeps(
-		&huhFormRunner{form: basicForm},
-		&realHeadersCollector{},
-		&huhFormRunner{form: bodyForm},
-		&realBodyCollector{},
-		&huhFormRunner{form: optionsForm},
-	)
+	if err := optionsForm.Run(); err != nil {
+		return nil, fmt.Errorf("failed to get options: %w", err)
+	}
+
+	return &config.RequestTo{
+		Host:                   host,
+		Path:                   targetPath,
+		Method:                 targetMethod,
+		Headers:                headers,
+		Body:                   body,
+		PassWithRequestBody:    optionsForm.GetBool("passWithRequestBody"),
+		PassWithRequestHeaders: optionsForm.GetBool("passWithRequestHeaders"),
+		InErrorReturn500:       optionsForm.GetBool("inErrorReturn500"),
+	}, nil
 }
 
-type MockResponseFormCreator interface {
-	Create() (*config.FakeResponse, error)
-}
-
-type ClientRequestFormCreator interface {
-	Create() (*config.RequestTo, error)
-}
-
-type realMockResponseFormCreator struct{}
-
-func (c *realMockResponseFormCreator) Create() (*config.FakeResponse, error) {
-	return createMockResponseForm()
-}
-
-type realClientRequestFormCreator struct{}
-
-func (c *realClientRequestFormCreator) Create() (*config.RequestTo, error) {
-	return createClientRequestForm()
-}
-
-func createRouteWithDeps(
-	routeFormRunner FormRunner,
-	mockResponseCreator MockResponseFormCreator,
-	clientRequestCreator ClientRequestFormCreator,
-) (*config.Route, error) {
-	if err := routeFormRunner.Run(); err != nil {
+func createRoute() (*config.Route, error) {
+	routeForm := createRouteForm()
+	if err := routeForm.Run(); err != nil {
 		return nil, fmt.Errorf("failed to create route: %w", err)
 	}
 
-	path := routeFormRunner.GetString("path")
-	method := routeFormRunner.GetString("method")
-	routeType := routeFormRunner.GetString("routeType")
+	path := routeForm.GetString("path")
+	method := routeForm.GetString("method")
+	routeType := routeForm.GetString("routeType")
 
 	var fakeResponse *config.FakeResponse
 	var requestTo *config.RequestTo
@@ -329,13 +222,13 @@ func createRouteWithDeps(
 	switch routeType {
 	case RouteTypeMock:
 		var err error
-		fakeResponse, err = mockResponseCreator.Create()
+		fakeResponse, err = createMockResponseForm()
 		if err != nil {
 			return nil, err
 		}
 	case RouteTypeClient:
 		var err error
-		requestTo, err = clientRequestCreator.Create()
+		requestTo, err = createClientRequestForm()
 		if err != nil {
 			return nil, err
 		}
@@ -347,15 +240,6 @@ func createRouteWithDeps(
 		FakeResponse: fakeResponse,
 		RequestTo:    requestTo,
 	}, nil
-}
-
-func createRoute() (*config.Route, error) {
-	routeForm := createRouteForm()
-	return createRouteWithDeps(
-		&huhFormRunner{form: routeForm},
-		&realMockResponseFormCreator{},
-		&realClientRequestFormCreator{},
-	)
 }
 
 var createCmd = &cobra.Command{
