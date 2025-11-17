@@ -6,8 +6,10 @@ import (
 	"inzibat/config"
 )
 
-// collectHeadersInternal is the testable internal implementation that accepts form runners
-func collectHeadersInternal(sourceFormRunner, filePathFormRunner FormRunner) (http.Header, error) {
+func collectHeadersInternal(
+	sourceFormRunner,
+	filePathFormRunner FormRunner,
+) (http.Header, error) {
 	if err := sourceFormRunner.Run(); err != nil {
 		return nil, err
 	}
@@ -36,14 +38,16 @@ func CollectHeaders() (http.Header, error) {
 		Placeholder: "/path/to/headers.json",
 	})
 
-	sourceFormRunner := &huhFormRunner{form: sourceForm}
-	filePathFormRunner := &huhFormRunner{form: filePathForm}
+	sourceFormRunner := &HuhFormRunner{Form: sourceForm}
+	filePathFormRunner := &HuhFormRunner{Form: filePathForm}
 
 	return collectHeadersInternal(sourceFormRunner, filePathFormRunner)
 }
 
-// collectBodyInternal is the testable internal implementation that accepts form runners
-func collectBodyInternal(sourceFormRunner, filePathFormRunner FormRunner) (config.HttpBody, error) {
+func collectBodyInternal(
+	sourceFormRunner,
+	filePathFormRunner FormRunner,
+) (config.HttpBody, error) {
 	if err := sourceFormRunner.Run(); err != nil {
 		return nil, err
 	}
@@ -72,14 +76,16 @@ func CollectBody() (config.HttpBody, error) {
 		Placeholder: "/path/to/body.json",
 	})
 
-	sourceFormRunner := &huhFormRunner{form: sourceForm}
-	filePathFormRunner := &huhFormRunner{form: filePathForm}
+	sourceFormRunner := &HuhFormRunner{Form: sourceForm}
+	filePathFormRunner := &HuhFormRunner{Form: filePathForm}
 
 	return collectBodyInternal(sourceFormRunner, filePathFormRunner)
 }
 
-// collectBodyStringInternal is the testable internal implementation that accepts form runners
-func collectBodyStringInternal(sourceFormRunner, filePathFormRunner FormRunner) (string, error) {
+func collectBodyStringInternal(
+	sourceFormRunner,
+	filePathFormRunner FormRunner,
+) (string, error) {
 	if err := sourceFormRunner.Run(); err != nil {
 		return "", err
 	}
@@ -108,8 +114,8 @@ func CollectBodyString() (string, error) {
 		Placeholder: "/path/to/body.txt",
 	})
 
-	sourceFormRunner := &huhFormRunner{form: sourceForm}
-	filePathFormRunner := &huhFormRunner{form: filePathForm}
+	sourceFormRunner := &HuhFormRunner{Form: sourceForm}
+	filePathFormRunner := &HuhFormRunner{Form: filePathForm}
 
 	return collectBodyStringInternal(sourceFormRunner, filePathFormRunner)
 }

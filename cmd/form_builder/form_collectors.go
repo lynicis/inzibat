@@ -15,29 +15,51 @@ type FormRunner interface {
 	GetBool(key string) bool
 }
 
-// This is a sugar wrapper that makes logic testable
-// nolint: unused
-type huhFormRunner struct {
-	form *huh.Form
+// HuhFormRunner is a sugar wrapper that makes logic testable
+type HuhFormRunner struct {
+	Form *huh.Form
 }
 
-// nolint: unused
-func (r *huhFormRunner) Run() error {
-	return r.form.Run()
+func (r *HuhFormRunner) Run() error {
+	return r.Form.Run()
 }
 
-// nolint: unused
-func (r *huhFormRunner) GetString(key string) string {
-	return r.form.GetString(key)
+func (r *HuhFormRunner) GetString(key string) string {
+	return r.Form.GetString(key)
 }
 
-// nolint: unused
-func (r *huhFormRunner) GetBool(key string) bool {
-	return r.form.GetBool(key)
+func (r *HuhFormRunner) GetBool(key string) bool {
+	return r.Form.GetBool(key)
+}
+
+func collectHeadersFromFormInternal(
+	headerFormRunner,
+	continueFormRunner FormRunner,
+) (http.Header, error) {
+	headers := make(http.Header)
+
+	for {
+		if err := headerFormRunner.Run(); err != nil {
+			return nil, fmt.Errorf("failed to collect header: %w", err)
+		}
+
+		key := headerFormRunner.GetString("key")
+		value := headerFormRunner.GetString("value")
+		headers.Set(key, value)
+
+		if err := continueFormRunner.Run(); err != nil {
+			return nil, fmt.Errorf("failed to get user input: %w", err)
+		}
+
+		if !continueFormRunner.GetBool("continue") {
+			break
+		}
+	}
+
+	return headers, nil
 }
 
 func CollectHeadersFromForm() (http.Header, error) {
-	headers := make(http.Header)
 	headerForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -65,25 +87,45 @@ func CollectHeadersFromForm() (http.Header, error) {
 		),
 	)
 
+	headerFormRunner := &HuhFormRunner{Form: headerForm}
+	continueFormRunner := &HuhFormRunner{Form: continueForm}
+
+	return collectHeadersFromFormInternal(headerFormRunner, continueFormRunner)
+}
+
+func collectBodyFromFormInternal(
+	bodyFormRunner,
+	continueFormRunner FormRunner,
+) (config.HttpBody, error) {
+	body := make(config.HttpBody)
+
+	if err := bodyFormRunner.Run(); err != nil {
+		return nil, fmt.Errorf("failed to collect body field: %w", err)
+	}
+
+	key := bodyFormRunner.GetString("key")
+	value := bodyFormRunner.GetString("value")
+	body[key] = value
+
 	for {
-		if err := headerForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to collect header: %w", err)
-		}
-
-		key := headerForm.GetString("key")
-		value := headerForm.GetString("value")
-		headers.Set(key, value)
-
-		if err := continueForm.Run(); err != nil {
+		if err := continueFormRunner.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
 		}
 
-		if !continueForm.GetBool("continue") {
+		if !continueFormRunner.GetBool("continue") {
 			break
 		}
+
+		if err := bodyFormRunner.Run(); err != nil {
+			return nil, fmt.Errorf("failed to collect body field: %w", err)
+		}
+
+		key := bodyFormRunner.GetString("key")
+		value := bodyFormRunner.GetString("value")
+		body[key] = value
 	}
 
-	return headers, nil
+	return body, nil
 }
 
 func CollectBodyFromForm() (config.HttpBody, error) {
@@ -114,34 +156,18 @@ func CollectBodyFromForm() (config.HttpBody, error) {
 		),
 	)
 
-	if err := bodyForm.Run(); err != nil {
-		return nil, fmt.Errorf("failed to collect body field: %w", err)
+	bodyFormRunner := &HuhFormRunner{Form: bodyForm}
+	continueFormRunner := &HuhFormRunner{Form: continueForm}
+
+	return collectBodyFromFormInternal(bodyFormRunner, continueFormRunner)
+}
+
+func collectBodyStringFromFormInternal(bodyStringFormRunner FormRunner) (string, error) {
+	if err := bodyStringFormRunner.Run(); err != nil {
+		return "", fmt.Errorf("failed to get body string: %w", err)
 	}
 
-	body := make(config.HttpBody)
-	key := bodyForm.GetString("key")
-	value := bodyForm.GetString("value")
-	body[key] = value
-
-	for {
-		if err := continueForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to get user input: %w", err)
-		}
-
-		if !continueForm.GetBool("continue") {
-			break
-		}
-
-		if err := bodyForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to collect body field: %w", err)
-		}
-
-		key := bodyForm.GetString("key")
-		value := bodyForm.GetString("value")
-		body[key] = value
-	}
-
-	return body, nil
+	return bodyStringFormRunner.GetString("bodyString"), nil
 }
 
 func CollectBodyStringFromForm() (string, error) {
@@ -157,9 +183,7 @@ func CollectBodyStringFromForm() (string, error) {
 		),
 	)
 
-	if err := bodyStringForm.Run(); err != nil {
-		return "", fmt.Errorf("failed to get body string: %w", err)
-	}
+	bodyStringFormRunner := &HuhFormRunner{Form: bodyStringForm}
 
-	return bodyStringForm.GetString("bodyString"), nil
+	return collectBodyStringFromFormInternal(bodyStringFormRunner)
 }

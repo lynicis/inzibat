@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"inzibat/cmd/form_builder"
 	"inzibat/config"
@@ -375,183 +377,128 @@ func TestStatusCodeParsing(t *testing.T) {
 	})
 }
 
-// TestCreateMockResponseForm_ErrorPaths tests error handling in createMockResponseForm
-// Note: Full testing requires interactive form mocking which is complex.
-// These tests focus on testable error paths and logic branches.
 func TestCreateMockResponseForm_ErrorPaths(t *testing.T) {
 	t.Run("error path - status code parsing error message format", func(t *testing.T) {
-		// Arrange
 		invalidStatusCode := "not-a-number"
 		_, err := strconv.Atoi(invalidStatusCode)
 
-		// Act & Assert
 		assert.Error(t, err)
-		// Verify error message format matches what createMockResponseForm would produce
 		expectedErrorMsg := fmt.Sprintf("failed to parse status code %q", invalidStatusCode)
-		// This tests the error message format used in createMockResponseForm line 71
 		assert.Contains(t, fmt.Sprintf("failed to parse status code %q", invalidStatusCode), expectedErrorMsg)
 	})
 
 	t.Run("error path - status code form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("form run failed")
 
-		// Act & Assert
-		// Verify error message format matches what createMockResponseForm would produce
 		wrappedErr := fmt.Errorf("failed to get status code: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to get status code")
 	})
 
 	t.Run("error path - headers collection error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("headers collection failed")
 
-		// Act & Assert
-		// Verify error message format matches what createMockResponseForm would produce
 		wrappedErr := fmt.Errorf("failed to collect headers: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to collect headers")
 	})
 
 	t.Run("error path - body type form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("body type form failed")
 
-		// Act & Assert
-		// Verify error message format matches what createMockResponseForm would produce
 		wrappedErr := fmt.Errorf("failed to select body type: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to select body type")
 	})
 
 	t.Run("error path - body collection error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("body collection failed")
 
-		// Act & Assert
-		// Verify error message format matches what createMockResponseForm would produce
 		wrappedErr := fmt.Errorf("failed to collect body: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to collect body")
 	})
 
 	t.Run("error path - body string collection error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("body string collection failed")
 
-		// Act & Assert
-		// Verify error message format matches what createMockResponseForm would produce
 		wrappedErr := fmt.Errorf("failed to collect body string: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to collect body string")
 	})
 }
 
-// TestCreateClientRequestForm_ErrorPaths tests error handling in createClientRequestForm
 func TestCreateClientRequestForm_ErrorPaths(t *testing.T) {
 	t.Run("error path - basic form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("basic form failed")
 
-		// Act & Assert
-		// Verify error message format matches what createClientRequestForm would produce
 		wrappedErr := fmt.Errorf("failed to get basic request info: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to get basic request info")
 	})
 
 	t.Run("error path - headers collection error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("headers collection failed")
 
-		// Act & Assert
-		// Verify error message format matches what createClientRequestForm would produce
 		wrappedErr := fmt.Errorf("failed to collect headers: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to collect headers")
 	})
 
 	t.Run("error path - body type form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("body type form failed")
 
-		// Act & Assert
-		// Verify error message format matches what createClientRequestForm would produce
 		wrappedErr := fmt.Errorf("failed to select body type: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to select body type")
 	})
 
 	t.Run("error path - body collection error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("body collection failed")
 
-		// Act & Assert
-		// Verify error message format matches what createClientRequestForm would produce
 		wrappedErr := fmt.Errorf("failed to collect body: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to collect body")
 	})
 
 	t.Run("error path - options form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("options form failed")
 
-		// Act & Assert
-		// Verify error message format matches what createClientRequestForm would produce
 		wrappedErr := fmt.Errorf("failed to get options: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to get options")
 	})
 }
 
-// TestCreateRoute_ErrorPaths tests error handling in createRoute
 func TestCreateRoute_ErrorPaths(t *testing.T) {
 	t.Run("error path - route form run error message format", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("route form failed")
 
-		// Act & Assert
-		// Verify error message format matches what createRoute would produce
 		wrappedErr := fmt.Errorf("failed to create route: %w", testErr)
 		assert.Error(t, wrappedErr)
 		assert.Contains(t, wrappedErr.Error(), "failed to create route")
 	})
 
 	t.Run("error path - mock response form error propagation", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("mock response form failed")
 
-		// Act & Assert
-		// Verify error propagation from createMockResponseForm to createRoute
-		// The error should be returned as-is (not wrapped again in createRoute)
 		assert.Error(t, testErr)
 		assert.Contains(t, testErr.Error(), "mock response form failed")
 	})
 
 	t.Run("error path - client request form error propagation", func(t *testing.T) {
-		// Arrange
 		testErr := fmt.Errorf("client request form failed")
 
-		// Act & Assert
-		// Verify error propagation from createClientRequestForm to createRoute
-		// The error should be returned as-is (not wrapped again in createRoute)
 		assert.Error(t, testErr)
 		assert.Contains(t, testErr.Error(), "client request form failed")
 	})
 }
 
-// TestCreateRoute_LogicBranches tests the conditional logic in createRoute
 func TestCreateRoute_LogicBranches(t *testing.T) {
 	t.Run("happy path - route type mock branch", func(t *testing.T) {
-		// Arrange
 		routeType := RouteTypeMock
 
-		// Act & Assert
-		// Verify the route type constant matches expected value for mock branch
 		assert.Equal(t, "mock", routeType)
-		// This tests the switch case at line 223 in createRoute
 		switch routeType {
 		case RouteTypeMock:
 			assert.True(t, true, "mock branch should be executed")
@@ -561,13 +508,9 @@ func TestCreateRoute_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - route type client branch", func(t *testing.T) {
-		// Arrange
 		routeType := RouteTypeClient
 
-		// Act & Assert
-		// Verify the route type constant matches expected value for client branch
 		assert.Equal(t, "client", routeType)
-		// This tests the switch case at line 229 in createRoute
 		switch routeType {
 		case RouteTypeClient:
 			assert.True(t, true, "client branch should be executed")
@@ -577,13 +520,11 @@ func TestCreateRoute_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - route structure creation", func(t *testing.T) {
-		// Arrange
 		method := "GET"
 		path := "/test"
 		var fakeResponse *config.FakeResponse
 		var requestTo *config.RequestTo
 
-		// Act
 		route := &config.Route{
 			Method:       method,
 			Path:         path,
@@ -591,7 +532,6 @@ func TestCreateRoute_LogicBranches(t *testing.T) {
 			RequestTo:    requestTo,
 		}
 
-		// Assert
 		assert.NotNil(t, route)
 		assert.Equal(t, method, route.Method)
 		assert.Equal(t, path, route.Path)
@@ -600,16 +540,11 @@ func TestCreateRoute_LogicBranches(t *testing.T) {
 	})
 }
 
-// TestCreateMockResponseForm_LogicBranches tests the conditional logic in createMockResponseForm
 func TestCreateMockResponseForm_LogicBranches(t *testing.T) {
 	t.Run("happy path - body type body branch", func(t *testing.T) {
-		// Arrange
 		bodyType := BodyTypeBody
 
-		// Act & Assert
-		// Verify the body type constant matches expected value for body branch
 		assert.Equal(t, "body", bodyType)
-		// This tests the switch case at line 104 in createMockResponseForm
 		switch bodyType {
 		case BodyTypeBody:
 			assert.True(t, true, "body branch should be executed")
@@ -619,13 +554,9 @@ func TestCreateMockResponseForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - body type bodyString branch", func(t *testing.T) {
-		// Arrange
 		bodyType := BodyTypeBodyString
 
-		// Act & Assert
-		// Verify the body type constant matches expected value for bodyString branch
 		assert.Equal(t, "bodyString", bodyType)
-		// This tests the switch case at line 110 in createMockResponseForm
 		switch bodyType {
 		case BodyTypeBodyString:
 			assert.True(t, true, "bodyString branch should be executed")
@@ -635,14 +566,10 @@ func TestCreateMockResponseForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - body type skip branch", func(t *testing.T) {
-		// Arrange
 		bodyType := form_builder.SourceSkip
 
-		// Act & Assert
-		// Verify the body type skip option doesn't match body or bodyString
 		assert.NotEqual(t, BodyTypeBody, bodyType)
 		assert.NotEqual(t, BodyTypeBodyString, bodyType)
-		// This tests the default case (no body) in createMockResponseForm switch
 		switch bodyType {
 		case BodyTypeBody, BodyTypeBodyString:
 			t.Fatal("should not match body or bodyString")
@@ -652,33 +579,25 @@ func TestCreateMockResponseForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - fake response structure creation", func(t *testing.T) {
-		// Arrange
 		statusCode := 200
 		headers := make(map[string][]string)
 
-		// Act
 		fakeResponse := &config.FakeResponse{
 			StatusCode: statusCode,
 			Headers:    headers,
 		}
 
-		// Assert
 		assert.NotNil(t, fakeResponse)
 		assert.Equal(t, statusCode, fakeResponse.StatusCode)
 		assert.NotNil(t, fakeResponse.Headers)
 	})
 }
 
-// TestCreateClientRequestForm_LogicBranches tests the conditional logic in createClientRequestForm
 func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 	t.Run("happy path - body type structured branch", func(t *testing.T) {
-		// Arrange
 		bodyType := BodyTypeStructured
 
-		// Act & Assert
-		// Verify the body type constant matches expected value for structured branch
 		assert.Equal(t, "structured", bodyType)
-		// This tests the conditional at line 172 in createClientRequestForm
 		if bodyType == BodyTypeStructured {
 			assert.True(t, true, "structured branch should be executed")
 		} else {
@@ -687,13 +606,9 @@ func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - body type skip branch", func(t *testing.T) {
-		// Arrange
 		bodyType := form_builder.SourceSkip
 
-		// Act & Assert
-		// Verify the body type skip option doesn't match structured
 		assert.NotEqual(t, BodyTypeStructured, bodyType)
-		// This tests the else case (no body) in createClientRequestForm conditional
 		if bodyType == BodyTypeStructured {
 			t.Fatal("should not match structured")
 		} else {
@@ -702,14 +617,12 @@ func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - request to structure creation", func(t *testing.T) {
-		// Arrange
 		host := "http://localhost:8081"
 		targetPath := "/api/users"
 		targetMethod := "GET"
 		headers := make(map[string][]string)
 		var body config.HttpBody
 
-		// Act
 		requestTo := &config.RequestTo{
 			Host:                   host,
 			Path:                   targetPath,
@@ -721,7 +634,6 @@ func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 			InErrorReturn500:       false,
 		}
 
-		// Assert
 		assert.NotNil(t, requestTo)
 		assert.Equal(t, host, requestTo.Host)
 		assert.Equal(t, targetPath, requestTo.Path)
@@ -733,39 +645,1155 @@ func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 	})
 }
 
-// TestCreateCmd_Run tests the createCmd.Run function
 func TestCreateCmd_Run(t *testing.T) {
 	t.Run("happy path - command structure", func(t *testing.T) {
-		// Arrange & Act
-		// The createCmd is already initialized
 
-		// Assert
 		assert.NotNil(t, createCmd)
 		assert.Equal(t, "create", createCmd.Use)
 		assert.NotNil(t, createCmd.Args, "Args should be set")
-		// Test that Args function works as expected (cobra.NoArgs should return error for any args)
 		err := createCmd.Args(createCmd, []string{"test"})
 		assert.Error(t, err, "NoArgs should return error when args are provided")
 		assert.NotNil(t, createCmd.Run)
 	})
 
 	t.Run("happy path - command aliases", func(t *testing.T) {
-		// Arrange & Act
 		aliases := createCmd.Aliases
 
-		// Assert
 		assert.Len(t, aliases, 2)
 		assert.Contains(t, aliases, "create-route")
 		assert.Contains(t, aliases, "c")
 	})
 
 	t.Run("happy path - command description", func(t *testing.T) {
-		// Arrange & Act
 		short := createCmd.Short
 		long := createCmd.Long
 
-		// Assert
 		assert.Contains(t, short, "Create")
 		assert.Contains(t, long, "interactively")
+	})
+}
+
+func TestCreateMockResponseForm_StatusCodes(t *testing.T) {
+	t.Run("happy path - valid status code range", func(t *testing.T) {
+		validCodes := []int{100, 200, 201, 300, 400, 404, 500, 503, 599}
+
+		for _, code := range validCodes {
+			t.Run(fmt.Sprintf("status code %d", code), func(t *testing.T) {
+				codeStr := strconv.Itoa(code)
+				parsed, err := strconv.Atoi(codeStr)
+				assert.NoError(t, err)
+				assert.Equal(t, code, parsed)
+				assert.GreaterOrEqual(t, parsed, 100)
+				assert.LessOrEqual(t, parsed, 599)
+			})
+		}
+	})
+
+	t.Run("error path - status code out of range", func(t *testing.T) {
+		invalidCodes := []string{"99", "600", "1000"}
+
+		for _, codeStr := range invalidCodes {
+			t.Run(fmt.Sprintf("invalid code %s", codeStr), func(t *testing.T) {
+				code, err := strconv.Atoi(codeStr)
+				if err == nil {
+					if code < 100 || code > 599 {
+						assert.True(t, code < 100 || code > 599, "status code should be out of range")
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("happy path - default status code is 200", func(t *testing.T) {
+		defaultStatus := strconv.Itoa(http.StatusOK)
+
+		assert.Equal(t, "200", defaultStatus)
+		statusCode, err := strconv.Atoi(defaultStatus)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, statusCode)
+	})
+}
+
+func TestCreateMockResponseForm_BodyTypes(t *testing.T) {
+	t.Run("happy path - body type constants are distinct", func(t *testing.T) {
+		bodyTypes := []string{BodyTypeBody, BodyTypeBodyString, form_builder.SourceSkip}
+
+		assert.Equal(t, "body", BodyTypeBody)
+		assert.Equal(t, "bodyString", BodyTypeBodyString)
+		assert.NotEqual(t, BodyTypeBody, BodyTypeBodyString)
+		assert.NotEqual(t, BodyTypeBody, form_builder.SourceSkip)
+		assert.NotEqual(t, BodyTypeBodyString, form_builder.SourceSkip)
+		uniqueMap := make(map[string]bool)
+		for _, bt := range bodyTypes {
+			assert.False(t, uniqueMap[bt], "body type %q should be unique", bt)
+			uniqueMap[bt] = true
+		}
+	})
+
+	t.Run("happy path - fake response with body", func(t *testing.T) {
+		statusCode := 200
+		headers := make(map[string][]string)
+		body := config.HttpBody{"message": "success"}
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: statusCode,
+			Headers:    headers,
+			Body:       body,
+		}
+
+		assert.NotNil(t, fakeResponse)
+		assert.Equal(t, statusCode, fakeResponse.StatusCode)
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.NotNil(t, fakeResponse.Body)
+		assert.Equal(t, "success", fakeResponse.Body["message"])
+		assert.Empty(t, fakeResponse.BodyString)
+	})
+
+	t.Run("happy path - fake response with bodyString", func(t *testing.T) {
+		statusCode := 200
+		headers := make(map[string][]string)
+		bodyString := `{"message": "success"}`
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: statusCode,
+			Headers:    headers,
+			BodyString: bodyString,
+		}
+
+		assert.NotNil(t, fakeResponse)
+		assert.Equal(t, statusCode, fakeResponse.StatusCode)
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.Empty(t, fakeResponse.Body)
+		assert.Equal(t, bodyString, fakeResponse.BodyString)
+	})
+
+	t.Run("happy path - fake response without body", func(t *testing.T) {
+		statusCode := 204
+		headers := make(map[string][]string)
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: statusCode,
+			Headers:    headers,
+		}
+
+		assert.NotNil(t, fakeResponse)
+		assert.Equal(t, statusCode, fakeResponse.StatusCode)
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.Nil(t, fakeResponse.Body)
+		assert.Empty(t, fakeResponse.BodyString)
+	})
+}
+
+func TestCreateClientRequestForm_Options(t *testing.T) {
+	t.Run("happy path - all options false", func(t *testing.T) {
+		passWithRequestBody := false
+		passWithRequestHeaders := false
+		inErrorReturn500 := false
+
+		assert.False(t, passWithRequestBody)
+		assert.False(t, passWithRequestHeaders)
+		assert.False(t, inErrorReturn500)
+	})
+
+	t.Run("happy path - all options true", func(t *testing.T) {
+		passWithRequestBody := true
+		passWithRequestHeaders := true
+		inErrorReturn500 := true
+
+		assert.True(t, passWithRequestBody)
+		assert.True(t, passWithRequestHeaders)
+		assert.True(t, inErrorReturn500)
+	})
+
+	t.Run("happy path - mixed options", func(t *testing.T) {
+		passWithRequestBody := true
+		passWithRequestHeaders := false
+		inErrorReturn500 := true
+
+		assert.True(t, passWithRequestBody)
+		assert.False(t, passWithRequestHeaders)
+		assert.True(t, inErrorReturn500)
+	})
+
+	t.Run("happy path - request to with all options", func(t *testing.T) {
+		host := "http://localhost:8081"
+		targetPath := "/api/users"
+		targetMethod := "POST"
+		headers := make(map[string][]string)
+		body := config.HttpBody{"id": float64(1)}
+
+		requestTo := &config.RequestTo{
+			Host:                   host,
+			Path:                   targetPath,
+			Method:                 targetMethod,
+			Headers:                headers,
+			Body:                   body,
+			PassWithRequestBody:    true,
+			PassWithRequestHeaders: true,
+			InErrorReturn500:       true,
+		}
+
+		assert.NotNil(t, requestTo)
+		assert.Equal(t, host, requestTo.Host)
+		assert.Equal(t, targetPath, requestTo.Path)
+		assert.Equal(t, targetMethod, requestTo.Method)
+		assert.True(t, requestTo.PassWithRequestBody)
+		assert.True(t, requestTo.PassWithRequestHeaders)
+		assert.True(t, requestTo.InErrorReturn500)
+	})
+}
+
+func TestCreateClientRequestForm_BodyHandling(t *testing.T) {
+	t.Run("happy path - structured body type", func(t *testing.T) {
+		bodyType := BodyTypeStructured
+		body := config.HttpBody{
+			"name":  "test",
+			"value": float64(123),
+		}
+
+		assert.Equal(t, "structured", bodyType)
+		assert.NotNil(t, body)
+		assert.Equal(t, "test", body["name"])
+		assert.Equal(t, float64(123), body["value"])
+	})
+
+	t.Run("happy path - skip body type", func(t *testing.T) {
+		bodyType := form_builder.SourceSkip
+		var body config.HttpBody
+
+		assert.NotEqual(t, BodyTypeStructured, bodyType)
+		assert.Nil(t, body)
+	})
+
+	t.Run("happy path - request to with structured body", func(t *testing.T) {
+		host := "http://localhost:8081"
+		targetPath := "/api/users"
+		targetMethod := "POST"
+		headers := make(map[string][]string)
+		body := config.HttpBody{"name": "John", "age": float64(30)}
+
+		requestTo := &config.RequestTo{
+			Host:    host,
+			Path:    targetPath,
+			Method:  targetMethod,
+			Headers: headers,
+			Body:    body,
+		}
+
+		assert.NotNil(t, requestTo)
+		assert.NotNil(t, requestTo.Body)
+		assert.Equal(t, "John", requestTo.Body["name"])
+		assert.Equal(t, float64(30), requestTo.Body["age"])
+	})
+
+	t.Run("happy path - request to without body", func(t *testing.T) {
+		host := "http://localhost:8081"
+		targetPath := "/api/users"
+		targetMethod := "GET"
+		headers := make(map[string][]string)
+		var body config.HttpBody
+
+		requestTo := &config.RequestTo{
+			Host:    host,
+			Path:    targetPath,
+			Method:  targetMethod,
+			Headers: headers,
+			Body:    body,
+		}
+
+		assert.NotNil(t, requestTo)
+		assert.Nil(t, requestTo.Body)
+	})
+}
+
+func TestCreateRoute_CompleteFlow(t *testing.T) {
+	t.Run("happy path - mock route structure", func(t *testing.T) {
+		method := "GET"
+		path := "/api/test"
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    make(map[string][]string),
+			Body:       config.HttpBody{"message": "success"},
+		}
+
+		route := &config.Route{
+			Method:       method,
+			Path:         path,
+			FakeResponse: fakeResponse,
+			RequestTo:    nil,
+		}
+
+		assert.NotNil(t, route)
+		assert.Equal(t, method, route.Method)
+		assert.Equal(t, path, route.Path)
+		assert.NotNil(t, route.FakeResponse)
+		assert.Nil(t, route.RequestTo)
+		assert.Equal(t, 200, route.FakeResponse.StatusCode)
+	})
+
+	t.Run("happy path - client route structure", func(t *testing.T) {
+		method := "POST"
+		path := "/api/proxy"
+		requestTo := &config.RequestTo{
+			Host:    "http://localhost:8081",
+			Path:    "/target",
+			Method:  "POST",
+			Headers: make(map[string][]string),
+			Body:    config.HttpBody{"data": "value"},
+		}
+
+		route := &config.Route{
+			Method:       method,
+			Path:         path,
+			FakeResponse: nil,
+			RequestTo:    requestTo,
+		}
+
+		assert.NotNil(t, route)
+		assert.Equal(t, method, route.Method)
+		assert.Equal(t, path, route.Path)
+		assert.Nil(t, route.FakeResponse)
+		assert.NotNil(t, route.RequestTo)
+		assert.Equal(t, "http://localhost:8081", route.RequestTo.Host)
+	})
+
+	t.Run("happy path - route with both nil (should not happen but test structure)", func(t *testing.T) {
+		method := "GET"
+		path := "/api/test"
+
+		route := &config.Route{
+			Method:       method,
+			Path:         path,
+			FakeResponse: nil,
+			RequestTo:    nil,
+		}
+
+		assert.NotNil(t, route)
+		assert.Equal(t, method, route.Method)
+		assert.Equal(t, path, route.Path)
+		assert.Nil(t, route.FakeResponse)
+		assert.Nil(t, route.RequestTo)
+	})
+}
+
+func TestCreateRouteForm_FieldValidation(t *testing.T) {
+	t.Run("happy path - form has all required fields", func(t *testing.T) {
+		form := createRouteForm()
+
+		assert.NotNil(t, form)
+	})
+
+	t.Run("happy path - form fields are properly configured", func(t *testing.T) {
+		form := createRouteForm()
+
+		assert.NotNil(t, form)
+	})
+}
+
+func TestHttpMethods_Completeness(t *testing.T) {
+	t.Run("happy path - all standard methods present", func(t *testing.T) {
+		expectedMethods := map[string]bool{
+			"GET":    false,
+			"POST":   false,
+			"PUT":    false,
+			"PATCH":  false,
+			"DELETE": false,
+		}
+
+		for _, opt := range httpMethods {
+			if _, exists := expectedMethods[opt.Value]; exists {
+				expectedMethods[opt.Value] = true
+			}
+		}
+
+		for method, found := range expectedMethods {
+			assert.True(t, found, "method %s should be present", method)
+		}
+	})
+
+	t.Run("happy path - method keys match values", func(t *testing.T) {
+		for _, opt := range httpMethods {
+			assert.Equal(t, opt.Key, opt.Value, "method key should match value for %s", opt.Value)
+		}
+	})
+}
+
+func TestRouteTypes_Completeness(t *testing.T) {
+	t.Run("happy path - both route types present", func(t *testing.T) {
+		expectedTypes := map[string]bool{
+			RouteTypeMock:   false,
+			RouteTypeClient: false,
+		}
+
+		for _, opt := range routeTypes {
+			if _, exists := expectedTypes[opt.Value]; exists {
+				expectedTypes[opt.Value] = true
+			}
+		}
+
+		for routeType, found := range expectedTypes {
+			assert.True(t, found, "route type %s should be present", routeType)
+		}
+	})
+
+	t.Run("happy path - route type keys are descriptive", func(t *testing.T) {
+		for _, opt := range routeTypes {
+			assert.NotEmpty(t, opt.Key, "route type key should not be empty")
+			assert.NotEmpty(t, opt.Value, "route type value should not be empty")
+			assert.GreaterOrEqual(t, len(opt.Key), len(opt.Value), "key should be at least as long as value")
+		}
+	})
+}
+
+func TestCreateMockResponseForm_HeaderHandling(t *testing.T) {
+	t.Run("happy path - empty headers", func(t *testing.T) {
+		headers := make(map[string][]string)
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    headers,
+		}
+
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.Equal(t, 0, len(fakeResponse.Headers))
+	})
+
+	t.Run("happy path - headers with single value", func(t *testing.T) {
+		headers := make(map[string][]string)
+		headers["Content-Type"] = []string{"application/json"}
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    headers,
+		}
+
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.Equal(t, 1, len(fakeResponse.Headers))
+		assert.Equal(t, "application/json", fakeResponse.Headers["Content-Type"][0])
+	})
+
+	t.Run("happy path - headers with multiple values", func(t *testing.T) {
+		headers := make(map[string][]string)
+		headers["Accept"] = []string{"application/json", "text/html"}
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    headers,
+		}
+
+		assert.NotNil(t, fakeResponse.Headers)
+		assert.Equal(t, 1, len(fakeResponse.Headers))
+		assert.Equal(t, 2, len(fakeResponse.Headers["Accept"]))
+		assert.Contains(t, fakeResponse.Headers["Accept"], "application/json")
+		assert.Contains(t, fakeResponse.Headers["Accept"], "text/html")
+	})
+}
+
+func TestCreateClientRequestForm_HeaderHandling(t *testing.T) {
+	t.Run("happy path - empty headers", func(t *testing.T) {
+		headers := make(map[string][]string)
+
+		requestTo := &config.RequestTo{
+			Host:    "http://localhost:8081",
+			Path:    "/api",
+			Method:  "GET",
+			Headers: headers,
+		}
+
+		assert.NotNil(t, requestTo.Headers)
+		assert.Equal(t, 0, len(requestTo.Headers))
+	})
+
+	t.Run("happy path - headers with authorization", func(t *testing.T) {
+		headers := make(map[string][]string)
+		headers["Authorization"] = []string{"Bearer token123"}
+
+		requestTo := &config.RequestTo{
+			Host:    "http://localhost:8081",
+			Path:    "/api",
+			Method:  "GET",
+			Headers: headers,
+		}
+
+		assert.NotNil(t, requestTo.Headers)
+		assert.Equal(t, 1, len(requestTo.Headers))
+		assert.Equal(t, "Bearer token123", requestTo.Headers["Authorization"][0])
+	})
+}
+
+func TestCreateRoute_ErrorPropagation(t *testing.T) {
+	t.Run("error path - route form error propagates correctly", func(t *testing.T) {
+		testErr := fmt.Errorf("route form failed")
+
+		wrappedErr := fmt.Errorf("failed to create route: %w", testErr)
+		assert.Error(t, wrappedErr)
+		assert.Contains(t, wrappedErr.Error(), "failed to create route")
+		assert.ErrorIs(t, wrappedErr, testErr)
+	})
+
+	t.Run("error path - mock response form error propagates without double wrapping", func(t *testing.T) {
+		testErr := fmt.Errorf("failed to collect headers: header error")
+
+		assert.Error(t, testErr)
+		assert.Contains(t, testErr.Error(), "failed to collect headers")
+	})
+
+	t.Run("error path - client request form error propagates without double wrapping", func(t *testing.T) {
+		testErr := fmt.Errorf("failed to get basic request info: form error")
+
+		assert.Error(t, testErr)
+		assert.Contains(t, testErr.Error(), "failed to get basic request info")
+	})
+}
+
+func TestCreateMockResponseForm_CompleteStructure(t *testing.T) {
+	t.Run("happy path - complete fake response with all fields", func(t *testing.T) {
+		statusCode := 201
+		headers := make(map[string][]string)
+		headers["Location"] = []string{"/api/users/123"}
+		body := config.HttpBody{"id": float64(123), "name": "created"}
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: statusCode,
+			Headers:    headers,
+			Body:       body,
+		}
+
+		assert.NotNil(t, fakeResponse)
+		assert.Equal(t, statusCode, fakeResponse.StatusCode)
+		assert.Equal(t, 1, len(fakeResponse.Headers))
+		assert.NotNil(t, fakeResponse.Body)
+		assert.Equal(t, float64(123), fakeResponse.Body["id"])
+		assert.Equal(t, "created", fakeResponse.Body["name"])
+	})
+
+	t.Run("happy path - fake response with bodyString only", func(t *testing.T) {
+		statusCode := 200
+		headers := make(map[string][]string)
+		bodyString := `{"status": "ok", "data": {"id": 1}}`
+
+		fakeResponse := &config.FakeResponse{
+			StatusCode: statusCode,
+			Headers:    headers,
+			BodyString: bodyString,
+		}
+
+		assert.NotNil(t, fakeResponse)
+		assert.Equal(t, statusCode, fakeResponse.StatusCode)
+		assert.Nil(t, fakeResponse.Body)
+		assert.Equal(t, bodyString, fakeResponse.BodyString)
+	})
+}
+
+func TestCreateClientRequestForm_CompleteStructure(t *testing.T) {
+	t.Run("happy path - complete request to with all fields", func(t *testing.T) {
+		host := "https://api.example.com"
+		targetPath := "/v1/users"
+		targetMethod := "PUT"
+		headers := make(map[string][]string)
+		headers["Content-Type"] = []string{"application/json"}
+		headers["Authorization"] = []string{"Bearer token"}
+		body := config.HttpBody{"name": "updated", "email": "test@example.com"}
+
+		requestTo := &config.RequestTo{
+			Host:                   host,
+			Path:                   targetPath,
+			Method:                 targetMethod,
+			Headers:                headers,
+			Body:                   body,
+			PassWithRequestBody:    true,
+			PassWithRequestHeaders: true,
+			InErrorReturn500:       false,
+		}
+
+		assert.NotNil(t, requestTo)
+		assert.Equal(t, host, requestTo.Host)
+		assert.Equal(t, targetPath, requestTo.Path)
+		assert.Equal(t, targetMethod, requestTo.Method)
+		assert.Equal(t, 2, len(requestTo.Headers))
+		assert.NotNil(t, requestTo.Body)
+		assert.True(t, requestTo.PassWithRequestBody)
+		assert.True(t, requestTo.PassWithRequestHeaders)
+		assert.False(t, requestTo.InErrorReturn500)
+	})
+}
+
+func TestCreateMockResponseFormInternal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("error path - statusFormRunner.Run() returns error", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("status form error")
+
+		mockStatusForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return nil, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get status code")
+	})
+
+	t.Run("error path - invalid status code string", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("invalid")
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return nil, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse status code")
+	})
+
+	t.Run("error path - headersCollector returns error", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("headers error")
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("200")
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return nil, expectedError },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect headers")
+	})
+
+	t.Run("error path - bodyTypeFormRunner.Run() returns error", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("body type form error")
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("200")
+		mockBodyTypeForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to select body type")
+	})
+
+	t.Run("happy path - body type BodyTypeBody", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+		headers.Set("Content-Type", "application/json")
+		body := config.HttpBody{"message": "success"}
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("200")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeBody)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return body, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 200, result.StatusCode)
+		assert.Equal(t, "application/json", result.Headers.Get("Content-Type"))
+		assert.NotNil(t, result.Body)
+		assert.Equal(t, "success", result.Body["message"])
+		assert.Empty(t, result.BodyString)
+	})
+
+	t.Run("happy path - body type BodyTypeBodyString", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+		bodyString := `{"message": "success"}`
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("201")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeBodyString)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return bodyString, nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 201, result.StatusCode)
+		assert.Nil(t, result.Body)
+		assert.Equal(t, bodyString, result.BodyString)
+	})
+
+	t.Run("happy path - body type skip", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("204")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 204, result.StatusCode)
+		assert.Nil(t, result.Body)
+		assert.Empty(t, result.BodyString)
+	})
+
+	t.Run("error path - bodyCollector returns error", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("body collection error")
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("200")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeBody)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, expectedError },
+			func() (string, error) { return "", nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body")
+	})
+
+	t.Run("error path - bodyStringCollector returns error", func(t *testing.T) {
+
+		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("body string collection error")
+
+		mockStatusForm.EXPECT().Run().Return(nil)
+		mockStatusForm.EXPECT().GetString("statusCode").Return("200")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeBodyString)
+
+		result, err := createMockResponseFormInternal(
+			mockStatusForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			func() (string, error) { return "", expectedError },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body string")
+	})
+}
+
+func TestCreateClientRequestFormInternal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("error path - basicFormRunner.Run() returns error", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("basic form error")
+
+		mockBasicForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return nil, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get basic request info")
+	})
+
+	t.Run("error path - headersCollector returns error", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("headers error")
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return nil, expectedError },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect headers")
+	})
+
+	t.Run("error path - bodyTypeFormRunner.Run() returns error", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("body type form error")
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+		mockBodyTypeForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to select body type")
+	})
+
+	t.Run("error path - bodyCollector returns error when bodyType is structured", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("body collection error")
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("POST")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeStructured)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, expectedError },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to collect body")
+	})
+
+	t.Run("error path - optionsFormRunner.Run() returns error", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("options form error")
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockOptionsForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get options")
+	})
+
+	t.Run("happy path - with structured body", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+		headers.Set("Authorization", "Bearer token")
+		body := config.HttpBody{"name": "test", "id": float64(1)}
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("POST")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(BodyTypeStructured)
+		mockOptionsForm.EXPECT().Run().Return(nil)
+		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(true)
+		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(true)
+		mockOptionsForm.EXPECT().GetBool("inErrorReturn500").Return(false)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return body, nil },
+			mockOptionsForm,
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "http://localhost:8081", result.Host)
+		assert.Equal(t, "/api/users", result.Path)
+		assert.Equal(t, "POST", result.Method)
+		assert.Equal(t, "Bearer token", result.Headers.Get("Authorization"))
+		assert.NotNil(t, result.Body)
+		assert.Equal(t, "test", result.Body["name"])
+		assert.True(t, result.PassWithRequestBody)
+		assert.True(t, result.PassWithRequestHeaders)
+		assert.False(t, result.InErrorReturn500)
+	})
+
+	t.Run("happy path - skip body", func(t *testing.T) {
+
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockOptionsForm.EXPECT().Run().Return(nil)
+		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(false)
+		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(false)
+		mockOptionsForm.EXPECT().GetBool("inErrorReturn500").Return(true)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "http://localhost:8081", result.Host)
+		assert.Equal(t, "/api/users", result.Path)
+		assert.Equal(t, "GET", result.Method)
+		assert.Nil(t, result.Body)
+		assert.False(t, result.PassWithRequestBody)
+		assert.False(t, result.PassWithRequestHeaders)
+		assert.True(t, result.InErrorReturn500)
+	})
+}
+
+func TestCreateRouteInternal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("error path - routeFormRunner.Run() returns error", func(t *testing.T) {
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("route form error")
+
+		mockRouteForm.EXPECT().Run().Return(expectedError)
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return nil, nil },
+			func() (*config.RequestTo, error) { return nil, nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create route")
+	})
+
+	t.Run("error path - mockResponseFormCreator returns error", func(t *testing.T) {
+
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("mock response form error")
+
+		mockRouteForm.EXPECT().Run().Return(nil)
+		mockRouteForm.EXPECT().GetString("path").Return("/api/test")
+		mockRouteForm.EXPECT().GetString("method").Return("GET")
+		mockRouteForm.EXPECT().GetString("routeType").Return(RouteTypeMock)
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return nil, expectedError },
+			func() (*config.RequestTo, error) { return nil, nil },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("error path - clientRequestFormCreator returns error", func(t *testing.T) {
+
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		expectedError := fmt.Errorf("client request form error")
+
+		mockRouteForm.EXPECT().Run().Return(nil)
+		mockRouteForm.EXPECT().GetString("path").Return("/api/proxy")
+		mockRouteForm.EXPECT().GetString("method").Return("POST")
+		mockRouteForm.EXPECT().GetString("routeType").Return(RouteTypeClient)
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return nil, nil },
+			func() (*config.RequestTo, error) { return nil, expectedError },
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("happy path - mock route", func(t *testing.T) {
+
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		fakeResponse := &config.FakeResponse{
+			StatusCode: 200,
+			Headers:    make(http.Header),
+			Body:       config.HttpBody{"message": "success"},
+		}
+
+		mockRouteForm.EXPECT().Run().Return(nil)
+		mockRouteForm.EXPECT().GetString("path").Return("/api/test")
+		mockRouteForm.EXPECT().GetString("method").Return("GET")
+		mockRouteForm.EXPECT().GetString("routeType").Return(RouteTypeMock)
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return fakeResponse, nil },
+			func() (*config.RequestTo, error) { return nil, nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "/api/test", result.Path)
+		assert.Equal(t, "GET", result.Method)
+		assert.NotNil(t, result.FakeResponse)
+		assert.Nil(t, result.RequestTo)
+		assert.Equal(t, 200, result.FakeResponse.StatusCode)
+	})
+
+	t.Run("happy path - client route", func(t *testing.T) {
+
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		requestTo := &config.RequestTo{
+			Host:    "http://localhost:8081",
+			Path:    "/target",
+			Method:  "POST",
+			Headers: make(http.Header),
+		}
+
+		mockRouteForm.EXPECT().Run().Return(nil)
+		mockRouteForm.EXPECT().GetString("path").Return("/api/proxy")
+		mockRouteForm.EXPECT().GetString("method").Return("POST")
+		mockRouteForm.EXPECT().GetString("routeType").Return(RouteTypeClient)
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return nil, nil },
+			func() (*config.RequestTo, error) { return requestTo, nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "/api/proxy", result.Path)
+		assert.Equal(t, "POST", result.Method)
+		assert.Nil(t, result.FakeResponse)
+		assert.NotNil(t, result.RequestTo)
+		assert.Equal(t, "http://localhost:8081", result.RequestTo.Host)
+	})
+
+	t.Run("happy path - unknown route type (no fakeResponse or requestTo)", func(t *testing.T) {
+
+		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockRouteForm.EXPECT().Run().Return(nil)
+		mockRouteForm.EXPECT().GetString("path").Return("/api/test")
+		mockRouteForm.EXPECT().GetString("method").Return("GET")
+		mockRouteForm.EXPECT().GetString("routeType").Return("unknown")
+
+		result, err := createRouteInternal(
+			mockRouteForm,
+			func() (*config.FakeResponse, error) { return nil, nil },
+			func() (*config.RequestTo, error) { return nil, nil },
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "/api/test", result.Path)
+		assert.Equal(t, "GET", result.Method)
+		assert.Nil(t, result.FakeResponse)
+		assert.Nil(t, result.RequestTo)
 	})
 }

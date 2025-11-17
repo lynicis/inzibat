@@ -18,20 +18,22 @@ type FilePathFormConfig struct {
 	Key         string
 }
 
+func ValidateFilePath(s string) error {
+	if err := ValidateNonEmpty(s, "file path"); err != nil {
+		return err
+	}
+	if _, err := os.Stat(s); os.IsNotExist(err) {
+		return fmt.Errorf("file does not exist")
+	}
+	return nil
+}
+
 func BuildFilePathForm(config FilePathFormConfig) *huh.Form {
 	input := huh.NewInput().
 		Key(config.Key).
 		Title(config.Title).
 		Placeholder(config.Placeholder).
-		Validate(func(s string) error {
-			if err := ValidateNonEmpty(s, "file path"); err != nil {
-				return err
-			}
-			if _, err := os.Stat(s); os.IsNotExist(err) {
-				return fmt.Errorf("file does not exist")
-			}
-			return nil
-		})
+		Validate(ValidateFilePath)
 
 	return huh.NewForm(huh.NewGroup(input))
 }
