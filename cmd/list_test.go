@@ -221,7 +221,6 @@ func TestListCmd_Run(t *testing.T) {
 		tmpHomeDir := t.TempDir()
 		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
 
-		// Write invalid JSON to cause config read to fail
 		invalidJSON := `{"invalid": json}`
 		err = os.WriteFile(globalConfigPath, []byte(invalidJSON), 0644)
 		require.NoError(t, err)

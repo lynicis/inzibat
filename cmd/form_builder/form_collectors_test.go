@@ -389,11 +389,11 @@ func TestCollectBodyFromForm(t *testing.T) {
 		defer ctrl.Finish()
 
 		bodyMock := NewMockFormRunner(ctrl)
-		bodyMock.EXPECT().Run().Return(nil).Times(2)                    // Called once initially, once in loop
-		bodyMock.EXPECT().GetString("key").Return("message").Times(1)   // First call
-		bodyMock.EXPECT().GetString("value").Return("success").Times(1) // First call
-		bodyMock.EXPECT().GetString("key").Return("code").Times(1)      // Second call
-		bodyMock.EXPECT().GetString("value").Return("200").Times(1)     // Second call
+		bodyMock.EXPECT().Run().Return(nil).Times(2)
+		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
+		bodyMock.EXPECT().GetString("value").Return("success").Times(1)
+		bodyMock.EXPECT().GetString("key").Return("code").Times(1)
+		bodyMock.EXPECT().GetString("value").Return("200").Times(1)
 
 		continueMock1 := NewMockFormRunner(ctrl)
 		continueMock1.EXPECT().Run().Return(nil).Times(1)
@@ -480,10 +480,10 @@ func TestCollectBodyFromForm(t *testing.T) {
 
 		expectedErr := errors.New("subsequent body form error")
 		bodyMock := NewMockFormRunner(ctrl)
-		bodyMock.EXPECT().Run().Return(nil).Times(1) // First call succeeds
+		bodyMock.EXPECT().Run().Return(nil).Times(1)
 		bodyMock.EXPECT().GetString("key").Return("message").Times(1)
 		bodyMock.EXPECT().GetString("value").Return("success").Times(1)
-		bodyMock.EXPECT().Run().Return(expectedErr).Times(1) // Second call fails
+		bodyMock.EXPECT().Run().Return(expectedErr).Times(1)
 
 		continueMock := NewMockFormRunner(ctrl)
 		continueMock.EXPECT().Run().Return(nil).Times(1)

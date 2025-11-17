@@ -578,10 +578,6 @@ func TestNewLoader(t *testing.T) {
 		assert.NotNil(t, loader.ConfigReader)
 	})
 
-	t.Run("happy path - local config without extension", func(t *testing.T) {
-		t.Skip("Skipping test - NewLoader calls zap.L().Fatal when fileExtension is empty")
-	})
-
 	t.Run("happy path - global config", func(t *testing.T) {
 		originalEnv := os.Getenv(EnvironmentVariableConfigFileName)
 		defer func() {
@@ -659,6 +655,50 @@ func TestWrite(t *testing.T) {
 		}
 
 		err := Write(route, tmpDir)
+
+		assert.NoError(t, err)
+	})
+}
+
+func TestWriteJSONToFile(t *testing.T) {
+	t.Run("happy path - writes JSON to file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "test.json")
+		data := map[string]interface{}{
+			"test": "value",
+			"num":  42,
+		}
+
+		err := writeJSONToFile(filePath, data)
+
+		assert.NoError(t, err)
+		assert.FileExists(t, filePath)
+
+		readData, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+		var result map[string]interface{}
+		err = json.Unmarshal(readData, &result)
+		require.NoError(t, err)
+		assert.Equal(t, "value", result["test"])
+		assert.Equal(t, float64(42), result["num"])
+	})
+
+	t.Run("error path - invalid file path", func(t *testing.T) {
+		invalidPath := "/invalid/path/that/does/not/exist/test.json"
+		data := map[string]interface{}{"test": "value"}
+
+		err := writeJSONToFile(invalidPath, data)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create file")
+	})
+
+	t.Run("error path - path resolution failure", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		filePath := filepath.Join(tmpDir, "test.json")
+		data := map[string]interface{}{"test": "value"}
+
+		err := writeJSONToFile(filePath, data)
 
 		assert.NoError(t, err)
 	})

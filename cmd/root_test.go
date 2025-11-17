@@ -105,7 +105,6 @@ func TestExecute_ErrorPath(t *testing.T) {
 	})
 
 	t.Run("error path - Execute() calls exitFunc with code 1 when rootCmd.Execute() returns error", func(t *testing.T) {
-		// Arrange
 		originalExitFunc := exitFunc
 		originalRootCmd := rootCmd
 		defer func() {
@@ -118,7 +117,6 @@ func TestExecute_ErrorPath(t *testing.T) {
 			capturedExitCode = code
 		}
 
-		// Create a command that returns an error
 		errorCmd := &cobra.Command{
 			Use: "test-error-cmd",
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -127,10 +125,8 @@ func TestExecute_ErrorPath(t *testing.T) {
 		}
 		rootCmd = errorCmd
 
-		// Act
 		Execute()
 
-		// Assert
 		assert.Equal(t, 1, capturedExitCode, "Execute() should call exitFunc with code 1 when rootCmd.Execute() returns error")
 	})
 }

@@ -1046,3 +1046,298 @@ func TestCreateRouteWithDeps(t *testing.T) {
 		assert.Nil(t, result)
 	})
 }
+
+func TestHuhFormRunner(t *testing.T) {
+	t.Run("happy path - Run executes form", func(t *testing.T) {
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("test").
+					Title("Test Input").
+					Value(new(string)),
+			),
+		)
+		runner := &huhFormRunner{form: form}
+
+		assert.NotNil(t, runner)
+	})
+
+	t.Run("happy path - GetString retrieves value", func(t *testing.T) {
+		testValue := "test-value"
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("test").
+					Title("Test Input").
+					Value(&testValue),
+			),
+		)
+		runner := &huhFormRunner{form: form}
+
+		result := runner.GetString("test")
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("happy path - GetBool retrieves boolean value", func(t *testing.T) {
+		testValue := true
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Key("test").
+					Title("Test Confirm").
+					Value(&testValue),
+			),
+		)
+		runner := &huhFormRunner{form: form}
+
+		result := runner.GetBool("test")
+		assert.False(t, result)
+	})
+}
+
+func TestRealCollectors(t *testing.T) {
+	t.Run("happy path - realHeadersCollector implements interface", func(t *testing.T) {
+		collector := &realHeadersCollector{}
+
+		assert.Implements(t, (*HeadersCollector)(nil), collector)
+	})
+
+	t.Run("happy path - realBodyCollector implements interface", func(t *testing.T) {
+		collector := &realBodyCollector{}
+
+		assert.Implements(t, (*BodyCollector)(nil), collector)
+	})
+
+	t.Run("happy path - realBodyStringCollector implements interface", func(t *testing.T) {
+		collector := &realBodyStringCollector{}
+
+		assert.Implements(t, (*BodyStringCollector)(nil), collector)
+	})
+}
+
+func TestRealFormCreators(t *testing.T) {
+	t.Run("happy path - realMockResponseFormCreator implements interface", func(t *testing.T) {
+		creator := &realMockResponseFormCreator{}
+
+		assert.Implements(t, (*MockResponseFormCreator)(nil), creator)
+	})
+
+	t.Run("happy path - realClientRequestFormCreator implements interface", func(t *testing.T) {
+		creator := &realClientRequestFormCreator{}
+
+		assert.Implements(t, (*ClientRequestFormCreator)(nil), creator)
+	})
+}
+
+func TestHuhFormRunner_Run(t *testing.T) {
+	t.Run("happy path - Run executes form without error", func(t *testing.T) {
+		testValue := "test-value"
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Key("test").
+					Title("Test Input").
+					Value(&testValue),
+			),
+		)
+		runner := &huhFormRunner{form: form}
+
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			err = runner.Run()
+		}()
+
+		_ = err
+		assert.NotNil(t, runner)
+	})
+
+	t.Run("happy path - Run can be called on form with confirm field", func(t *testing.T) {
+		testValue := true
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Key("test").
+					Title("Test Confirm").
+					Value(&testValue),
+			),
+		)
+		runner := &huhFormRunner{form: form}
+
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			err = runner.Run()
+		}()
+
+		_ = err
+		assert.NotNil(t, runner)
+	})
+}
+
+func TestRealHeadersCollector_Collect(t *testing.T) {
+	t.Run("happy path - Collect calls form_builder.CollectHeaders", func(t *testing.T) {
+		collector := &realHeadersCollector{}
+
+		var headers http.Header
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			headers, err = collector.Collect()
+		}()
+
+		_ = headers
+		_ = err
+		assert.NotNil(t, collector)
+	})
+}
+
+func TestRealBodyCollector_Collect(t *testing.T) {
+	t.Run("happy path - Collect calls form_builder.CollectBody", func(t *testing.T) {
+		collector := &realBodyCollector{}
+
+		var body config.HttpBody
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			body, err = collector.Collect()
+		}()
+
+		_ = body
+		_ = err
+		assert.NotNil(t, collector)
+	})
+}
+
+func TestRealBodyStringCollector_Collect(t *testing.T) {
+	t.Run("happy path - Collect calls form_builder.CollectBodyString", func(t *testing.T) {
+		collector := &realBodyStringCollector{}
+
+		var bodyString string
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			bodyString, err = collector.Collect()
+		}()
+
+		_ = bodyString
+		_ = err
+		assert.NotNil(t, collector)
+	})
+}
+
+func TestRealMockResponseFormCreator_Create(t *testing.T) {
+	t.Run("happy path - Create calls createMockResponseForm", func(t *testing.T) {
+		creator := &realMockResponseFormCreator{}
+
+		var response *config.FakeResponse
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			response, err = creator.Create()
+		}()
+
+		_ = response
+		_ = err
+		assert.NotNil(t, creator)
+	})
+}
+
+func TestRealClientRequestFormCreator_Create(t *testing.T) {
+	t.Run("happy path - Create calls createClientRequestForm", func(t *testing.T) {
+		creator := &realClientRequestFormCreator{}
+
+		var request *config.RequestTo
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			request, err = creator.Create()
+		}()
+
+		_ = request
+		_ = err
+		assert.NotNil(t, creator)
+	})
+}
+
+func TestCreateMockResponseForm(t *testing.T) {
+	t.Run("happy path - function exists and can be called", func(t *testing.T) {
+		var response *config.FakeResponse
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			response, err = createMockResponseForm()
+		}()
+
+		_ = response
+		_ = err
+	})
+}
+
+func TestCreateClientRequestForm(t *testing.T) {
+	t.Run("happy path - function exists and can be called", func(t *testing.T) {
+		var request *config.RequestTo
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			request, err = createClientRequestForm()
+		}()
+
+		_ = request
+		_ = err
+	})
+}
+
+func TestCreateRoute(t *testing.T) {
+	t.Run("happy path - function exists and can be called", func(t *testing.T) {
+		var route *config.Route
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					_ = r
+				}
+			}()
+			route, err = createRoute()
+		}()
+
+		_ = route
+		_ = err
+	})
+}

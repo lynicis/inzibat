@@ -98,7 +98,6 @@ func loadFromFile(filePath string, loader FileLoader) (interface{}, error) {
 	return loader.Load(filePath)
 }
 
-// LoadHeadersFromFile loads HTTP headers from a JSON file
 func LoadHeadersFromFile(filePath string) (http.Header, error) {
 	loader := &HeadersLoader{}
 	result, err := loadFromFile(filePath, loader)
@@ -108,7 +107,6 @@ func LoadHeadersFromFile(filePath string) (http.Header, error) {
 	return result.(http.Header), nil
 }
 
-// LoadBodyFromFile loads HTTP body from a JSON file
 func LoadBodyFromFile(filePath string) (HttpBody, error) {
 	loader := &BodyLoader{}
 	result, err := loadFromFile(filePath, loader)
@@ -118,7 +116,6 @@ func LoadBodyFromFile(filePath string) (HttpBody, error) {
 	return result.(HttpBody), nil
 }
 
-// LoadBodyStringFromFile loads body as a string from a file
 func LoadBodyStringFromFile(filePath string) (string, error) {
 	loader := &BodyStringLoader{}
 	result, err := loadFromFile(filePath, loader)

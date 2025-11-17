@@ -9,14 +9,12 @@ import (
 	"inzibat/config"
 )
 
-// FormRunner interface for running forms (enables testing)
 type FormRunner interface {
 	Run() error
 	GetString(key string) string
 	GetBool(key string) bool
 }
 
-// huhFormRunner wraps huh.Form to implement FormRunner
 type huhFormRunner struct {
 	form *huh.Form
 }
@@ -33,7 +31,6 @@ func (r *huhFormRunner) GetBool(key string) bool {
 	return r.form.GetBool(key)
 }
 
-// collectHeadersFromFormWithRunner is the internal implementation that accepts a form runner
 func collectHeadersFromFormWithRunner(
 	buildHeaderForm func() FormRunner,
 	buildContinueForm func() FormRunner,
@@ -103,7 +100,6 @@ func CollectHeadersFromForm() (http.Header, error) {
 	)
 }
 
-// collectBodyFromFormWithRunner is the internal implementation that accepts form runners
 func collectBodyFromFormWithRunner(
 	buildBodyForm func() FormRunner,
 	buildContinueForm func() FormRunner,
@@ -180,7 +176,6 @@ func CollectBodyFromForm() (config.HttpBody, error) {
 	)
 }
 
-// collectBodyStringFromFormWithRunner is the internal implementation that accepts a form runner
 func collectBodyStringFromFormWithRunner(buildBodyStringForm func() FormRunner) (string, error) {
 	bodyStringForm := buildBodyStringForm()
 

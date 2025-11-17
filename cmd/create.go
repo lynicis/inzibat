@@ -170,7 +170,6 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 	)
 }
 
-// huhFormRunner wraps huh.Form to implement FormRunner
 type huhFormRunner struct {
 	form *huh.Form
 }
@@ -187,7 +186,6 @@ func (r *huhFormRunner) GetBool(key string) bool {
 	return r.form.GetBool(key)
 }
 
-// createClientRequestFormWithDeps is the testable version that accepts dependencies
 func createClientRequestFormWithDeps(
 	basicFormRunner FormRunner,
 	headersCollector HeadersCollector,
@@ -292,31 +290,26 @@ func createClientRequestForm() (*config.RequestTo, error) {
 	)
 }
 
-// MockResponseFormCreator interface for testing
 type MockResponseFormCreator interface {
 	Create() (*config.FakeResponse, error)
 }
 
-// ClientRequestFormCreator interface for testing
 type ClientRequestFormCreator interface {
 	Create() (*config.RequestTo, error)
 }
 
-// realMockResponseFormCreator implements MockResponseFormCreator
 type realMockResponseFormCreator struct{}
 
 func (c *realMockResponseFormCreator) Create() (*config.FakeResponse, error) {
 	return createMockResponseForm()
 }
 
-// realClientRequestFormCreator implements ClientRequestFormCreator
 type realClientRequestFormCreator struct{}
 
 func (c *realClientRequestFormCreator) Create() (*config.RequestTo, error) {
 	return createClientRequestForm()
 }
 
-// createRouteWithDeps is the testable version that accepts dependencies
 func createRouteWithDeps(
 	routeFormRunner FormRunner,
 	mockResponseCreator MockResponseFormCreator,

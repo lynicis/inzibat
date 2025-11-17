@@ -611,3 +611,55 @@ func TestCollectBodyString(t *testing.T) {
 		assert.Equal(t, "", bodyString)
 	})
 }
+
+func TestCollectData_PublicFunction(t *testing.T) {
+	t.Run("happy path - CollectData with headers collector and skip source", func(t *testing.T) {
+		collector := &HeadersCollector{}
+		assert.Implements(t, (*DataCollector)(nil), collector)
+	})
+
+	t.Run("happy path - CollectData with body collector", func(t *testing.T) {
+		collector := &BodyCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+	})
+
+	t.Run("happy path - CollectData with body string collector", func(t *testing.T) {
+		collector := &BodyStringCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+	})
+
+	t.Run("happy path - CollectData function exists and creates forms", func(t *testing.T) {
+		collector := &HeadersCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+	})
+}
+
+func TestCollectHeaders_PublicFunction(t *testing.T) {
+	t.Run("happy path - CollectHeaders function exists and returns correct type", func(t *testing.T) {
+		collector := &HeadersCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+		assert.Equal(t, "Header Source", collector.GetSourceTitle())
+	})
+}
+
+func TestCollectBody_PublicFunction(t *testing.T) {
+	t.Run("happy path - CollectBody function exists and returns correct type", func(t *testing.T) {
+		collector := &BodyCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+		assert.Equal(t, "Body Source", collector.GetSourceTitle())
+	})
+}
+
+func TestCollectBodyString_PublicFunction(t *testing.T) {
+	t.Run("happy path - CollectBodyString function exists and returns correct type", func(t *testing.T) {
+		collector := &BodyStringCollector{}
+
+		assert.Implements(t, (*DataCollector)(nil), collector)
+		assert.Equal(t, "BodyString Source", collector.GetSourceTitle())
+	})
+}

@@ -111,7 +111,6 @@ func TestValidateHost(t *testing.T) {
 
 		err := ValidateHost(host)
 
-		// url.Parse("") returns a valid URL with empty scheme and host
 		_, parseErr := url.Parse(host)
 		if parseErr == nil {
 			assert.NoError(t, err)

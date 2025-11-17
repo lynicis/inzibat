@@ -75,7 +75,6 @@ func (m *MockFormRunner) Run() error {
 	return ret0
 }
 
-// Run indicates an expected call of Run.
 func (mr *MockFormRunnerMockRecorder) Run() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockFormRunner)(nil).Run))

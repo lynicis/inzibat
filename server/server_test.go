@@ -23,7 +23,6 @@ func contains(s, substr string) bool {
 
 func TestStartServer(t *testing.T) {
 	t.Run("happy path - with valid config file", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
 		freePort, err := http.GetFreePort()
@@ -72,13 +71,9 @@ func TestStartServer(t *testing.T) {
 	})
 
 	t.Run("error path - config file path resolution fails", func(t *testing.T) {
-		// Arrange
 		invalidPath := "/nonexistent/path/to/config.json"
-
-		// Act
 		err := StartServer(invalidPath)
 
-		// Assert
 		assert.Error(t, err)
 		assert.True(t,
 			contains(err.Error(), "failed to resolve config file path") ||
@@ -87,20 +82,16 @@ func TestStartServer(t *testing.T) {
 	})
 
 	t.Run("error path - config file does not exist", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		nonExistentFile := filepath.Join(tmpDir, "nonexistent.json")
 
-		// Act
 		err := StartServer(nonExistentFile)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
 	})
 
 	t.Run("happy path - with empty config file string", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		originalWd, err := os.Getwd()
 		require.NoError(t, err)
@@ -137,7 +128,6 @@ func TestStartServer(t *testing.T) {
 		}()
 		os.Unsetenv(config.EnvironmentVariableConfigFileName)
 
-		// Act
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -153,7 +143,6 @@ func TestStartServer(t *testing.T) {
 			cancel()
 		}()
 
-		// Assert
 		select {
 		case err := <-done:
 			if err != nil {
@@ -169,7 +158,6 @@ func TestStartServer(t *testing.T) {
 	})
 
 	t.Run("error path - environment variable set fails", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "test.json")
 
@@ -194,16 +182,13 @@ func TestStartServer(t *testing.T) {
 		err = os.WriteFile(invalidConfigFile, []byte("invalid json"), 0644)
 		require.NoError(t, err)
 
-		// Act
 		err = StartServer(invalidConfigFile)
 
-		// Assert
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
 	})
 
 	t.Run("happy path - environment variable restoration with original env set", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
 		freePort, err := http.GetFreePort()
@@ -226,7 +211,6 @@ func TestStartServer(t *testing.T) {
 		err = config.WriteConfig(cfg, configFile)
 		require.NoError(t, err)
 
-		// Set original environment variable
 		originalEnvValue := "original_config.json"
 		err = os.Setenv(config.EnvironmentVariableConfigFileName, originalEnvValue)
 		require.NoError(t, err)
@@ -260,7 +244,6 @@ func TestStartServer(t *testing.T) {
 	})
 
 	t.Run("happy path - environment variable restoration with no original env", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
 		freePort, err := http.GetFreePort()
@@ -283,7 +266,6 @@ func TestStartServer(t *testing.T) {
 		err = config.WriteConfig(cfg, configFile)
 		require.NoError(t, err)
 
-		// Ensure no original environment variable is set
 		originalEnv := os.Getenv(config.EnvironmentVariableConfigFileName)
 		if originalEnv != "" {
 			err = os.Unsetenv(config.EnvironmentVariableConfigFileName)
@@ -317,7 +299,6 @@ func TestStartServer(t *testing.T) {
 	})
 
 	t.Run("happy path - server startup and route creation", func(t *testing.T) {
-		// Arrange
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
 		freePort, err := http.GetFreePort()

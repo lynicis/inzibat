@@ -80,4 +80,87 @@ func TestCreateRouteCommands(t *testing.T) {
 
 		assert.Empty(t, commands)
 	})
+
+	t.Run("returns no proxy command when requestTo method is empty", func(t *testing.T) {
+		route := config.Route{
+			Method: fiber.MethodGet,
+			Path:   "/no-method",
+			RequestTo: &config.RequestTo{
+				Method: "",
+				Host:   "http://example.com",
+			},
+		}
+
+		commands := CreateRouteCommands(route, 0, noopHandler{}, noopHandler{})
+
+		assert.Empty(t, commands)
+	})
+
+	t.Run("returns no mock command when status code is zero", func(t *testing.T) {
+		route := config.Route{
+			Method:       fiber.MethodGet,
+			Path:         "/no-status",
+			FakeResponse: &config.FakeResponse{StatusCode: 0},
+		}
+
+		commands := CreateRouteCommands(route, 0, noopHandler{}, noopHandler{})
+
+		assert.Empty(t, commands)
+	})
+}
+
+func TestMockRouteCommand(t *testing.T) {
+	t.Run("happy path - ShouldExecute returns true", func(t *testing.T) {
+		command := NewMockRouteCommand(0, noopHandler{})
+
+		result := command.ShouldExecute()
+
+		assert.True(t, result)
+	})
+
+	t.Run("happy path - Execute returns handler", func(t *testing.T) {
+		command := NewMockRouteCommand(0, noopHandler{})
+
+		handler, err := command.Execute()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+	})
+
+	t.Run("happy path - Execute uses correct route index", func(t *testing.T) {
+		command := NewMockRouteCommand(5, noopHandler{})
+
+		handler, err := command.Execute()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+	})
+}
+
+func TestProxyRouteCommand(t *testing.T) {
+	t.Run("happy path - ShouldExecute returns true", func(t *testing.T) {
+		command := NewProxyRouteCommand(0, noopHandler{})
+
+		result := command.ShouldExecute()
+
+		assert.True(t, result)
+	})
+
+	t.Run("happy path - Execute returns handler", func(t *testing.T) {
+		command := NewProxyRouteCommand(0, noopHandler{})
+
+		handler, err := command.Execute()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+	})
+
+	t.Run("happy path - Execute uses correct route index", func(t *testing.T) {
+		command := NewProxyRouteCommand(3, noopHandler{})
+
+		handler, err := command.Execute()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+	})
 }

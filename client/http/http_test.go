@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -502,5 +503,228 @@ func TestClient_buildRequest(t *testing.T) {
 		assert.Equal(t, uri, string(req.RequestURI()))
 		assert.Equal(t, method, string(req.Header.Method()))
 		assert.Empty(t, req.Body())
+	})
+
+	t.Run("happy path - builds request with empty headers", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		uri := "http://localhost:8080/test"
+		method := http.MethodGet
+		headers := http.Header{}
+
+		req := httpClient.buildRequest(uri, method, headers, nil)
+
+		assert.NotNil(t, req)
+		assert.Equal(t, uri, string(req.RequestURI()))
+		assert.Equal(t, method, string(req.Header.Method()))
+	})
+}
+
+func TestClient_executeRequest(t *testing.T) {
+	t.Run("happy path - executes request successfully", func(t *testing.T) {
+		freePort, err := GetFreePort()
+		require.NoError(t, err)
+
+		httpClient := NewHttpClient()
+		mockServer := fiber.New(fiber.Config{
+			DisableStartupMessage: true,
+		})
+
+		mockServer.Get("/test", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
+		})
+
+		go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/test")
+		req := httpClient.buildRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		resp, err := httpClient.executeRequest(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, fiber.StatusOK, resp.StatusCode())
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+	})
+
+	t.Run("error path - connection error releases resources", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		uri := "http://localhost:99999/nonexistent"
+		req := httpClient.buildRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		resp, err := httpClient.executeRequest(req)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+}
+
+func TestClient_handleResponse(t *testing.T) {
+	t.Run("happy path - handles successful response", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+		resp.SetStatusCode(fiber.StatusOK)
+		resp.SetBody(TestRespBody)
+
+		result, err := httpClient.handleResponse(resp, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, fiber.StatusOK, result.Status)
+		assert.Equal(t, TestRespBody, result.Body)
+	})
+
+	t.Run("error path - handles 3xx redirect response", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+		resp.SetStatusCode(fiber.StatusMovedPermanently)
+
+		result, err := httpClient.handleResponse(resp, req)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "response failed")
+	})
+
+	t.Run("error path - handles 4xx client error response", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+		resp.SetStatusCode(fiber.StatusBadRequest)
+
+		result, err := httpClient.handleResponse(resp, req)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "response failed")
+	})
+
+	t.Run("error path - handles 5xx server error response", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+		resp.SetStatusCode(fiber.StatusInternalServerError)
+
+		result, err := httpClient.handleResponse(resp, req)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "response failed")
+	})
+}
+
+func TestClient_makeRequest(t *testing.T) {
+	t.Run("happy path - successful request on first attempt", func(t *testing.T) {
+		freePort, err := GetFreePort()
+		require.NoError(t, err)
+
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries:        3,
+			InitialBackoff:    10 * time.Millisecond,
+			MaxBackoff:        100 * time.Millisecond,
+			BackoffMultiplier: 2.0,
+		})
+
+		mockServer := fiber.New(fiber.Config{
+			DisableStartupMessage: true,
+		})
+
+		mockServer.Get("/test", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusOK).Send(TestRespBody)
+		})
+
+		go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/test")
+		response, err := httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusOK, response.Status)
+	})
+
+	t.Run("error path - retries on 5xx error and eventually fails", func(t *testing.T) {
+		freePort, err := GetFreePort()
+		require.NoError(t, err)
+
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries:        1,
+			InitialBackoff:    10 * time.Millisecond,
+			MaxBackoff:        50 * time.Millisecond,
+			BackoffMultiplier: 2.0,
+		})
+
+		mockServer := fiber.New(fiber.Config{
+			DisableStartupMessage: true,
+		})
+
+		mockServer.Get("/test", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusInternalServerError).Send(TestRespBody)
+		})
+
+		go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/test")
+		response, err := httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+	})
+
+	t.Run("error path - retries on connection error and eventually fails", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries:        1,
+			InitialBackoff:    10 * time.Millisecond,
+			MaxBackoff:        50 * time.Millisecond,
+			BackoffMultiplier: 2.0,
+		})
+
+		uri := "http://localhost:99999/nonexistent"
+		response, err := httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+	})
+
+	t.Run("error path - fails after all retries exhausted", func(t *testing.T) {
+		freePort, err := GetFreePort()
+		require.NoError(t, err)
+
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries:        2,
+			InitialBackoff:    10 * time.Millisecond,
+			MaxBackoff:        50 * time.Millisecond,
+			BackoffMultiplier: 2.0,
+		})
+
+		mockServer := fiber.New(fiber.Config{
+			DisableStartupMessage: true,
+		})
+
+		mockServer.Get("/test", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusInternalServerError).Send(TestRespBody)
+		})
+
+		go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+		defer mockServer.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/test")
+		response, err := httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
 	})
 }
