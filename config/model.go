@@ -27,8 +27,8 @@ func (cfg *Cfg) GetServerAddr() string {
 type Route struct {
 	Method       string        `json:"method" koanf:"method" validate:"oneof=GET POST PUT PATCH DELETE"`
 	Path         string        `json:"path" koanf:"path" validate:"required,startswith=/"`
-	RequestTo    *RequestTo    `json:"requestTo,omitempty" koanf:"requestTo" validate:"required_without=FakeResponse,omitempty"`
-	FakeResponse *FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse" validate:"required_without=RequestTo,omitempty"`
+	RequestTo    *RequestTo    `json:"requestTo,omitempty" koanf:"requestTo" validate:"required_without=FakeResponse"`
+	FakeResponse *FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse" validate:"required_without=RequestTo"`
 }
 
 type RequestTo struct {
