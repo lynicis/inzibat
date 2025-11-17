@@ -20,16 +20,17 @@ func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// #nosec G304 - File path is validated and cleaned before use
+
+	// #nosec G304
 	file, err := os.Open(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, newFailOpeningError(err)
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+		return nil, newFailReadingError(err)
 	}
 
 	var headersMap map[string]string
@@ -55,13 +56,13 @@ func (l *BodyLoader) Load(filePath string) (interface{}, error) {
 	// #nosec G304 - File path is validated and cleaned before use
 	file, err := os.Open(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, newFailOpeningError(err)
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+		return nil, newFailReadingError(err)
 	}
 
 	var body HttpBody
@@ -82,13 +83,13 @@ func (l *BodyStringLoader) Load(filePath string) (interface{}, error) {
 	// #nosec G304
 	file, err := os.Open(absPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
+		return "", newFailOpeningError(err)
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("failed to read file: %w", err)
+		return "", newFailReadingError(err)
 	}
 
 	return string(data), nil
