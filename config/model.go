@@ -25,14 +25,14 @@ func (cfg *Cfg) GetServerAddr() string {
 }
 
 type Route struct {
-	Method       string       `json:"method" koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
-	Path         string       `json:"path" koanf:"path" validate:"required,startswith=/"`
-	RequestTo    RequestTo    `json:"requestTo,omitempty" koanf:"requestTo"`
-	FakeResponse FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse"`
+	Method       string        `json:"method" koanf:"method" validate:"oneof=GET POST PUT PATCH DELETE"`
+	Path         string        `json:"path" koanf:"path" validate:"required,startswith=/"`
+	RequestTo    *RequestTo    `json:"requestTo,omitempty" koanf:"requestTo" validate:"required_without=FakeResponse,omitempty"`
+	FakeResponse *FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse" validate:"required_without=RequestTo,omitempty"`
 }
 
 type RequestTo struct {
-	Method                 string      `json:"method" koanf:"method" validate:"oneof=GET PUT PATCH DELETE"`
+	Method                 string      `json:"method" koanf:"method" validate:"oneof=GET POST PUT PATCH DELETE"`
 	Headers                http.Header `json:"headers" koanf:"headers"`
 	Body                   HttpBody    `json:"body,omitempty" koanf:"body"`
 	Host                   string      `json:"host" koanf:"host" validate:"url"`

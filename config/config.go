@@ -76,22 +76,19 @@ func (reader *Reader) Read() (*Cfg, error) {
 		}
 	}
 
-	for routeIndex, route := range config.Routes {
-		var (
-			RequestToMethod = route.RequestTo.Method
-			RequestToBody   = route.RequestTo.Body
-		)
+	for routeIndex := range config.Routes {
+		route := &config.Routes[routeIndex]
+		if route.RequestTo == nil {
+			continue
+		}
 
-		if RequestToMethod == "" {
+		if route.RequestTo.Method == "" {
 			route.RequestTo.Method = http.MethodGet
 		}
 
-		if RequestToMethod == http.MethodGet && RequestToBody != nil {
+		if route.RequestTo.Method == http.MethodGet && route.RequestTo.Body != nil {
 			return nil, ErrorGetSendBody
 		}
-
-		config.Routes[routeIndex].Method = route.Method
-		config.Routes[routeIndex].RequestTo.Method = route.RequestTo.Method
 	}
 
 	if config.HealthCheckRoute {
@@ -100,7 +97,7 @@ func (reader *Reader) Read() (*Cfg, error) {
 			Route{
 				Method: "GET",
 				Path:   "/health",
-				FakeResponse: FakeResponse{
+				FakeResponse: &FakeResponse{
 					StatusCode: http.StatusOK,
 				},
 			},

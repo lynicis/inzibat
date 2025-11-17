@@ -31,7 +31,7 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						Path:   "/proxy",
-						RequestTo: config.RequestTo{
+						RequestTo: &config.RequestTo{
 							Method: http.MethodGet,
 							Headers: http.Header{
 								"X-Custom-Header": {"test-value"},
@@ -76,7 +76,7 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 					{
 						Method: http.MethodPost,
 						Path:   "/proxy",
-						RequestTo: config.RequestTo{
+						RequestTo: &config.RequestTo{
 							Method: http.MethodPost,
 							Headers: http.Header{
 								"Content-Type": {"application/json"},
@@ -119,7 +119,7 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						Path:   "/proxy",
-						RequestTo: config.RequestTo{
+						RequestTo: &config.RequestTo{
 							Method: http.MethodGet,
 							Host:   "://invalid-url",
 							Path:   "/test",
@@ -147,7 +147,7 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						Path:   "/proxy",
-						RequestTo: config.RequestTo{
+						RequestTo: &config.RequestTo{
 							Method:                 http.MethodGet,
 							Host:                   "http://127.0.0.1:99999",
 							Path:                   "/test",
@@ -182,7 +182,7 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						Path:   "/proxy",
-						RequestTo: config.RequestTo{
+						RequestTo: &config.RequestTo{
 							Method:                 http.MethodGet,
 							Host:                   "http://127.0.0.1:99999",
 							Path:                   "/test",

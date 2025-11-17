@@ -37,7 +37,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -117,7 +117,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "test"},
 					},
@@ -181,7 +181,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -217,7 +217,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -274,7 +274,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -331,7 +331,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -386,7 +386,7 @@ func TestStartServer(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "test"},
 					},

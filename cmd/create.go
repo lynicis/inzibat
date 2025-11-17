@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/charmbracelet/huh"
@@ -50,50 +48,42 @@ func createRouteForm() *huh.Form {
 	)
 }
 
-// FormRunner interface for testing
 type FormRunner interface {
 	Run() error
 	GetString(key string) string
 	GetBool(key string) bool
 }
 
-// HeadersCollector interface for testing
 type HeadersCollector interface {
 	Collect() (http.Header, error)
 }
 
-// BodyCollector interface for testing
 type BodyCollector interface {
 	Collect() (config.HttpBody, error)
 }
 
-// BodyStringCollector interface for testing
 type BodyStringCollector interface {
 	Collect() (string, error)
 }
 
-// realHeadersCollector implements HeadersCollector using form_builder
 type realHeadersCollector struct{}
 
 func (c *realHeadersCollector) Collect() (http.Header, error) {
 	return form_builder.CollectHeaders()
 }
 
-// realBodyCollector implements BodyCollector using form_builder
 type realBodyCollector struct{}
 
 func (c *realBodyCollector) Collect() (config.HttpBody, error) {
 	return form_builder.CollectBody()
 }
 
-// realBodyStringCollector implements BodyStringCollector using form_builder
 type realBodyStringCollector struct{}
 
 func (c *realBodyStringCollector) Collect() (string, error) {
 	return form_builder.CollectBodyString()
 }
 
-// createMockResponseFormWithDeps is the testable version that accepts dependencies
 func createMockResponseFormWithDeps(
 	statusFormRunner FormRunner,
 	headersCollector HeadersCollector,
@@ -122,7 +112,7 @@ func createMockResponseFormWithDeps(
 
 	bodyType := bodyTypeFormRunner.GetString("bodyType")
 
-	fakeResponse := config.FakeResponse{
+	fakeResponse := &config.FakeResponse{
 		StatusCode: statusCode,
 		Headers:    headers,
 	}
@@ -142,7 +132,7 @@ func createMockResponseFormWithDeps(
 		fakeResponse.BodyString = bodyString
 	}
 
-	return &fakeResponse, nil
+	return fakeResponse, nil
 }
 
 func createMockResponseForm() (*config.FakeResponse, error) {
@@ -340,22 +330,22 @@ func createRouteWithDeps(
 	method := routeFormRunner.GetString("method")
 	routeType := routeFormRunner.GetString("routeType")
 
-	var fakeResponse config.FakeResponse
-	var requestTo config.RequestTo
+	var fakeResponse *config.FakeResponse
+	var requestTo *config.RequestTo
 
 	switch routeType {
 	case RouteTypeMock:
-		fakeResponsePtr, err := mockResponseCreator.Create()
+		var err error
+		fakeResponse, err = mockResponseCreator.Create()
 		if err != nil {
 			return nil, err
 		}
-		fakeResponse = *fakeResponsePtr
 	case RouteTypeClient:
-		requestToPtr, err := clientRequestCreator.Create()
+		var err error
+		requestTo, err = clientRequestCreator.Create()
 		if err != nil {
 			return nil, err
 		}
-		requestTo = *requestToPtr
 	}
 
 	return &config.Route{
@@ -387,24 +377,21 @@ var createCmd = &cobra.Command{
 			zap.L().Fatal("failed to create route", zap.Error(err))
 		}
 
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			zap.L().Fatal("failed to get current user's home directory", zap.Error(err))
-		}
+		cfgLoader := config.NewLoader(nil, false)
+		cfgFilePath := cfgLoader.Filepath
 
-		globalConfigFilePath := filepath.Join(homeDir, config.GlobalConfigFileName)
-		cfg, err := config.ReadOrCreateConfig(globalConfigFilePath)
+		cfg, err := config.ReadOrCreateConfig(cfgFilePath)
 		if err != nil {
 			zap.L().Fatal("failed to read/create config", zap.Error(err))
 		}
 
 		cfg.Routes = append(cfg.Routes, *route)
 
-		if err := config.WriteConfig(cfg, globalConfigFilePath); err != nil {
+		if err := config.WriteConfig(cfg, cfgFilePath); err != nil {
 			zap.L().Fatal("failed to write config", zap.Error(err))
 		}
 
-		zap.L().Info("Route created successfully", zap.String("config_file", globalConfigFilePath))
+		zap.L().Info("Route created successfully", zap.String("config_file", cfgFilePath))
 	},
 }
 

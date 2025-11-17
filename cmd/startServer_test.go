@@ -40,7 +40,7 @@ func TestStartServerCmd_ConfigFile(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 					},
 				},

@@ -59,11 +59,11 @@ func CreateRouteCommands(
 ) []RouteCommand {
 	var commands []RouteCommand
 
-	if route.RequestTo.Method != "" {
+	if route.RequestTo != nil && route.RequestTo.Method != "" {
 		commands = append(commands, NewProxyRouteCommand(routeIndex, clientHandler))
 	}
 
-	if route.FakeResponse.StatusCode > 0 {
+	if route.FakeResponse != nil && route.FakeResponse.StatusCode > 0 {
 		commands = append(commands, NewMockRouteCommand(routeIndex, endpointHandler))
 	}
 

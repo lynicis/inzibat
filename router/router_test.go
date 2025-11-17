@@ -22,7 +22,7 @@ func TestRouter_CreateRoute(t *testing.T) {
 						{
 							Method: fiber.MethodGet,
 							Path:   "/",
-							RequestTo: config.RequestTo{
+							RequestTo: &config.RequestTo{
 								Method: fiber.MethodGet,
 								Host:   "http://127.0.0.1:3001",
 								Path:   "/",
@@ -52,7 +52,7 @@ func TestRouter_CreateRoute(t *testing.T) {
 						{
 							Method: fiber.MethodPost,
 							Path:   "/",
-							RequestTo: config.RequestTo{
+							RequestTo: &config.RequestTo{
 								Method: fiber.MethodGet,
 								Host:   "http://127.0.0.1:3001",
 								Path:   "/",
@@ -80,7 +80,7 @@ func TestRouter_CreateRoute(t *testing.T) {
 						{
 							Method: fiber.MethodPut,
 							Path:   "/",
-							RequestTo: config.RequestTo{
+							RequestTo: &config.RequestTo{
 								Host: "http://127.0.0.1:3001",
 								Path: "/",
 							},
@@ -107,7 +107,7 @@ func TestRouter_CreateRoute(t *testing.T) {
 						{
 							Method: fiber.MethodDelete,
 							Path:   "/",
-							RequestTo: config.RequestTo{
+							RequestTo: &config.RequestTo{
 								Host: "http://127.0.0.1:3001",
 								Path: "/",
 							},
@@ -134,7 +134,7 @@ func TestRouter_CreateRoute(t *testing.T) {
 						{
 							Method: fiber.MethodPatch,
 							Path:   "/",
-							RequestTo: config.RequestTo{
+							RequestTo: &config.RequestTo{
 								Host: "http://127.0.0.1:3001",
 								Path: "/",
 							},

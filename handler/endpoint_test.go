@@ -23,7 +23,7 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 					{
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
-						FakeResponse: config.FakeResponse{
+						FakeResponse: &config.FakeResponse{
 							Headers: http.Header{
 								"X-Test-Header": {"test-header-value"},
 							},
@@ -64,7 +64,7 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 					{
 						Method: fiber.MethodGet,
 						Path:   "/route-one",
-						FakeResponse: config.FakeResponse{
+						FakeResponse: &config.FakeResponse{
 							Headers: http.Header{
 								"X-Test-Header": {"test-header-value"},
 							},

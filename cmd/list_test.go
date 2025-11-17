@@ -54,11 +54,11 @@ func TestListCmd_Run(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test-route",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "test"},
 					},
-					RequestTo: config.RequestTo{
+					RequestTo: &config.RequestTo{
 						Method: "GET",
 						Host:   "http://localhost:8081",
 						Path:   "/test-route",
@@ -101,11 +101,11 @@ func TestListCmd_Run(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/single-route-test",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "single route"},
 					},
-					RequestTo: config.RequestTo{
+					RequestTo: &config.RequestTo{
 						Method: "GET",
 						Host:   "http://localhost:8081",
 						Path:   "/single-route-test",
@@ -148,11 +148,11 @@ func TestListCmd_Run(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/route-one",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "route one"},
 					},
-					RequestTo: config.RequestTo{
+					RequestTo: &config.RequestTo{
 						Method: "GET",
 						Host:   "http://localhost:8081",
 						Path:   "/route-one",
@@ -161,11 +161,11 @@ func TestListCmd_Run(t *testing.T) {
 				{
 					Method: "PUT",
 					Path:   "/route-two",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 201,
 						Body:       config.HttpBody{"message": "route two"},
 					},
-					RequestTo: config.RequestTo{
+					RequestTo: &config.RequestTo{
 						Method: "PUT",
 						Host:   "http://localhost:8081",
 						Path:   "/route-two",
@@ -174,11 +174,11 @@ func TestListCmd_Run(t *testing.T) {
 				{
 					Method: "PUT",
 					Path:   "/route-three",
-					FakeResponse: config.FakeResponse{
+					FakeResponse: &config.FakeResponse{
 						StatusCode: 200,
 						Body:       config.HttpBody{"message": "route three"},
 					},
-					RequestTo: config.RequestTo{
+					RequestTo: &config.RequestTo{
 						Method: "PUT",
 						Host:   "http://localhost:8081",
 						Path:   "/route-three",

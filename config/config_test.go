@@ -27,7 +27,7 @@ func TestReader_Read(t *testing.T) {
 				{
 					Method: fiber.MethodGet,
 					Path:   "/route-one",
-					RequestTo: RequestTo{
+					RequestTo: &RequestTo{
 						Method: http.MethodPut,
 						Headers: map[string][]string{
 							"X-Test-Header": {"Test-Header-Value"},
@@ -40,7 +40,7 @@ func TestReader_Read(t *testing.T) {
 						PassWithRequestBody:    true,
 						PassWithRequestHeaders: true,
 					},
-					FakeResponse: FakeResponse{
+					FakeResponse: &FakeResponse{
 						Body:       HttpBody{},
 						StatusCode: http.StatusOK,
 					},
@@ -48,7 +48,7 @@ func TestReader_Read(t *testing.T) {
 				{
 					Method: fiber.MethodGet,
 					Path:   "/route-two",
-					RequestTo: RequestTo{
+					RequestTo: &RequestTo{
 						Method: http.MethodGet,
 						Headers: map[string][]string{
 							"X-Test-Header": {"Test-Header-Value"},
@@ -58,7 +58,7 @@ func TestReader_Read(t *testing.T) {
 						PassWithRequestBody:    true,
 						PassWithRequestHeaders: true,
 					},
-					FakeResponse: FakeResponse{
+					FakeResponse: &FakeResponse{
 						Body:       HttpBody{},
 						StatusCode: http.StatusOK,
 					},
@@ -164,7 +164,7 @@ func TestReader_Read(t *testing.T) {
 				{
 					Method: fiber.MethodGet,
 					Path:   "/test",
-					RequestTo: RequestTo{
+					RequestTo: &RequestTo{
 						Method: "",
 						Path:   "/test",
 					},
@@ -196,7 +196,7 @@ func TestReader_Read(t *testing.T) {
 				{
 					Method: fiber.MethodGet,
 					Path:   "/test",
-					RequestTo: RequestTo{
+					RequestTo: &RequestTo{
 						Method: http.MethodGet,
 						Body: HttpBody{
 							"key": "value",
@@ -222,6 +222,42 @@ func TestReader_Read(t *testing.T) {
 		assert.Equal(t, ErrorGetSendBody, err)
 	})
 
+	t.Run("when route only has fake response it should pass validation", func(t *testing.T) {
+		cfgWithMockOnly := &Cfg{
+			ServerPort: 8080,
+			Routes: []Route{
+				{
+					Method: fiber.MethodGet,
+					Path:   "/mock",
+					FakeResponse: &FakeResponse{
+						StatusCode: http.StatusOK,
+						Body: HttpBody{
+							"message": "ok",
+						},
+					},
+				},
+			},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().
+			Read(gomock.Any()).
+			Return(cfgWithMockOnly, nil).
+			Times(1)
+
+		cfgLoader := &Reader{
+			ConfigReader: mockReader,
+			Validator:    validator.New(),
+		}
+
+		cfg, err := cfgLoader.Read()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.Nil(t, cfg.Routes[0].RequestTo)
+		assert.NotNil(t, cfg.Routes[0].FakeResponse)
+	})
+
 	t.Run("should assign route method and RequestTo method correctly", func(t *testing.T) {
 		expectedCfg := &Cfg{
 			ServerPort: 8080,
@@ -229,7 +265,7 @@ func TestReader_Read(t *testing.T) {
 				{
 					Method: fiber.MethodPost,
 					Path:   "/test",
-					RequestTo: RequestTo{
+					RequestTo: &RequestTo{
 						Method: http.MethodPut,
 						Path:   "/test",
 					},
@@ -349,7 +385,7 @@ func TestWriteConfig(t *testing.T) {
 				{
 					Method: "GET",
 					Path:   "/test",
-					FakeResponse: FakeResponse{
+					FakeResponse: &FakeResponse{
 						StatusCode: 200,
 					},
 				},
@@ -582,7 +618,7 @@ func TestWrite(t *testing.T) {
 		route := &Route{
 			Method: "GET",
 			Path:   "/test",
-			FakeResponse: FakeResponse{
+			FakeResponse: &FakeResponse{
 				StatusCode: 200,
 			},
 		}
