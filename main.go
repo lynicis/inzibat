@@ -5,9 +5,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"inzibat/cmd"
-	_ "inzibat/log"
-	"inzibat/server"
+	"github.com/lynicis/inzibat/cmd"
+	_ "github.com/lynicis/inzibat/log"
+	"github.com/lynicis/inzibat/server"
 )
 
 var (

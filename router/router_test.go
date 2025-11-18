@@ -6,9 +6,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 
-	"inzibat/client/http"
-	"inzibat/config"
-	"inzibat/handler"
+	"github.com/lynicis/inzibat/client/http"
+	"github.com/lynicis/inzibat/config"
+	"github.com/lynicis/inzibat/handler"
 )
 
 func TestRouter_CreateRoute(t *testing.T) {

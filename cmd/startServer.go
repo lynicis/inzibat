@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"inzibat/server"
+	"github.com/lynicis/inzibat/server"
 )
 
 var configFile string

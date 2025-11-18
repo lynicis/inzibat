@@ -1,6 +1,6 @@
 package handler
 
-import "inzibat/config"
+import "github.com/lynicis/inzibat/config"
 
 type RouteChannel struct {
 	RouteIndex int

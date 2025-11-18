@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"inzibat/config"
+	"github.com/lynicis/inzibat/config"
 )
 
 type EndpointHandler struct {

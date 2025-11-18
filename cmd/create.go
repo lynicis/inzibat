@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"inzibat/cmd/form_builder"
-	"inzibat/config"
-	_ "inzibat/log"
+	"github.com/lynicis/inzibat/cmd/form_builder"
+	"github.com/lynicis/inzibat/config"
+	_ "github.com/lynicis/inzibat/log"
 )
 
 var (

@@ -12,8 +12,8 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	httpPkg "inzibat/client/http"
-	"inzibat/config"
+	httpPkg "github.com/lynicis/inzibat/client/http"
+	"github.com/lynicis/inzibat/config"
 )
 
 type ClientHandler struct {

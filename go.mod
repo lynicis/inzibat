@@ -1,4 +1,4 @@
-module inzibat
+module github.com/lynicis/inzibat
 
 go 1.25.4
 

@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	httpPkg "inzibat/client/http"
-	"inzibat/config"
+	httpPkg "github.com/lynicis/inzibat/client/http"
+	"github.com/lynicis/inzibat/config"
 )
 
 func TestClientHandler_CreateHandler(t *testing.T) {

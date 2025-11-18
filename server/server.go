@@ -13,11 +13,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 
-	"inzibat/client/http"
-	"inzibat/config"
-	"inzibat/handler"
-	_ "inzibat/log"
-	"inzibat/router"
+	"github.com/lynicis/inzibat/client/http"
+	"github.com/lynicis/inzibat/config"
+	"github.com/lynicis/inzibat/handler"
+	_ "github.com/lynicis/inzibat/log"
+	"github.com/lynicis/inzibat/router"
 )
 
 func StartServer(configFile string) error {

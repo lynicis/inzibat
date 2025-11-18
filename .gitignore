@@ -5,5 +5,6 @@ inzibat
 *.json
 !examples/*.json
 !examples/**/*.json
-# Added by goreleaser init:
+*.out
+*.html
 dist/

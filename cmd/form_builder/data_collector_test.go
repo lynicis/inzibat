@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"inzibat/config"
+	"github.com/lynicis/inzibat/config"
 )
 
 func TestCollectHeaders(t *testing.T) {

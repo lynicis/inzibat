@@ -3,7 +3,7 @@ package form_builder
 import (
 	"net/http"
 
-	"inzibat/config"
+	"github.com/lynicis/inzibat/config"
 )
 
 func collectHeadersInternal(

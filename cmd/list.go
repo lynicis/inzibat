@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"inzibat/config"
+	"github.com/lynicis/inzibat/config"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	_ "inzibat/log"
+	_ "github.com/lynicis/inzibat/log"
 )
 
 var listCmd = &cobra.Command{

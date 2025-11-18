@@ -5,9 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"inzibat/config"
-	"inzibat/handler"
-	_ "inzibat/log"
+	"github.com/lynicis/inzibat/config"
+	"github.com/lynicis/inzibat/handler"
+	_ "github.com/lynicis/inzibat/log"
 )
 
 type Router interface {

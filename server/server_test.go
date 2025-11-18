@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"inzibat/client/http"
-	"inzibat/config"
+	"github.com/lynicis/inzibat/client/http"
+	"github.com/lynicis/inzibat/config"
 )
 
 func contains(s, substr string) bool {

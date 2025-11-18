@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 
-	"inzibat/config"
+	"github.com/lynicis/inzibat/config"
 )
 
 type FormRunner interface {

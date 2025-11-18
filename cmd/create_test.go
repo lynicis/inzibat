@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"inzibat/cmd/form_builder"
-	"inzibat/config"
+	"github.com/lynicis/inzibat/cmd/form_builder"
+	"github.com/lynicis/inzibat/config"
 )
 
 func TestLoadHeadersFromFile(t *testing.T) {
