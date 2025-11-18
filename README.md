@@ -80,7 +80,7 @@ If you have Go 1.25+ installed, you can build `inzibat` from source.
 #### Option 1: Quick Install
 
 ```bash
-go install github.com/Lynicis/inzibat@latest
+go install github.com/lynicis/inzibat@latest
 ```
 
 This installs the latest version to your `$GOPATH/bin` directory.
