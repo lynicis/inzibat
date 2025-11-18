@@ -40,6 +40,7 @@ Perfect for frontend development, backend integration testing, and CI/CD pipelin
     - [Getting Started](#getting-started)
     - [Guidelines](#guidelines)
     - [Reporting Issues](#reporting-issues)
+    - [Roadmap](#roadmap)
   - [📜 License](#-license)
 
 ## ✨ Key Features
@@ -293,6 +294,13 @@ For bug reports or feature requests, please [open an issue](https://github.com/L
 - Steps to reproduce (for bugs)
 - Expected vs. actual behavior
 - Environment details (OS, Go version, etc.)
+
+### Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features and improvements.
+
+We welcome feedback, feature suggestions, and contributions to help advance Inzibat's capabilities.
+If you notice gaps in feature coverage or want to propose an enhancement, please open an issue or Pull Request!
 
 ## 📜 License
 
