@@ -10,22 +10,13 @@ import (
 	"github.com/lynicis/inzibat/server"
 )
 
-var (
-	executeCmd    = cmd.Execute
-	startServerFn = server.StartServer
-)
-
-func run(args []string) error {
-	if len(args) > 1 {
-		executeCmd()
-		return nil
+func main() {
+	if len(os.Args) > 1 {
+		cmd.Execute()
+		return
 	}
 
-	return startServerFn("")
-}
-
-func main() {
-	if err := run(os.Args); err != nil {
+	if err := server.StartServer(""); err != nil {
 		zap.L().Fatal("failed to start server", zap.Error(err))
 	}
 }

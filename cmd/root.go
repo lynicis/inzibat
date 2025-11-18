@@ -22,6 +22,7 @@ Key features:
   - No-code scenarios — implement complex mock behavior without writing server code`,
 }
 
+// for testing purposes
 var exitFunc = os.Exit
 
 func Execute() {

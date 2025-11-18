@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"github.com/lynicis/inzibat/config"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/lynicis/inzibat/config"
 	_ "github.com/lynicis/inzibat/log"
 )
 

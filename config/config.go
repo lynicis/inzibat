@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -111,7 +110,7 @@ func (reader *Reader) Read() (*Cfg, error) {
 	return config, nil
 }
 
-func writeJSONToFile(filePath string, data interface{}) error {
+func WriteConfig(cfg *Cfg, filePath string) error {
 	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve file path: %w", err)
@@ -123,43 +122,12 @@ func writeJSONToFile(filePath string, data interface{}) error {
 	}
 	defer file.Close()
 
-	if err = json.NewEncoder(file).Encode(data); err != nil {
+	if err = json.NewEncoder(file).Encode(cfg); err != nil {
 		return fmt.Errorf("failed to encode JSON: %w", err)
 	}
 
 	if err = file.Sync(); err != nil {
 		return fmt.Errorf("failed to sync file: %w", err)
-	}
-
-	return nil
-}
-
-func Write(config *Route, dir string) error {
-	absDir, err := ResolveAbsolutePath(dir)
-	if err != nil {
-		return fmt.Errorf("failed to resolve directory path: %w", err)
-	}
-	return writeJSONToFile(filepath.Join(absDir, "inzibat.json"), config)
-}
-
-func InitGlobalConfig() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get current user's home directory: %w", err)
-	}
-
-	globalConfigFilePath := filepath.Join(homeDir, DefaultConfigFileName)
-
-	if _, err = os.Stat(globalConfigFilePath); !errors.Is(err, os.ErrNotExist) {
-		var globalCfg *Cfg
-		globalCfg, err = ReadOrCreateConfig(globalConfigFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to read global config: %w", err)
-		}
-
-		if err = WriteConfig(globalCfg, globalConfigFilePath); err != nil {
-			return fmt.Errorf("failed to initialize global config: %w", err)
-		}
 	}
 
 	return nil
@@ -191,8 +159,4 @@ func ReadOrCreateConfig(configPath string) (*Cfg, error) {
 	}
 
 	return cfg, nil
-}
-
-func WriteConfig(cfg *Cfg, filePath string) error {
-	return writeJSONToFile(filePath, cfg)
 }

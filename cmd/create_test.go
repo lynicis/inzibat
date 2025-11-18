@@ -1089,38 +1089,6 @@ func TestCreateMockResponseForm_HeaderHandling(t *testing.T) {
 	})
 }
 
-func TestCreateClientRequestForm_HeaderHandling(t *testing.T) {
-	t.Run("happy path - empty headers", func(t *testing.T) {
-		headers := make(map[string][]string)
-
-		requestTo := &config.RequestTo{
-			Host:    "http://localhost:8081",
-			Path:    "/api",
-			Method:  "GET",
-			Headers: headers,
-		}
-
-		assert.NotNil(t, requestTo.Headers)
-		assert.Equal(t, 0, len(requestTo.Headers))
-	})
-
-	t.Run("happy path - headers with authorization", func(t *testing.T) {
-		headers := make(map[string][]string)
-		headers["Authorization"] = []string{"Bearer token123"}
-
-		requestTo := &config.RequestTo{
-			Host:    "http://localhost:8081",
-			Path:    "/api",
-			Method:  "GET",
-			Headers: headers,
-		}
-
-		assert.NotNil(t, requestTo.Headers)
-		assert.Equal(t, 1, len(requestTo.Headers))
-		assert.Equal(t, "Bearer token123", requestTo.Headers["Authorization"][0])
-	})
-}
-
 func TestCreateRoute_ErrorPropagation(t *testing.T) {
 	t.Run("error path - route form error propagates correctly", func(t *testing.T) {
 		testErr := fmt.Errorf("route form failed")
