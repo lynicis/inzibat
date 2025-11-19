@@ -31,6 +31,28 @@ type Route struct {
 	FakeResponse *FakeResponse `json:"fakeResponse,omitempty" koanf:"fakeResponse" validate:"required_without=RequestTo"`
 }
 
+func (cfg *Cfg) ConvertRoutesTuiTable() [][]string {
+	var rows [][]string
+	for _, route := range cfg.Routes {
+		routeType := "UNKNOWN"
+
+		if route.FakeResponse != nil {
+			routeType = "MOCK"
+		}
+		if route.RequestTo != nil {
+			routeType = "PROXY"
+		}
+
+		rows = append(rows, []string{
+			route.Method,
+			route.Path,
+			routeType,
+		})
+	}
+
+	return rows
+}
+
 type RequestTo struct {
 	Method                 string      `json:"method" koanf:"method" validate:"oneof=GET POST PUT PATCH DELETE"`
 	Headers                http.Header `json:"headers" koanf:"headers"`
