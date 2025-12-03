@@ -495,22 +495,20 @@ func TestCollectBodyStringFromFormPublic(t *testing.T) {
 func TestCollectHeadersFromFormInternal(t *testing.T) {
 	t.Skip("Skipping interactive form test - form.Run() requires TTY and will hang in non-interactive environments")
 	t.Run("happy path - form creators are called correctly", func(t *testing.T) {
-		// This test is skipped because it requires TTY interaction.
-		// The actual implementation is tested through integration tests or manual testing.
+
 	})
 }
 
 func TestCollectBodyFromFormInternal(t *testing.T) {
 	t.Skip("Skipping interactive form test - form.Run() requires TTY and will hang in non-interactive environments")
 	t.Run("happy path - form creators are called correctly", func(t *testing.T) {
-		// This test is skipped because it requires TTY interaction.
-		// The actual implementation is tested through integration tests or manual testing.
+
 	})
 }
 
 func TestCollectBodyStringFromFormInternal(t *testing.T) {
 	t.Run("happy path - body string collected", func(t *testing.T) {
-		// Arrange
+
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -520,16 +518,14 @@ func TestCollectBodyStringFromFormInternal(t *testing.T) {
 		bodyStringFormRunner.EXPECT().Run().Return(nil)
 		bodyStringFormRunner.EXPECT().GetString("bodyString").Return(expectedBodyString)
 
-		// Act
 		bodyString, err := collectBodyStringFromFormInternal(bodyStringFormRunner)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, expectedBodyString, bodyString)
 	})
 
 	t.Run("happy path - plain text body string collected", func(t *testing.T) {
-		// Arrange
+
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -539,16 +535,14 @@ func TestCollectBodyStringFromFormInternal(t *testing.T) {
 		bodyStringFormRunner.EXPECT().Run().Return(nil)
 		bodyStringFormRunner.EXPECT().GetString("bodyString").Return(expectedBodyString)
 
-		// Act
 		bodyString, err := collectBodyStringFromFormInternal(bodyStringFormRunner)
 
-		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, expectedBodyString, bodyString)
 	})
 
 	t.Run("error path - form run fails", func(t *testing.T) {
-		// Arrange
+
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -557,10 +551,8 @@ func TestCollectBodyStringFromFormInternal(t *testing.T) {
 		expectedErr := errors.New("form run failed")
 		bodyStringFormRunner.EXPECT().Run().Return(expectedErr)
 
-		// Act
 		bodyString, err := collectBodyStringFromFormInternal(bodyStringFormRunner)
 
-		// Assert
 		require.Error(t, err)
 		assert.Empty(t, bodyString)
 		assert.Contains(t, err.Error(), "failed to get body string")
@@ -570,7 +562,7 @@ func TestCollectBodyStringFromFormInternal(t *testing.T) {
 
 func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 	t.Run("happy path - Run delegates to underlying form", func(t *testing.T) {
-		// Arrange
+
 		testValue := "test-value"
 		form := huh.NewForm(
 			huh.NewGroup(
@@ -583,14 +575,13 @@ func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 
 		runner := &HuhFormRunner{Form: form}
 
-		// Act & Assert
 		assert.NotNil(t, runner)
 		assert.NotNil(t, runner.Form)
-		// Note: We can't actually test Run() without a TTY, but we can verify the structure
+
 	})
 
 	t.Run("happy path - GetString delegates to underlying form", func(t *testing.T) {
-		// Arrange
+
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
@@ -601,17 +592,15 @@ func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 
 		runner := &HuhFormRunner{Form: form}
 
-		// Act
 		result := runner.GetString("test")
 
-		// Assert
 		assert.NotNil(t, runner)
-		// Note: GetString returns empty string for unrun forms, which is expected behavior
+
 		assert.IsType(t, "", result)
 	})
 
 	t.Run("happy path - GetBool delegates to underlying form", func(t *testing.T) {
-		// Arrange
+
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -622,17 +611,15 @@ func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 
 		runner := &HuhFormRunner{Form: form}
 
-		// Act
 		result := runner.GetBool("test")
 
-		// Assert
 		assert.NotNil(t, runner)
-		// Note: GetBool returns false for unrun forms, which is expected behavior
+
 		assert.IsType(t, false, result)
 	})
 
 	t.Run("happy path - GetBool returns false for unset value", func(t *testing.T) {
-		// Arrange
+
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -643,16 +630,14 @@ func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 
 		runner := &HuhFormRunner{Form: form}
 
-		// Act
 		result := runner.GetBool("test")
 
-		// Assert
 		assert.NotNil(t, runner)
 		assert.False(t, result)
 	})
 
 	t.Run("happy path - GetString returns empty for unset value", func(t *testing.T) {
-		// Arrange
+
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
@@ -663,10 +648,8 @@ func TestHuhFormRunnerMethodsInCollectors(t *testing.T) {
 
 		runner := &HuhFormRunner{Form: form}
 
-		// Act
 		result := runner.GetString("test")
 
-		// Assert
 		assert.NotNil(t, runner)
 		assert.Empty(t, result)
 	})

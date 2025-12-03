@@ -349,4 +349,3 @@ func TestLoadBodyStringFromFile(t *testing.T) {
 		assert.Equal(t, "", bodyString)
 	})
 }
-

@@ -2,8 +2,6 @@ module github.com/lynicis/inzibat
 
 go 1.25.4
 
-retract [v0.1.0, v0.1.4]
-
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.8.0

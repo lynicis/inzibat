@@ -17,7 +17,6 @@ type FormRunner interface {
 	GetBool(key string) bool
 }
 
-// HuhFormRunner is a sugar wrapper that makes logic testable
 type HuhFormRunner struct {
 	Form *huh.Form
 }
@@ -41,7 +40,6 @@ func collectHeadersFromFormInternal(
 	headers := make(http.Header)
 
 	for {
-		// Create a fresh form instance for each iteration
 		headerForm := headerFormCreator()
 		if err := headerForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to collect header: %w", err)
@@ -51,7 +49,6 @@ func collectHeadersFromFormInternal(
 		value := headerForm.GetString("value")
 		headers.Set(key, value)
 
-		// Create a fresh continue form for each iteration
 		continueForm := continueFormCreator()
 		if err := continueForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
@@ -117,7 +114,6 @@ func collectBodyFromFormInternal(
 ) (config.HttpBody, error) {
 	body := make(config.HttpBody)
 
-	// Create first body form
 	bodyForm := bodyFormCreator()
 	if err := bodyForm.Run(); err != nil {
 		return nil, fmt.Errorf("failed to collect body field: %w", err)
@@ -128,7 +124,6 @@ func collectBodyFromFormInternal(
 	body[key] = value
 
 	for {
-		// Create a fresh continue form for each iteration
 		continueForm := continueFormCreator()
 		if err := continueForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
@@ -138,7 +133,6 @@ func collectBodyFromFormInternal(
 			break
 		}
 
-		// Create a fresh body form for each iteration
 		bodyForm := bodyFormCreator()
 		if err := bodyForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to collect body field: %w", err)

@@ -36,6 +36,45 @@ func TestCfg_GetServerAddr(t *testing.T) {
 	})
 }
 
+func TestCfg_ConvertRoutesTuiTable(t *testing.T) {
+	t.Run("happy path - converts routes to table rows with correct types", func(t *testing.T) {
+
+		cfg := &Cfg{
+			Routes: []Route{
+				{
+					Method: "GET",
+					Path:   "/mock",
+					FakeResponse: &FakeResponse{
+						StatusCode: 200,
+					},
+				},
+				{
+					Method: "POST",
+					Path:   "/proxy",
+					RequestTo: &RequestTo{
+						Host: "http://example.com",
+						Path: "/proxy",
+					},
+				},
+				{
+					Method: "DELETE",
+					Path:   "/unknown",
+				},
+			},
+		}
+
+		rows := cfg.ConvertRoutesTuiTable()
+
+		assert.Len(t, rows, 3)
+
+		assert.Equal(t, []string{"GET", "/mock", "MOCK"}, rows[0])
+
+		assert.Equal(t, []string{"POST", "/proxy", "PROXY"}, rows[1])
+
+		assert.Equal(t, []string{"DELETE", "/unknown", "UNKNOWN"}, rows[2])
+	})
+}
+
 func TestRequestTo_GetParsedUrl(t *testing.T) {
 	t.Run("happy path - parses valid URL", func(t *testing.T) {
 		requestTo := &RequestTo{
