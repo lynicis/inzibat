@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const DefaultConfigExtension = ".json"
+
 type Reader struct {
 	ConfigReader ReaderStrategy
 	Validator    *validator.Validate
@@ -30,7 +32,7 @@ func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string
 		filePath = explicitPath
 		fileExtension = filepath.Ext(explicitPath)
 		if fileExtension == "" {
-			fileExtension = ".json"
+			fileExtension = DefaultConfigExtension
 		}
 	case isGlobal:
 		homeDir, err := os.UserHomeDir()
@@ -39,7 +41,7 @@ func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string
 		}
 
 		filePath = filepath.Join(homeDir, GlobalConfigFileName)
-		fileExtension = ".json"
+		fileExtension = DefaultConfigExtension
 	default:
 		configFileName := os.Getenv(EnvironmentVariableConfigFileName)
 		if configFileName == "" {

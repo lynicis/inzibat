@@ -28,8 +28,8 @@ var (
 		{Key: "Mock", Value: "mock"},
 		{Key: "Client (Proxy)", Value: "client"},
 	}
-	createConfigFile      string
-	createIsGlobalConfig  bool
+	createConfigFile     string
+	createIsGlobalConfig bool
 )
 
 func createRouteForm() *huh.Form {
