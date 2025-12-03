@@ -7,7 +7,11 @@ import (
 	"github.com/lynicis/inzibat/server"
 )
 
-var configFile string
+var (
+	configFile      string
+	isGlobalConfig  = true
+	startServerFunc = server.StartServer
+)
 
 var startServerCmd = &cobra.Command{
 	Use:     "start",
@@ -23,7 +27,7 @@ The server will read the configuration from (in order of precedence):
 The server will start listening on the port specified in the configuration
 and serve the routes defined in the config file.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := server.StartServer(configFile); err != nil {
+		if err := startServerFunc(configFile, isGlobalConfig); err != nil {
 			zap.L().Fatal("failed to start server", zap.Error(err))
 		}
 	},
@@ -35,7 +39,14 @@ func init() {
 		"config",
 		"c",
 		"",
-		"Path to the configuration file (overrides INZIBAT_CONFIG_FILE)",
+		"Path to the configuration file",
+	)
+	startServerCmd.Flags().BoolVarP(
+		&isGlobalConfig,
+		"global",
+		"g",
+		false,
+		"Use the global config file (~/.inzibat.config.json)",
 	)
 	rootCmd.AddCommand(startServerCmd)
 }

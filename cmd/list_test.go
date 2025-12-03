@@ -42,6 +42,7 @@ func TestListCmd_Run(t *testing.T) {
 			} else {
 				os.Unsetenv("HOME")
 			}
+			listIsGlobalConfig = false
 		}()
 		os.Setenv("HOME", tmpHomeDir)
 
@@ -72,6 +73,8 @@ func TestListCmd_Run(t *testing.T) {
 		err = os.WriteFile(globalConfigPath, configData, 0644)
 		require.NoError(t, err)
 
+		listIsGlobalConfig = true
+
 		assert.NotPanics(t, func() {
 			listCmd.Run(listCmd, []string{})
 		})
@@ -89,6 +92,7 @@ func TestListCmd_Run(t *testing.T) {
 			} else {
 				os.Unsetenv("HOME")
 			}
+			listIsGlobalConfig = false
 		}()
 		os.Setenv("HOME", tmpHomeDir)
 
@@ -119,6 +123,8 @@ func TestListCmd_Run(t *testing.T) {
 		err = os.WriteFile(globalConfigPath, configData, 0644)
 		require.NoError(t, err)
 
+		listIsGlobalConfig = true
+
 		assert.NotPanics(t, func() {
 			listCmd.Run(listCmd, []string{})
 		})
@@ -136,6 +142,7 @@ func TestListCmd_Run(t *testing.T) {
 			} else {
 				os.Unsetenv("HOME")
 			}
+			listIsGlobalConfig = false
 		}()
 		os.Setenv("HOME", tmpHomeDir)
 
@@ -191,6 +198,8 @@ func TestListCmd_Run(t *testing.T) {
 		require.NoError(t, err)
 		err = os.WriteFile(globalConfigPath, configData, 0644)
 		require.NoError(t, err)
+
+		listIsGlobalConfig = true
 
 		assert.NotPanics(t, func() {
 			listCmd.Run(listCmd, []string{})

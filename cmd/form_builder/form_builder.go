@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
@@ -35,7 +36,10 @@ func BuildFilePathForm(config FilePathFormConfig) *huh.Form {
 		Placeholder(config.Placeholder).
 		Validate(ValidateFilePath)
 
-	return huh.NewForm(huh.NewGroup(input))
+	return huh.NewForm(huh.NewGroup(input)).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 }
 
 func BuildSourceSelectionForm(title string, key string) *huh.Form {
@@ -50,7 +54,10 @@ func BuildSourceSelectionForm(title string, key string) *huh.Form {
 					{Key: "Skip", Value: SourceSkip},
 				}...),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 }
 
 func GetFilePathFromForm(config FilePathFormConfig) (string, error) {

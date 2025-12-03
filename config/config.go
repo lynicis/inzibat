@@ -19,14 +19,20 @@ type Reader struct {
 	Filepath     string
 }
 
-func NewLoader(validator *validator.Validate, isGlobal bool) *Reader {
+func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string) *Reader {
 	var (
 		filePath      string
 		fileExtension string
 	)
 
-	configFileName := os.Getenv(EnvironmentVariableConfigFileName)
-	if isGlobal {
+	switch {
+	case explicitPath != "":
+		filePath = explicitPath
+		fileExtension = filepath.Ext(explicitPath)
+		if fileExtension == "" {
+			fileExtension = ".json"
+		}
+	case isGlobal:
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			zap.L().Fatal("failed to get current user home directory")
@@ -34,7 +40,8 @@ func NewLoader(validator *validator.Validate, isGlobal bool) *Reader {
 
 		filePath = filepath.Join(homeDir, GlobalConfigFileName)
 		fileExtension = ".json"
-	} else {
+	default:
+		configFileName := os.Getenv(EnvironmentVariableConfigFileName)
 		if configFileName == "" {
 			configFileName = DefaultConfigFileName
 		}
@@ -44,11 +51,13 @@ func NewLoader(validator *validator.Validate, isGlobal bool) *Reader {
 			zap.L().Fatal("failed to get current working directory path", zap.Error(err))
 		}
 
-		filePath = filepath.Join(workingDirectory, configFileName)
 		fileExtension = filepath.Ext(configFileName)
 		if fileExtension == "" {
 			configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
+			fileExtension = ".json"
 		}
+
+		filePath = filepath.Join(workingDirectory, configFileName)
 	}
 
 	configReader, err := NewReaderStrategy(fileExtension)

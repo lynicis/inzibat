@@ -445,7 +445,7 @@ func TestNewLoader(t *testing.T) {
 		}()
 		os.Unsetenv(EnvironmentVariableConfigFileName)
 
-		loader := NewLoader(validator, false)
+		loader := NewLoader(validator, false, "")
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
@@ -465,7 +465,7 @@ func TestNewLoader(t *testing.T) {
 		customFileName := "custom-config.json"
 		os.Setenv(EnvironmentVariableConfigFileName, customFileName)
 
-		loader := NewLoader(validator, false)
+		loader := NewLoader(validator, false, "")
 
 		assert.NotNil(t, loader)
 		assert.Contains(t, loader.Filepath, customFileName)
@@ -482,7 +482,7 @@ func TestNewLoader(t *testing.T) {
 		}()
 		os.Setenv(EnvironmentVariableConfigFileName, "config.json")
 
-		loader := NewLoader(validator, false)
+		loader := NewLoader(validator, false, "")
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
@@ -498,11 +498,20 @@ func TestNewLoader(t *testing.T) {
 			}
 		}()
 
-		loader := NewLoader(validator, true)
+		loader := NewLoader(validator, true, "")
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
 		assert.Contains(t, loader.Filepath, GlobalConfigFileName)
+	})
+
+	t.Run("happy path - explicit path overrides env", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		explicitPath := filepath.Join(tmpDir, "custom.yaml")
+
+		loader := NewLoader(validator, false, explicitPath)
+
+		assert.Equal(t, explicitPath, loader.Filepath)
 	})
 
 	t.Run("error path - invalid file extension", func(t *testing.T) {

@@ -16,7 +16,7 @@ func main() {
 		return
 	}
 
-	if err := server.StartServer(""); err != nil {
+	if err := server.StartServer("", false); err != nil {
 		zap.L().Fatal("failed to start server", zap.Error(err))
 	}
 }

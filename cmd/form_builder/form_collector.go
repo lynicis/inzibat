@@ -3,7 +3,9 @@ package form_builder
 import (
 	"fmt"
 	"net/http"
+	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
 	"github.com/lynicis/inzibat/config"
@@ -33,25 +35,29 @@ func (r *HuhFormRunner) GetBool(key string) bool {
 }
 
 func collectHeadersFromFormInternal(
-	headerFormRunner,
-	continueFormRunner FormRunner,
+	headerFormCreator func() *huh.Form,
+	continueFormCreator func() *huh.Form,
 ) (http.Header, error) {
 	headers := make(http.Header)
 
 	for {
-		if err := headerFormRunner.Run(); err != nil {
+		// Create a fresh form instance for each iteration
+		headerForm := headerFormCreator()
+		if err := headerForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to collect header: %w", err)
 		}
 
-		key := headerFormRunner.GetString("key")
-		value := headerFormRunner.GetString("value")
+		key := headerForm.GetString("key")
+		value := headerForm.GetString("value")
 		headers.Set(key, value)
 
-		if err := continueFormRunner.Run(); err != nil {
+		// Create a fresh continue form for each iteration
+		continueForm := continueFormCreator()
+		if err := continueForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
 		}
 
-		if !continueFormRunner.GetBool("continue") {
+		if !continueForm.GetBool("continue") {
 			break
 		}
 	}
@@ -59,8 +65,8 @@ func collectHeadersFromFormInternal(
 	return headers, nil
 }
 
-func CollectHeadersFromForm() (http.Header, error) {
-	headerForm := huh.NewForm(
+func createHeaderForm() *huh.Form {
+	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("key").
@@ -77,59 +83,77 @@ func CollectHeadersFromForm() (http.Header, error) {
 					return ValidateNonEmpty(s, "header value")
 				}),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+}
 
-	continueForm := huh.NewForm(
+func createContinueForm(message string) *huh.Form {
+	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("continue").
-				Title("Add another header?"),
+				Title(message).
+				Affirmative("Yes").
+				Negative("No"),
 		),
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+}
+
+func CollectHeadersFromForm() (http.Header, error) {
+	return collectHeadersFromFormInternal(
+		createHeaderForm,
+		func() *huh.Form { return createContinueForm("Add another header?") },
 	)
-
-	headerFormRunner := &HuhFormRunner{Form: headerForm}
-	continueFormRunner := &HuhFormRunner{Form: continueForm}
-
-	return collectHeadersFromFormInternal(headerFormRunner, continueFormRunner)
 }
 
 func collectBodyFromFormInternal(
-	bodyFormRunner,
-	continueFormRunner FormRunner,
+	bodyFormCreator func() *huh.Form,
+	continueFormCreator func() *huh.Form,
 ) (config.HttpBody, error) {
 	body := make(config.HttpBody)
 
-	if err := bodyFormRunner.Run(); err != nil {
+	// Create first body form
+	bodyForm := bodyFormCreator()
+	if err := bodyForm.Run(); err != nil {
 		return nil, fmt.Errorf("failed to collect body field: %w", err)
 	}
 
-	key := bodyFormRunner.GetString("key")
-	value := bodyFormRunner.GetString("value")
+	key := bodyForm.GetString("key")
+	value := bodyForm.GetString("value")
 	body[key] = value
 
 	for {
-		if err := continueFormRunner.Run(); err != nil {
+		// Create a fresh continue form for each iteration
+		continueForm := continueFormCreator()
+		if err := continueForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
 		}
 
-		if !continueFormRunner.GetBool("continue") {
+		if !continueForm.GetBool("continue") {
 			break
 		}
 
-		if err := bodyFormRunner.Run(); err != nil {
+		// Create a fresh body form for each iteration
+		bodyForm := bodyFormCreator()
+		if err := bodyForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to collect body field: %w", err)
 		}
 
-		key := bodyFormRunner.GetString("key")
-		value := bodyFormRunner.GetString("value")
+		key := bodyForm.GetString("key")
+		value := bodyForm.GetString("value")
 		body[key] = value
 	}
 
 	return body, nil
 }
 
-func CollectBodyFromForm() (config.HttpBody, error) {
-	bodyForm := huh.NewForm(
+func createBodyForm() *huh.Form {
+	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("key").
@@ -146,20 +170,17 @@ func CollectBodyFromForm() (config.HttpBody, error) {
 					return ValidateNonEmpty(s, "body value")
 				}),
 		),
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+}
+
+func CollectBodyFromForm() (config.HttpBody, error) {
+	return collectBodyFromFormInternal(
+		createBodyForm,
+		func() *huh.Form { return createContinueForm("Add another body field?") },
 	)
-
-	continueForm := huh.NewForm(
-		huh.NewGroup(
-			huh.NewConfirm().
-				Key("continue").
-				Title("Add another body field?"),
-		),
-	)
-
-	bodyFormRunner := &HuhFormRunner{Form: bodyForm}
-	continueFormRunner := &HuhFormRunner{Form: continueForm}
-
-	return collectBodyFromFormInternal(bodyFormRunner, continueFormRunner)
 }
 
 func collectBodyStringFromFormInternal(bodyStringFormRunner FormRunner) (string, error) {
@@ -181,7 +202,10 @@ func CollectBodyStringFromForm() (string, error) {
 					return ValidateNonEmpty(s, "body string")
 				}),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	bodyStringFormRunner := &HuhFormRunner{Form: bodyStringForm}
 

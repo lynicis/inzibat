@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -26,6 +28,8 @@ var (
 		{Key: "Mock", Value: "mock"},
 		{Key: "Client (Proxy)", Value: "client"},
 	}
+	createConfigFile      string
+	createIsGlobalConfig  bool
 )
 
 func createRouteForm() *huh.Form {
@@ -45,7 +49,10 @@ func createRouteForm() *huh.Form {
 				Title("Route Type").
 				Options(routeTypes...),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 }
 
 func createMockResponseFormInternal(
@@ -110,7 +117,10 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 				Value(&status).
 				Validate(form_builder.ValidateStatusCode),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	bodyForm := huh.NewForm(
 		huh.NewGroup(
@@ -123,7 +133,10 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 					{Key: "Skip", Value: form_builder.SourceSkip},
 				}...),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	statusFormRunner := &form_builder.HuhFormRunner{Form: statusForm}
 	bodyTypeFormRunner := &form_builder.HuhFormRunner{Form: bodyForm}
@@ -204,7 +217,10 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Title("Target HTTP Method").
 				Options(httpMethods...),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	bodyForm := huh.NewForm(
 		huh.NewGroup(
@@ -216,7 +232,10 @@ func createClientRequestForm() (*config.RequestTo, error) {
 					{Key: "Skip", Value: form_builder.SourceSkip},
 				}...),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	optionsForm := huh.NewForm(
 		huh.NewGroup(
@@ -230,7 +249,10 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Key("inErrorReturn500").
 				Title("Return 500 on Error"),
 		),
-	)
+	).
+		WithInput(os.Stdin).
+		WithOutput(os.Stdout).
+		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
 	basicFormRunner := &form_builder.HuhFormRunner{Form: basicForm}
 	bodyTypeFormRunner := &form_builder.HuhFormRunner{Form: bodyForm}
@@ -299,15 +321,21 @@ var createCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"create-route", "c"},
 	Short:   "Create a new route",
-	Long:    `Create a new route interactively using a form-based CLI.`,
-	Args:    cobra.NoArgs,
+	Long: `Create a new route interactively using a form-based CLI.
+
+The route will be added to the configuration file (in order of precedence):
+  1. The file specified by the --config flag
+  2. The file specified by the INZIBAT_CONFIG_FILE environment variable
+  3. inzibat.json in the current working directory
+  4. ~/.inzibat.config.json if --global flag is used`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		route, err := createRoute()
 		if err != nil {
 			zap.L().Fatal("failed to create route", zap.Error(err))
 		}
 
-		cfgLoader := config.NewLoader(nil, false)
+		cfgLoader := config.NewLoader(nil, createIsGlobalConfig, createConfigFile)
 		cfgFilePath := cfgLoader.Filepath
 
 		cfg, err := config.ReadOrCreateConfig(cfgFilePath)
@@ -326,5 +354,19 @@ var createCmd = &cobra.Command{
 }
 
 func init() {
+	createCmd.Flags().StringVarP(
+		&createConfigFile,
+		"config",
+		"c",
+		"",
+		"Path to the configuration file",
+	)
+	createCmd.Flags().BoolVarP(
+		&createIsGlobalConfig,
+		"global",
+		"g",
+		false,
+		"Use the global config file (~/.inzibat.config.json)",
+	)
 	rootCmd.AddCommand(createCmd)
 }

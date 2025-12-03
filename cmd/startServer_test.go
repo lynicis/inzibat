@@ -55,3 +55,33 @@ func TestStartServerCmd_ConfigFile(t *testing.T) {
 		assert.Equal(t, configFile, configFile)
 	})
 }
+
+func TestStartServerCmd_GlobalFlag(t *testing.T) {
+	t.Run("happy path - command has global flag", func(t *testing.T) {
+		flag := startServerCmd.Flag("global")
+		require.NotNil(t, flag)
+
+		assert.Equal(t, "g", flag.Shorthand)
+	})
+
+	t.Run("happy path - start server invoked with global flag", func(t *testing.T) {
+		originalStartServerFunc := startServerFunc
+		defer func() {
+			startServerFunc = originalStartServerFunc
+			_ = startServerCmd.Flags().Set("global", "false")
+		}()
+
+		var calledWithGlobal bool
+		startServerFunc = func(_ string, isGlobal bool) error {
+			calledWithGlobal = isGlobal
+			return nil
+		}
+
+		err := startServerCmd.Flags().Set("global", "true")
+		require.NoError(t, err)
+
+		startServerCmd.Run(startServerCmd, []string{})
+
+		assert.True(t, calledWithGlobal)
+	})
+}

@@ -164,6 +164,9 @@ inzibat s
 # Specify a custom config file
 inzibat start --config /path/to/config.yml
 inzibat start -c /path/to/config.yml
+
+# Use the global config stored at ~/.inzibat.config.json
+inzibat start --global
 ```
 
 **Configuration Precedence:**
@@ -174,16 +177,26 @@ The server reads configuration in the following order:
 2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
 3. `inzibat.json` in the current working directory
 
+Use the `--global` (`-g`) flag to bypass this order and load the global config at `~/.inzibat.config.json`.
+
 ### Create Routes
 
 Create new routes interactively using the `create` command:
 
 ```bash
-# Launch interactive route creation
+# Launch interactive route creation (saves to inzibat.json in current directory)
 inzibat create
 
 # Or use the short alias
 inzibat c
+
+# Create route in a custom config file
+inzibat create --config /path/to/config.json
+inzibat create -c /path/to/config.json
+
+# Create route in the global config file (~/.inzibat.config.json)
+inzibat create --global
+inzibat create -g
 ```
 
 The interactive form guides you through:
@@ -193,22 +206,44 @@ The interactive form guides you through:
 - Configuring response status codes, headers, and body
 - Setting up proxy targets for client routes
 
-Routes are automatically saved to your global config file (`~/.inzibat.json`).
+**Configuration Precedence:**
+
+Routes are saved to the configuration file in the following order:
+1. File specified by the `--config` / `-c` flag
+2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
+3. `inzibat.json` in the current working directory
+4. `~/.inzibat.config.json` if `--global` / `-g` flag is used
 
 ### List Routes
 
 View all configured routes:
 
 ```bash
-# List all routes
+# List all routes from inzibat.json in current directory
 inzibat list
 
 # Or use the short aliases
 inzibat ls
 inzibat l
+
+# List routes from a custom config file
+inzibat list --config /path/to/config.json
+inzibat list -c /path/to/config.json
+
+# List routes from the global config file (~/.inzibat.config.json)
+inzibat list --global
+inzibat list -g
 ```
 
 This displays all routes from your configuration file in a structured, easy-to-read format.
+
+**Configuration Precedence:**
+
+Routes are read from the configuration file in the following order:
+1. File specified by the `--config` / `-c` flag
+2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
+3. `inzibat.json` in the current working directory
+4. `~/.inzibat.config.json` if `--global` / `-g` flag is used
 
 ### Command Aliases
 
@@ -257,8 +292,6 @@ routes:
 
 - **Mock Routes**: Return predefined responses with custom status codes, headers, and body
 - **Proxy Routes**: Forward requests to another service (useful for development)
-
-For more examples and advanced configuration options, see the [documentation](https://github.com/Lynicis/inzibat/wiki).
 
 ## 🤝 Contributing
 

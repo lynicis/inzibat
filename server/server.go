@@ -20,20 +20,23 @@ import (
 	"github.com/lynicis/inzibat/router"
 )
 
-func StartServer(configFile string) error {
+func StartServer(configFile string, isGlobalConfig bool) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	return StartServerWithContext(ctx, configFile)
+	return StartServerWithContext(ctx, configFile, isGlobalConfig)
 }
 
-func StartServerWithContext(ctx context.Context, configFile string) error {
-	originalEnv, err := setupConfigFileEnv(configFile)
-	if err != nil {
-		return err
+func StartServerWithContext(ctx context.Context, configFile string, isGlobalConfig bool) error {
+	var resolvedPath string
+	if configFile != "" {
+		absPath, err := config.ResolveAbsolutePath(configFile)
+		if err != nil {
+			return fmt.Errorf("failed to resolve config file path: %w", err)
+		}
+		resolvedPath = absPath
 	}
-	defer restoreConfigFileEnv(originalEnv)
 
-	cfg, err := loadConfig()
+	cfg, err := loadConfig(resolvedPath, isGlobalConfig)
 	if err != nil {
 		return err
 	}
@@ -46,40 +49,9 @@ func StartServerWithContext(ctx context.Context, configFile string) error {
 	return runServer(ctx, fiberApp, cfg)
 }
 
-func setupConfigFileEnv(configFile string) (string, error) {
-	if configFile == "" {
-		return "", nil
-	}
-
-	absPath, err := config.ResolveAbsolutePath(configFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve config file path: %w", err)
-	}
-
-	originalEnv := os.Getenv(config.EnvironmentVariableConfigFileName)
-	if err := os.Setenv(config.EnvironmentVariableConfigFileName, absPath); err != nil {
-		return "", fmt.Errorf("failed to set environment variable: %w", err)
-	}
-
-	return originalEnv, nil
-}
-
-func restoreConfigFileEnv(originalEnv string) {
-	if originalEnv != "" {
-		if err := os.Setenv(config.EnvironmentVariableConfigFileName, originalEnv); err != nil {
-			zap.L().Warn("failed to restore environment variable", zap.Error(err))
-		}
-		return
-	}
-
-	if err := os.Unsetenv(config.EnvironmentVariableConfigFileName); err != nil {
-		zap.L().Warn("failed to unset environment variable", zap.Error(err))
-	}
-}
-
-func loadConfig() (*config.Cfg, error) {
+func loadConfig(explicitPath string, isGlobalConfig bool) (*config.Cfg, error) {
 	validator := validatorPkg.New()
-	configLoader := config.NewLoader(validator, false)
+	configLoader := config.NewLoader(validator, isGlobalConfig, explicitPath)
 	cfg, err := configLoader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)

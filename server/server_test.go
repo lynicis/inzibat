@@ -50,7 +50,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile)
+			done <- StartServerWithContext(ctx, configFile, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -72,7 +72,7 @@ func TestStartServer(t *testing.T) {
 
 	t.Run("error path - config file path resolution fails", func(t *testing.T) {
 		invalidPath := "/nonexistent/path/to/config.json"
-		err := StartServer(invalidPath)
+		err := StartServer(invalidPath, false)
 
 		assert.Error(t, err)
 		assert.True(t,
@@ -85,7 +85,7 @@ func TestStartServer(t *testing.T) {
 		tmpDir := t.TempDir()
 		nonExistentFile := filepath.Join(tmpDir, "nonexistent.json")
 
-		err := StartServer(nonExistentFile)
+		err := StartServer(nonExistentFile, false)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
@@ -133,7 +133,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, "")
+			done <- StartServerWithContext(ctx, "", false)
 		}()
 
 		time.Sleep(50 * time.Millisecond)
@@ -182,13 +182,13 @@ func TestStartServer(t *testing.T) {
 		err = os.WriteFile(invalidConfigFile, []byte("invalid json"), 0644)
 		require.NoError(t, err)
 
-		err = StartServer(invalidConfigFile)
+		err = StartServer(invalidConfigFile, false)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
 	})
 
-	t.Run("happy path - environment variable restoration with original env set", func(t *testing.T) {
+	t.Run("happy path - loads config from environment variable when cli flag omitted", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
 		freePort, err := http.GetFreePort()
@@ -211,19 +211,14 @@ func TestStartServer(t *testing.T) {
 		err = config.WriteConfig(cfg, configFile)
 		require.NoError(t, err)
 
-		originalEnvValue := "original_config.json"
-		err = os.Setenv(config.EnvironmentVariableConfigFileName, originalEnvValue)
-		require.NoError(t, err)
-		defer func() {
-			os.Setenv(config.EnvironmentVariableConfigFileName, originalEnvValue)
-		}()
+		t.Setenv(config.EnvironmentVariableConfigFileName, configFile)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile)
+			done <- StartServerWithContext(ctx, "", false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -243,9 +238,12 @@ func TestStartServer(t *testing.T) {
 		}
 	})
 
-	t.Run("happy path - environment variable restoration with no original env", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "inzibat.json")
+	t.Run("happy path - loads config from global file when requested", func(t *testing.T) {
+		tmpHomeDir := t.TempDir()
+		t.Setenv("HOME", tmpHomeDir)
+		t.Setenv("USERPROFILE", tmpHomeDir)
+
+		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
 		freePort, err := http.GetFreePort()
 		require.NoError(t, err)
 
@@ -263,22 +261,15 @@ func TestStartServer(t *testing.T) {
 				},
 			},
 		}
-		err = config.WriteConfig(cfg, configFile)
+		err = config.WriteConfig(cfg, globalConfigPath)
 		require.NoError(t, err)
-
-		originalEnv := os.Getenv(config.EnvironmentVariableConfigFileName)
-		if originalEnv != "" {
-			err = os.Unsetenv(config.EnvironmentVariableConfigFileName)
-			require.NoError(t, err)
-			defer os.Setenv(config.EnvironmentVariableConfigFileName, originalEnv)
-		}
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile)
+			done <- StartServerWithContext(ctx, "", true)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -326,7 +317,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile)
+			done <- StartServerWithContext(ctx, configFile, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -382,7 +373,7 @@ func TestStartServer(t *testing.T) {
 
 		serverDone := make(chan error, 1)
 		go func() {
-			serverDone <- StartServerWithContext(ctx, configFile)
+			serverDone <- StartServerWithContext(ctx, configFile, false)
 		}()
 
 		time.Sleep(500 * time.Millisecond)
