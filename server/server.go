@@ -73,6 +73,7 @@ func setupServer(cfg *config.Cfg) (*fiber.App, error) {
 		DisableStartupMessage: true,
 		JSONDecoder:           json.Unmarshal,
 		JSONEncoder:           json.Marshal,
+		ReadBufferSize:        4 * 1024 * 1024,
 	})
 	mainRouter := &router.MainRouter{
 		Config:          cfg,
