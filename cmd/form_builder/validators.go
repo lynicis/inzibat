@@ -44,3 +44,16 @@ func ValidateNonEmpty(value, fieldName string) error {
 
 	return nil
 }
+
+func ValidatePositiveInt(value string) error {
+	parsedValue, err := strconv.Atoi(value)
+	if err != nil {
+		return fmt.Errorf("value must be a number")
+	}
+
+	if parsedValue <= 0 {
+		return fmt.Errorf("value must be greater than 0")
+	}
+
+	return nil
+}

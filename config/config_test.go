@@ -290,6 +290,46 @@ func TestReader_Read(t *testing.T) {
 		assert.Equal(t, fiber.MethodPost, cfg.Routes[0].Method)
 		assert.Equal(t, http.MethodPut, cfg.Routes[0].RequestTo.Method)
 	})
+
+	t.Run("should merge global and route circuit breaker config", func(t *testing.T) {
+		expectedCfg := &Cfg{
+			ServerPort: 8080,
+			CircuitBreaker: &CircuitBreakerConfig{
+				Enabled:          BoolPointer(true),
+				FailureThreshold: 9,
+			},
+			Routes: []Route{
+				{
+					Method: fiber.MethodGet,
+					Path:   "/proxy",
+					RequestTo: &RequestTo{
+						Path: "/target",
+						CircuitBreaker: &CircuitBreakerConfig{
+							FailureThreshold: 3,
+						},
+					},
+				},
+			},
+		}
+
+		mockReader := NewMockReaderStrategy(ctrl)
+		mockReader.EXPECT().Read(gomock.Any()).Return(expectedCfg, nil).Times(1)
+
+		cfgLoader := &Reader{ConfigReader: mockReader}
+		cfg, err := cfgLoader.Read()
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.NotNil(t, cfg.CircuitBreaker)
+		assert.NotNil(t, cfg.CircuitBreaker.Enabled)
+		assert.True(t, *cfg.CircuitBreaker.Enabled)
+		assert.Equal(t, 9, cfg.CircuitBreaker.FailureThreshold)
+		assert.NotNil(t, cfg.Routes[0].RequestTo.CircuitBreaker)
+		assert.NotNil(t, cfg.Routes[0].RequestTo.CircuitBreaker.Enabled)
+		assert.True(t, *cfg.Routes[0].RequestTo.CircuitBreaker.Enabled)
+		assert.Equal(t, 3, cfg.Routes[0].RequestTo.CircuitBreaker.FailureThreshold)
+		assert.Equal(t, 10, cfg.Routes[0].RequestTo.CircuitBreaker.MinimumRequests)
+	})
 }
 
 func TestReadOrCreateConfig(t *testing.T) {

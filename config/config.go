@@ -80,25 +80,16 @@ func (reader *Reader) Read() (*Cfg, error) {
 		return nil, err
 	}
 
-	if reader.Validator != nil {
-		if err = reader.Validator.Struct(config); err != nil {
-			return nil, err
-		}
+	if err = reader.validate(config); err != nil {
+		return nil, err
 	}
 
-	for routeIndex := range config.Routes {
-		route := &config.Routes[routeIndex]
-		if route.RequestTo == nil {
-			continue
-		}
+	if config.CircuitBreaker != nil {
+		config.CircuitBreaker = MergeCircuitBreakerConfig(nil, config.CircuitBreaker)
+	}
 
-		if route.RequestTo.Method == "" {
-			route.RequestTo.Method = http.MethodGet
-		}
-
-		if route.RequestTo.Method == http.MethodGet && route.RequestTo.Body != nil {
-			return nil, ErrorGetSendBody
-		}
+	if err = normalizeRoutes(config); err != nil {
+		return nil, err
 	}
 
 	if config.HealthCheckRoute {
@@ -119,6 +110,38 @@ func (reader *Reader) Read() (*Cfg, error) {
 	}
 
 	return config, nil
+}
+
+func (reader *Reader) validate(config *Cfg) error {
+	if reader.Validator == nil {
+		return nil
+	}
+
+	return reader.Validator.Struct(config)
+}
+
+func normalizeRoutes(config *Cfg) error {
+	for routeIndex := range config.Routes {
+		route := &config.Routes[routeIndex]
+		if route.RequestTo == nil {
+			continue
+		}
+
+		route.RequestTo.CircuitBreaker = MergeCircuitBreakerConfig(
+			config.CircuitBreaker,
+			route.RequestTo.CircuitBreaker,
+		)
+
+		if route.RequestTo.Method == "" {
+			route.RequestTo.Method = http.MethodGet
+		}
+
+		if route.RequestTo.Method == http.MethodGet && route.RequestTo.Body != nil {
+			return ErrorGetSendBody
+		}
+	}
+
+	return nil
 }
 
 func WriteConfig(cfg *Cfg, filePath string) error {

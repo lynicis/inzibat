@@ -142,3 +142,44 @@ func TestRequestTo_GetParsedUrl(t *testing.T) {
 		assert.Equal(t, expectedURL.String(), parsedURL.String())
 	})
 }
+
+func TestMergeCircuitBreakerConfig(t *testing.T) {
+	t.Run("happy path - returns nil when both configs are nil", func(t *testing.T) {
+		result := MergeCircuitBreakerConfig(nil, nil)
+		assert.Nil(t, result)
+	})
+
+	t.Run("happy path - uses default values when only global config exists", func(t *testing.T) {
+		result := MergeCircuitBreakerConfig(&CircuitBreakerConfig{Enabled: BoolPointer(true)}, nil)
+
+		assert.NotNil(t, result)
+		assert.NotNil(t, result.Enabled)
+		assert.True(t, *result.Enabled)
+		assert.Equal(t, 5, result.FailureThreshold)
+		assert.Equal(t, 10, result.MinimumRequests)
+	})
+
+	t.Run("happy path - route overrides global values", func(t *testing.T) {
+		globalConfig := &CircuitBreakerConfig{
+			Enabled:             BoolPointer(true),
+			FailureThreshold:    7,
+			MinimumRequests:     12,
+			OpenTimeoutMs:       60000,
+			HalfOpenMaxRequests: 4,
+			SuccessThreshold:    4,
+		}
+		routeConfig := &CircuitBreakerConfig{
+			Enabled:          BoolPointer(false),
+			FailureThreshold: 3,
+		}
+
+		result := MergeCircuitBreakerConfig(globalConfig, routeConfig)
+
+		assert.NotNil(t, result)
+		assert.NotNil(t, result.Enabled)
+		assert.False(t, *result.Enabled)
+		assert.Equal(t, 3, result.FailureThreshold)
+		assert.Equal(t, 12, result.MinimumRequests)
+		assert.Equal(t, 60000, result.OpenTimeoutMs)
+	})
+}

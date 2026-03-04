@@ -59,7 +59,7 @@ func TestClient_Get(t *testing.T) {
 		}, response)
 	})
 
-	t.Run("when HttpClient return error", func(t *testing.T) {
+	t.Run("when upstream returns 404", func(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
@@ -73,11 +73,13 @@ func TestClient_Get(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Get(uri, http.Header{
+		response, err := httpClient.Get(uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		})
 
-		assert.Error(t, err)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusNotFound, response.Status)
 	})
 }
 
@@ -114,7 +116,7 @@ func TestClient_Post(t *testing.T) {
 		}, response)
 	})
 
-	t.Run("when HttpClient return error", func(t *testing.T) {
+	t.Run("when upstream returns 404", func(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
@@ -128,11 +130,13 @@ func TestClient_Post(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Post(uri, http.Header{
+		response, err := httpClient.Post(uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
-		assert.Error(t, err)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusNotFound, response.Status)
 	})
 }
 
@@ -169,7 +173,7 @@ func TestClient_Put(t *testing.T) {
 		}, response)
 	})
 
-	t.Run("when HttpClient return error", func(t *testing.T) {
+	t.Run("when upstream returns 404", func(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
@@ -183,11 +187,13 @@ func TestClient_Put(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Put(uri, http.Header{
+		response, err := httpClient.Put(uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
-		assert.Error(t, err)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusNotFound, response.Status)
 	})
 }
 
@@ -224,7 +230,7 @@ func TestClient_Delete(t *testing.T) {
 		}, response)
 	})
 
-	t.Run("when HttpClient return error", func(t *testing.T) {
+	t.Run("when upstream returns 404", func(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
@@ -238,11 +244,13 @@ func TestClient_Delete(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Delete(url, http.Header{
+		response, err := httpClient.Delete(url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
-		assert.Error(t, err)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusNotFound, response.Status)
 	})
 }
 
@@ -279,7 +287,7 @@ func TestClient_Patch(t *testing.T) {
 		}, response)
 	})
 
-	t.Run("when HttpClient return error", func(t *testing.T) {
+	t.Run("when upstream returns 404", func(t *testing.T) {
 		freePort, err := GetFreePort()
 		require.NoError(t, err)
 
@@ -293,11 +301,13 @@ func TestClient_Patch(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		_, err = httpClient.Patch(url, http.Header{
+		response, err := httpClient.Patch(url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
-		assert.Error(t, err)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, fiber.StatusNotFound, response.Status)
 	})
 }
 
@@ -577,7 +587,7 @@ func TestClient_handleResponse(t *testing.T) {
 		assert.Equal(t, TestRespBody, result.Body)
 	})
 
-	t.Run("error path - handles 3xx redirect response", func(t *testing.T) {
+	t.Run("happy path - handles 3xx redirect response", func(t *testing.T) {
 		httpClient := NewHttpClient()
 		req := fasthttp.AcquireRequest()
 		resp := fasthttp.AcquireResponse()
@@ -585,12 +595,12 @@ func TestClient_handleResponse(t *testing.T) {
 
 		result, err := httpClient.handleResponse(resp, req)
 
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "response failed")
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, fiber.StatusMovedPermanently, result.Status)
 	})
 
-	t.Run("error path - handles 4xx client error response", func(t *testing.T) {
+	t.Run("happy path - handles 4xx client error response", func(t *testing.T) {
 		httpClient := NewHttpClient()
 		req := fasthttp.AcquireRequest()
 		resp := fasthttp.AcquireResponse()
@@ -598,9 +608,9 @@ func TestClient_handleResponse(t *testing.T) {
 
 		result, err := httpClient.handleResponse(resp, req)
 
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "response failed")
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, fiber.StatusBadRequest, result.Status)
 	})
 
 	t.Run("error path - handles 5xx server error response", func(t *testing.T) {

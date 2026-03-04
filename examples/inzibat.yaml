@@ -1,29 +1,40 @@
 serverPort: 8080
 concurrency: 5
+
+circuitBreaker:
+  enabled: true
+  failureThreshold: 5
+  minimumRequests: 10
+  openTimeoutMs: 30000
+  halfOpenMaxRequests: 2
+  successThreshold: 2
+
 routes:
   - method: GET
-    host: http://localhost:8081
     path: /route-one
-    headers:
-      - xTestHeader: TestHeaderValue
-    body:
-      - testKey: testValue
-    passWithRequestHeaders: true,
-    passWithRequestBody: true,
+    requestTo:
+      method: POST
+      host: http://localhost:8081
+      path: /route-one
+      headers:
+        xTestHeader:
+          - TestHeaderValue
+      body:
+        testKey: testValue
+      passWithRequestHeaders: true
+      passWithRequestBody: true
+      circuitBreaker:
+        enabled: true
+        failureThreshold: 3
 
   - method: GET
     path: /route-two
-    mock:
+    requestTo:
+      method: GET
+      host: http://localhost:8081
+      path: /route-two
       headers:
-        - xTestHeader: TestHeaderValue
-      bodyString: "OK"
-      status: 200
-
-  - method: GET
-    path: /route-three
-    mock:
-      headers:
-        - xTestHeader: TestHeaderValue
-      body:
-        - testKey: testValue
-      status: 200
+        xTestHeader:
+          - TestHeaderValue
+      passWithRequestHeaders: true
+      passWithRequestBody: true

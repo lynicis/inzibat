@@ -1541,6 +1541,34 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to get options")
 	})
 
+	t.Run("error path - invalid circuit breaker threshold", func(t *testing.T) {
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockOptionsForm.EXPECT().Run().Return(nil)
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("abc")
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return make(http.Header), nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse failureThreshold")
+	})
+
 	t.Run("happy path - with structured body", func(t *testing.T) {
 
 		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
@@ -1560,6 +1588,7 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(true)
 		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(true)
 		mockOptionsForm.EXPECT().GetBool("inErrorReturn500").Return(false)
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(false)
 
 		result, err := createClientRequestFormInternal(
 			mockBasicForm,
@@ -1580,6 +1609,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		assert.True(t, result.PassWithRequestBody)
 		assert.True(t, result.PassWithRequestHeaders)
 		assert.False(t, result.InErrorReturn500)
+		assert.NotNil(t, result.CircuitBreaker)
+		assert.NotNil(t, result.CircuitBreaker.Enabled)
+		assert.False(t, *result.CircuitBreaker.Enabled)
 	})
 
 	t.Run("happy path - skip body", func(t *testing.T) {
@@ -1599,6 +1631,7 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(false)
 		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(false)
 		mockOptionsForm.EXPECT().GetBool("inErrorReturn500").Return(true)
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(false)
 
 		result, err := createClientRequestFormInternal(
 			mockBasicForm,
@@ -1617,6 +1650,52 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		assert.False(t, result.PassWithRequestBody)
 		assert.False(t, result.PassWithRequestHeaders)
 		assert.True(t, result.InErrorReturn500)
+		assert.NotNil(t, result.CircuitBreaker)
+		assert.NotNil(t, result.CircuitBreaker.Enabled)
+		assert.False(t, *result.CircuitBreaker.Enabled)
+	})
+
+	t.Run("happy path - circuit breaker enabled", func(t *testing.T) {
+		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		headers := make(http.Header)
+
+		mockBasicForm.EXPECT().Run().Return(nil)
+		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
+		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
+		mockBasicForm.EXPECT().GetString("method").Return("GET")
+		mockBodyTypeForm.EXPECT().Run().Return(nil)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockOptionsForm.EXPECT().Run().Return(nil)
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("6")
+		mockOptionsForm.EXPECT().GetString("minimumRequests").Return("11")
+		mockOptionsForm.EXPECT().GetString("openTimeoutMs").Return("20000")
+		mockOptionsForm.EXPECT().GetString("halfOpenMaxRequests").Return("3")
+		mockOptionsForm.EXPECT().GetString("successThreshold").Return("2")
+		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(false)
+		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(false)
+		mockOptionsForm.EXPECT().GetBool("inErrorReturn500").Return(false)
+
+		result, err := createClientRequestFormInternal(
+			mockBasicForm,
+			func() (http.Header, error) { return headers, nil },
+			mockBodyTypeForm,
+			func() (config.HttpBody, error) { return nil, nil },
+			mockOptionsForm,
+		)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.NotNil(t, result.CircuitBreaker)
+		assert.NotNil(t, result.CircuitBreaker.Enabled)
+		assert.True(t, *result.CircuitBreaker.Enabled)
+		assert.Equal(t, 6, result.CircuitBreaker.FailureThreshold)
+		assert.Equal(t, 11, result.CircuitBreaker.MinimumRequests)
+		assert.Equal(t, 20000, result.CircuitBreaker.OpenTimeoutMs)
+		assert.Equal(t, 3, result.CircuitBreaker.HalfOpenMaxRequests)
+		assert.Equal(t, 2, result.CircuitBreaker.SuccessThreshold)
 	})
 }
 

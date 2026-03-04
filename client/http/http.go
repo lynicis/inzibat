@@ -156,7 +156,7 @@ func (httpClient *Client) executeRequest(req *fasthttp.Request) (*fasthttp.Respo
 func (httpClient *Client) handleResponse(resp *fasthttp.Response, req *fasthttp.Request) (*Response, error) {
 	statusCode := resp.StatusCode()
 
-	if statusCode >= http.StatusMultipleChoices {
+	if statusCode >= http.StatusInternalServerError {
 		fasthttp.ReleaseRequest(req)
 		fasthttp.ReleaseResponse(resp)
 		return nil, errors.New("response failed")

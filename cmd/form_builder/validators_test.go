@@ -150,3 +150,26 @@ func TestValidateNonEmpty(t *testing.T) {
 		assert.Contains(t, err.Error(), fieldName)
 	})
 }
+
+func TestValidatePositiveInt(t *testing.T) {
+	t.Run("happy path - valid positive integer", func(t *testing.T) {
+		validValues := []string{"1", "2", "10", "1000"}
+
+		for _, value := range validValues {
+			err := ValidatePositiveInt(value)
+			assert.NoError(t, err)
+		}
+	})
+
+	t.Run("error path - not a number", func(t *testing.T) {
+		err := ValidatePositiveInt("abc")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "value must be a number")
+	})
+
+	t.Run("error path - zero value", func(t *testing.T) {
+		err := ValidatePositiveInt("0")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "value must be greater than 0")
+	})
+}

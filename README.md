@@ -272,26 +272,63 @@ go test ./handler -v
 
 ## 📝 Configuration
 
-Inzibat supports configuration files in multiple formats: JSON, TOML, and YAML. The configuration file defines the server port and routes.
+Inzibat supports configuration files in JSON, TOML, and YAML formats.
 
 ### Basic Configuration Structure
 
-```yaml
-port: 8080
-routes:
-  - path: /api/users
-    method: GET
-    response:
-      status_code: 200
-      headers:
-        Content-Type: application/json
-      body: '{"users": []}'
+```json
+{
+  "serverPort": 8080,
+  "concurrency": 5,
+  "circuitBreaker": {
+    "enabled": true,
+    "failureThreshold": 5,
+    "minimumRequests": 10,
+    "openTimeoutMs": 30000,
+    "halfOpenMaxRequests": 2,
+    "successThreshold": 2
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/proxy/users",
+      "requestTo": {
+        "method": "GET",
+        "host": "http://localhost:8081",
+        "path": "/users",
+        "passWithRequestHeaders": true,
+        "passWithRequestBody": false,
+        "inErrorReturn500": false,
+        "circuitBreaker": {
+          "enabled": true,
+          "failureThreshold": 3
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/mock/health",
+      "fakeResponse": {
+        "statusCode": 200,
+        "body": {
+          "status": "ok"
+        }
+      }
+    }
+  ]
+}
 ```
 
 ### Route Types
 
-- **Mock Routes**: Return predefined responses with custom status codes, headers, and body
-- **Proxy Routes**: Forward requests to another service (useful for development)
+- **Mock Routes**: Use `fakeResponse` to return predefined status, headers, and body
+- **Proxy Routes**: Use `requestTo` to forward requests to upstream services
+
+### Circuit Breaker
+
+- Circuit breaker applies only to proxy routes (`requestTo`)
+- Failure signal is network errors and `5xx` responses; `4xx` responses do not trip the breaker
+- You can configure breaker globally (`circuitBreaker`) and override per-route (`requestTo.circuitBreaker`)
 
 ## 🤝 Contributing
 

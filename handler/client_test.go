@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -207,6 +208,71 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 			responseBody, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 			assert.Empty(t, string(responseBody))
+		})
+
+		t.Run("circuit breaker open returns 503 without upstream call", func(t *testing.T) {
+			var upstreamCallCount int32
+			targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				atomic.AddInt32(&upstreamCallCount, 1)
+				w.WriteHeader(http.StatusInternalServerError)
+			}))
+			defer targetServer.Close()
+
+			httpClient := httpPkg.NewHttpClient()
+			httpClient.SetRetryConfig(httpPkg.RetryConfig{
+				MaxRetries:        0,
+				InitialBackoff:    1,
+				MaxBackoff:        1,
+				BackoffMultiplier: 1,
+			})
+
+			clientHandler := &ClientHandler{
+				Client: httpClient,
+				RouteConfig: &[]config.Route{
+					{
+						Method: http.MethodGet,
+						Path:   "/proxy",
+						RequestTo: &config.RequestTo{
+							Method: http.MethodGet,
+							Host:   targetServer.URL,
+							Path:   "/",
+						},
+					},
+				},
+			}
+
+			circuitBreakerStore, err := NewCircuitBreakerStore()
+			require.NoError(t, err)
+
+			routeKey := "GET /proxy -> GET " + targetServer.URL + "/"
+			err = circuitBreakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+				Enabled:             config.BoolPointer(true),
+				FailureThreshold:    1,
+				MinimumRequests:     1,
+				OpenTimeoutMs:       60000,
+				HalfOpenMaxRequests: 1,
+				SuccessThreshold:    1,
+			})
+			require.NoError(t, err)
+
+			clientHandler.CircuitBreakerStore = circuitBreakerStore
+			clientHandler.CircuitBreakerRouteKeys = map[int]string{0: routeKey}
+
+			handler := clientHandler.CreateHandler(0)
+			fiberApp := fiber.New()
+			fiberApp.Get("/proxy", handler)
+
+			firstRequest := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			firstResponse, err := fiberApp.Test(firstRequest)
+			require.NoError(t, err)
+			assert.Equal(t, fiber.StatusInternalServerError, firstResponse.StatusCode)
+			assert.Equal(t, int32(1), atomic.LoadInt32(&upstreamCallCount))
+
+			secondRequest := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+			secondResponse, err := fiberApp.Test(secondRequest)
+			require.NoError(t, err)
+			assert.Equal(t, fiber.StatusServiceUnavailable, secondResponse.StatusCode)
+			assert.Equal(t, int32(1), atomic.LoadInt32(&upstreamCallCount))
 		})
 	})
 }

@@ -1,6 +1,14 @@
 {
   "serverPort": 8080,
   "concurrency": 5,
+  "circuitBreaker": {
+    "enabled": true,
+    "failureThreshold": 5,
+    "minimumRequests": 10,
+    "openTimeoutMs": 30000,
+    "halfOpenMaxRequests": 2,
+    "successThreshold": 2
+  },
   "routes": [
     {
       "method": "GET",
@@ -16,7 +24,11 @@
           "testKey": "testValue"
         },
         "passWithRequestHeaders": true,
-        "passWithRequestBody": true
+        "passWithRequestBody": true,
+        "circuitBreaker": {
+          "enabled": true,
+          "failureThreshold": 3
+        }
       }
     },
     {

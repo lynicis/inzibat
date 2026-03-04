@@ -28,8 +28,13 @@ var (
 		{Key: "Mock", Value: "mock"},
 		{Key: "Client (Proxy)", Value: "client"},
 	}
-	createConfigFile     string
-	createIsGlobalConfig bool
+	createConfigFile           string
+	createIsGlobalConfig       bool
+	defaultFailureThreshold    = "5"
+	defaultMinimumRequests     = "10"
+	defaultOpenTimeoutMs       = "30000"
+	defaultHalfOpenMaxRequests = "2"
+	defaultSuccessThreshold    = "2"
 )
 
 func createRouteForm() *huh.Form {
@@ -174,17 +179,18 @@ func createClientRequestFormInternal(
 		return nil, fmt.Errorf("failed to select body type: %w", err)
 	}
 
-	var body config.HttpBody
-	bodyType := bodyTypeFormRunner.GetString("bodyType")
-	if bodyType == BodyTypeStructured {
-		body, err = bodyCollector()
-		if err != nil {
-			return nil, fmt.Errorf("failed to collect body: %w", err)
-		}
+	body, err := collectClientRequestBody(bodyTypeFormRunner, bodyCollector)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := optionsFormRunner.Run(); err != nil {
 		return nil, fmt.Errorf("failed to get options: %w", err)
+	}
+
+	circuitBreakerConfig, err := collectCircuitBreakerConfig(optionsFormRunner)
+	if err != nil {
+		return nil, err
 	}
 
 	return &config.RequestTo{
@@ -196,7 +202,98 @@ func createClientRequestFormInternal(
 		PassWithRequestBody:    optionsFormRunner.GetBool("passWithRequestBody"),
 		PassWithRequestHeaders: optionsFormRunner.GetBool("passWithRequestHeaders"),
 		InErrorReturn500:       optionsFormRunner.GetBool("inErrorReturn500"),
+		CircuitBreaker:         circuitBreakerConfig,
 	}, nil
+}
+
+func collectClientRequestBody(
+	bodyTypeFormRunner form_builder.FormRunner,
+	bodyCollector func() (config.HttpBody, error),
+) (config.HttpBody, error) {
+	if bodyTypeFormRunner.GetString("bodyType") != BodyTypeStructured {
+		return nil, nil
+	}
+
+	body, err := bodyCollector()
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect body: %w", err)
+	}
+
+	return body, nil
+}
+
+func collectCircuitBreakerConfig(
+	optionsFormRunner form_builder.FormRunner,
+) (*config.CircuitBreakerConfig, error) {
+	circuitBreakerEnabled := optionsFormRunner.GetBool("circuitBreakerEnabled")
+	circuitBreakerConfig := &config.CircuitBreakerConfig{
+		Enabled: config.BoolPointer(circuitBreakerEnabled),
+	}
+
+	if !circuitBreakerEnabled {
+		return circuitBreakerConfig, nil
+	}
+
+	failureThreshold, err := parsePositiveInt(
+		optionsFormRunner.GetString("failureThreshold"),
+		"failureThreshold",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	minimumRequests, err := parsePositiveInt(
+		optionsFormRunner.GetString("minimumRequests"),
+		"minimumRequests",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	openTimeoutMs, err := parsePositiveInt(
+		optionsFormRunner.GetString("openTimeoutMs"),
+		"openTimeoutMs",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	halfOpenMaxRequests, err := parsePositiveInt(
+		optionsFormRunner.GetString("halfOpenMaxRequests"),
+		"halfOpenMaxRequests",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	successThreshold, err := parsePositiveInt(
+		optionsFormRunner.GetString("successThreshold"),
+		"successThreshold",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	circuitBreakerConfig.FailureThreshold = failureThreshold
+	circuitBreakerConfig.MinimumRequests = minimumRequests
+	circuitBreakerConfig.OpenTimeoutMs = openTimeoutMs
+	circuitBreakerConfig.HalfOpenMaxRequests = halfOpenMaxRequests
+	circuitBreakerConfig.SuccessThreshold = successThreshold
+
+	return circuitBreakerConfig, nil
+}
+
+func parsePositiveInt(value string, key string) (int, error) {
+	parsedValue, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse %s: %w", key, err)
+	}
+
+	if parsedValue <= 0 {
+		return 0, fmt.Errorf("%s must be greater than zero", key)
+	}
+
+	return parsedValue, nil
 }
 
 func createClientRequestForm() (*config.RequestTo, error) {
@@ -248,6 +345,34 @@ func createClientRequestForm() (*config.RequestTo, error) {
 			huh.NewConfirm().
 				Key("inErrorReturn500").
 				Title("Return 500 on Error"),
+			huh.NewConfirm().
+				Key("circuitBreakerEnabled").
+				Title("Enable Circuit Breaker"),
+			huh.NewInput().
+				Key("failureThreshold").
+				Title("Circuit Breaker Failure Threshold").
+				Value(&defaultFailureThreshold).
+				Validate(form_builder.ValidatePositiveInt),
+			huh.NewInput().
+				Key("minimumRequests").
+				Title("Circuit Breaker Minimum Requests").
+				Value(&defaultMinimumRequests).
+				Validate(form_builder.ValidatePositiveInt),
+			huh.NewInput().
+				Key("openTimeoutMs").
+				Title("Circuit Breaker Open Timeout (ms)").
+				Value(&defaultOpenTimeoutMs).
+				Validate(form_builder.ValidatePositiveInt),
+			huh.NewInput().
+				Key("halfOpenMaxRequests").
+				Title("Circuit Breaker Half-Open Max Requests").
+				Value(&defaultHalfOpenMaxRequests).
+				Validate(form_builder.ValidatePositiveInt),
+			huh.NewInput().
+				Key("successThreshold").
+				Title("Circuit Breaker Success Threshold").
+				Value(&defaultSuccessThreshold).
+				Validate(form_builder.ValidatePositiveInt),
 		),
 	).
 		WithInput(os.Stdin).
