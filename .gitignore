@@ -8,3 +8,4 @@ inzibat
 *.out
 *.html
 dist/
+!skills-lock.json
