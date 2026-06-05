@@ -11,7 +11,7 @@ linters:
     - funlen
     - goconst
     - gocritic
-    - gomodguard
+    - gomodguard_v2
     - lll
     - unused
     - varnamelen

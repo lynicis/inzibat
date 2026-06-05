@@ -17,10 +17,10 @@ type ReaderStrategy interface {
 func NewReaderStrategy(fileExtension string) (ReaderStrategy, error) {
 	koanfInstance := koanf.New(".")
 	readerMapper := map[string]ReaderStrategy{
-		".json": &JsonReader{KoanfInstance: koanfInstance},
-		".yaml": &YamlReader{KoanfInstance: koanfInstance},
-		".yml":  &YamlReader{KoanfInstance: koanfInstance},
-		".toml": &TomlReader{KoanfInstance: koanfInstance},
+		DefaultConfigExtension: &JsonReader{KoanfInstance: koanfInstance},
+		".yaml":                &YamlReader{KoanfInstance: koanfInstance},
+		".yml":                 &YamlReader{KoanfInstance: koanfInstance},
+		".toml":                &TomlReader{KoanfInstance: koanfInstance},
 	}
 
 	reader := readerMapper[fileExtension]

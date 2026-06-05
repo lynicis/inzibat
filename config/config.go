@@ -56,7 +56,7 @@ func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string
 		fileExtension = filepath.Ext(configFileName)
 		if fileExtension == "" {
 			configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
-			fileExtension = ".json"
+			fileExtension = DefaultConfigExtension
 		}
 
 		filePath = filepath.Join(workingDirectory, configFileName)
