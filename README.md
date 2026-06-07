@@ -3,7 +3,7 @@
 [![Release Version](https://img.shields.io/github/v/release/Lynicis/inzibat?label=version)](https://github.com/Lynicis/inzibat/releases)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=lynicis_inzibat&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=lynicis_inzibat)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=lynicis_inzibat&metric=coverage)](https://sonarcloud.io/summary/new_code?id=lynicis_inzibat)
-[![Go Version](https://img.shields.io/badge/go-1.25.4-blue)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/go-1.26-blue)](https://golang.org)
 [![License](https://img.shields.io/github/license/Lynicis/inzibat)](LICENSE)
 
 **Inzibat** (from Turkish, meaning "Military Police") is a lightweight, fully-customizable HTTP mock server designed for microservices testing and development. Built in Go and powered by [Fiber](https://gofiber.io/), it provides a fast and simple way to simulate downstream services through declarative configuration files.

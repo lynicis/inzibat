@@ -38,7 +38,7 @@ nfpms:
       - rpm
     bindir: /usr/local/bin
 
-homebrew_casks:
+brews:
   - name: inzibat
     repository:
       owner: lynicis
@@ -47,10 +47,13 @@ homebrew_casks:
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
     homepage: "https://github.com/lynicis/inzibat"
     description: "A lightweight HTTP mock server for microservices testing and development"
     license: "MIT"
+    test: |
+      system "#{bin}/inzibat", "--help"
 
 scoops:
   - repository:
