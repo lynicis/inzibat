@@ -25,6 +25,48 @@ archives:
       - goos: windows
         formats: [zip]
 
+nfpms:
+  - id: packages
+    package_name: inzibat
+    vendor: Emre Sırmalı
+    homepage: https://github.com/lynicis/inzibat
+    maintainer: Emre Sırmalı <me@lynicis.dev>
+    description: "A lightweight HTTP mock server for microservices testing and development"
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
+
+homebrew_casks:
+  - name: inzibat
+    repository:
+      owner: lynicis
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/lynicis/inzibat"
+    description: "A lightweight HTTP mock server for microservices testing and development"
+    license: "MIT"
+
+scoops:
+  - repository:
+      owner: lynicis
+      name: scoop-bucket
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Scoop manifest update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/lynicis/inzibat"
+    description: "A lightweight HTTP mock server for microservices testing and development"
+    license: MIT
+    persist:
+      - inzibat.json
+
 changelog:
   sort: asc
   filters:

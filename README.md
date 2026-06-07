@@ -73,6 +73,37 @@ tar -xzf inzibat_linux_amd64.tar.gz
 sudo mv inzibat /usr/local/bin/
 ```
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap lynicis/tap
+brew install inzibat
+```
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add inzibat https://github.com/lynicis/scoop-bucket.git
+scoop install inzibat
+```
+
+### Linux Packages (deb / rpm)
+
+Pre-built `.deb` and `.rpm` packages are attached to each release.
+
+**Debian / Ubuntu**
+
+```bash
+curl -LO https://github.com/lynicis/inzibat/releases/latest/download/inzibat_linux_amd64.deb
+sudo dpkg -i inzibat_linux_amd64.deb
+```
+
+**Fedora / CentOS / RHEL**
+
+```bash
+sudo rpm -i https://github.com/lynicis/inzibat/releases/latest/download/inzibat_linux_amd64.rpm
+```
+
 ### From Source
 
 If you have Go 1.25+ installed, you can build `inzibat` from source.
