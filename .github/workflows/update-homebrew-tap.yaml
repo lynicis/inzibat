@@ -1,0 +1,76 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  update-tap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get release metadata
+        id: meta
+        run: |
+          TAG=${{ github.event.release.tag_name }}
+          COMMIT=$(git rev-list -n 1 "${TAG}")
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout homebrew-tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: lynicis/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          mkdir -p homebrew-tap/Formula
+          cat > homebrew-tap/Formula/inzibat.rb << 'EOF'
+          class Inzibat < Formula
+            desc "A lightweight HTTP mock server for microservices testing and development"
+            homepage "https://github.com/lynicis/inzibat"
+            url "https://github.com/lynicis/inzibat.git",
+                tag:      "${{ steps.meta.outputs.tag }}",
+                revision: "${{ steps.meta.outputs.commit }}"
+            license "MIT"
+
+            depends_on "go" => :build
+
+            def install
+              ldflags = %W[
+                -s -w
+                -X main.version=#{version}
+                -X main.commit=#{stable.specs[:revision]}
+                -X main.date=#{time.iso8601}
+              ]
+              system "go", "build", *std_go_args(ldflags: ldflags), "."
+            end
+
+            test do
+              assert_match "Inzibat", shell_output("#{bin}/inzibat help")
+            end
+          end
+          EOF
+
+      - name: Commit and push to tap
+        working-directory: homebrew-tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/inzibat.rb
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "inzibat ${{ steps.meta.outputs.tag }}"
+          git push
