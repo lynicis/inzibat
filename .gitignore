@@ -1,5 +1,9 @@
 .idea/
 .vscode/
+.agent/
+.agents/
+.claude/
+.opencode/
 coverage.out
 inzibat
 *.json
