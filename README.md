@@ -80,6 +80,12 @@ brew tap lynicis/tap
 brew install inzibat
 ```
 
+### Chocolatey (Windows)
+
+```powershell
+choco install inzibat
+```
+
 ### Scoop (Windows)
 
 ```powershell
