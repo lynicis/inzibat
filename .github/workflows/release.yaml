@@ -18,6 +18,11 @@ jobs:
         with:
           go-version: 1.26
 
+      - name: Install Chocolatey
+        run: |
+          curl -fsSL https://chocolatey.org/install.sh | sudo bash
+          sudo chmod +x /usr/local/bin/choco
+
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
