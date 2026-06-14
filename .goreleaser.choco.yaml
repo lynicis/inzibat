@@ -57,4 +57,5 @@ chocolateys:
     icon_url: "https://raw.githubusercontent.com/lynicis/inzibat/main/icon.png"
     release_notes: "https://github.com/lynicis/inzibat/releases/tag/v{{ .Version }}"
     api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
+    url_template: "https://github.com/lynicis/inzibat/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
     source_repo: "https://push.chocolatey.org/"
