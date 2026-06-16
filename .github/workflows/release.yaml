@@ -26,6 +26,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 
+      - name: Upload dist directory as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-artifacts
+          path: dist/
+
   chocolatey:
     needs: release
     runs-on: windows-latest
@@ -33,16 +39,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Download dist directory artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-artifacts
+          path: dist/
+
       - name: Publish Chocolatey Package
         shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: |
           $version = $env:GITHUB_REF_NAME.Replace('v', '')
-          
-          # Download pre-built archives from GitHub Release
-          gh release download $env:GITHUB_REF_NAME --pattern "inzibat_Windows_*.zip" --dir dist
           
           # Calculate checksums of Linux-built windows archives
           $checksum_64 = (Get-FileHash dist/inzibat_Windows_x86_64.zip -Algorithm SHA256).Hash.ToLower()
@@ -111,5 +119,6 @@ jobs:
           
           choco pack choco/inzibat.nuspec --outputdirectory dist
           choco push dist/inzibat.$version.nupkg --source https://push.chocolatey.org/ --key $env:CHOCOLATEY_API_KEY
+
 
 
