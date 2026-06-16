@@ -76,3 +76,29 @@ scoops:
     license: MIT
     persist:
       - inzibat.json
+
+chocolateys:
+  - name: inzibat
+    title: Inzibat
+    owners: Emre Sırmalı
+    authors: Emre Sırmalı
+    project_url: "https://github.com/lynicis/inzibat"
+    package_source_url: "https://github.com/lynicis/inzibat"
+    project_source_url: "https://github.com/lynicis/inzibat"
+    docs_url: "https://github.com/lynicis/inzibat/blob/main/README.md"
+    bug_tracker_url: "https://github.com/lynicis/inzibat/issues"
+    tags: "inzibat mock http server testing microservices fiber"
+    summary: "A lightweight HTTP mock server for microservices testing and development"
+    description: |
+      Inzibat (from Turkish, meaning "Military Police") is a lightweight,
+      fully-customizable HTTP mock server designed for microservices testing
+      and development. Built in Go and powered by Fiber, it provides a fast
+      and simple way to simulate downstream services through declarative
+      configuration files.
+    license_url: "https://github.com/lynicis/inzibat/blob/main/LICENSE"
+    require_license_acceptance: false
+    icon_url: "https://raw.githubusercontent.com/lynicis/inzibat/main/icon.png"
+    release_notes: "https://github.com/lynicis/inzibat/releases/tag/v{{ .Version }}"
+    api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
+    url_template: "https://github.com/lynicis/inzibat/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
+    source_repo: "https://push.chocolatey.org/"
