@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       
@@ -25,5 +25,91 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+  chocolatey:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Publish Chocolatey Package
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.Replace('v', '')
+          
+          # Download pre-built archives from GitHub Release
+          gh release download $env:GITHUB_REF_NAME --pattern "inzibat_Windows_*.zip" --dir dist
+          
+          # Calculate checksums of Linux-built windows archives
+          $checksum_64 = (Get-FileHash dist/inzibat_Windows_x86_64.zip -Algorithm SHA256).Hash.ToLower()
+          $checksum_386 = (Get-FileHash dist/inzibat_Windows_i386.zip -Algorithm SHA256).Hash.ToLower()
+          
+          New-Item -ItemType Directory -Force -Path choco/tools
+          
+          $installTemplate = @'
+          $ErrorActionPreference = 'Stop';
+          
+          $version = $env:chocolateyPackageVersion
+          $packageName = $env:chocolateyPackageName
+          $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
+          
+          $packageArgs = @{
+              packageName    = $packageName
+              unzipLocation  = $toolsDir
+              url            = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_i386.zip'
+              checksum       = '{CHECKSUM_386}'
+              checksumType   = 'sha256'
+              url64bit       = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_x86_64.zip'
+              checksum64     = '{CHECKSUM_64}'
+              checksumType64 = 'sha256'
+          }
+          
+          Install-ChocolateyZipPackage @packageArgs
+          '@
+          
+          $installScript = $installTemplate.Replace('{VERSION}', $version).Replace('{CHECKSUM_386}', $checksum_386).Replace('{CHECKSUM_64}', $checksum_64)
+          Set-Content -Path choco/tools/chocolateyinstall.ps1 -Value $installScript
+          
+          $nuspec = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+            <metadata>
+              <id>inzibat</id>
+              <version>$version</version>
+              <title>Inzibat</title>
+              <authors>Emre Sırmalı</authors>
+              <owners>Emre Sırmalı</owners>
+              <projectUrl>https://github.com/lynicis/inzibat</projectUrl>
+              <projectSourceUrl>https://github.com/lynicis/inzibat</projectSourceUrl>
+              <packageSourceUrl>https://github.com/lynicis/inzibat</packageSourceUrl>
+              <docsUrl>https://github.com/lynicis/inzibat/blob/main/README.md</docsUrl>
+              <bugTrackerUrl>https://github.com/lynicis/inzibat/issues</bugTrackerUrl>
+              <tags>inzibat mock http server testing microservices fiber</tags>
+              <summary>A lightweight HTTP mock server for microservices testing and development</summary>
+              <description>
+                Inzibat (from Turkish, meaning "Military Police") is a lightweight,
+                fully-customizable HTTP mock server designed for microservices testing
+                and development. Built in Go and powered by Fiber, it provides a fast
+                and simple way to simulate downstream services through declarative
+                configuration files.
+              </description>
+              <licenseUrl>https://github.com/lynicis/inzibat/blob/main/LICENSE</licenseUrl>
+              <requireLicenseAcceptance>false</requireLicenseAcceptance>
+              <iconUrl>https://raw.githubusercontent.com/lynicis/inzibat/main/icon.png</iconUrl>
+              <releaseNotes>https://github.com/lynicis/inzibat/releases/tag/v$version</releaseNotes>
+            </metadata>
+            <files>
+              <file src="tools\**" target="tools" />
+            </files>
+          </package>
+          "@
+          Set-Content -Path choco/inzibat.nuspec -Value $nuspec
+          
+          choco pack choco/inzibat.nuspec --outputdirectory dist
+          choco push dist/inzibat.$version.nupkg --source https://push.chocolatey.org/ --key $env:CHOCOLATEY_API_KEY
+
 
