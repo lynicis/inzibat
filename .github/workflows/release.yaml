@@ -118,7 +118,7 @@ jobs:
           Set-Content -Path choco/inzibat.nuspec -Value $nuspec
           
           choco pack choco/inzibat.nuspec --outputdirectory dist
-          choco push dist/inzibat.$version.nupkg --source https://push.chocolatey.org/ --key $env:CHOCOLATEY_API_KEY
+          choco push dist/inzibat.$version.nupkg --source https://push.chocolatey.org/ -k $env:CHOCOLATEY_API_KEY
 
 
 
