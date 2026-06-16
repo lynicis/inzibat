@@ -1699,6 +1699,111 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 	})
 }
 
+func TestParsePositiveInt(t *testing.T) {
+	t.Run("error path - zero value", func(t *testing.T) {
+		result, err := parsePositiveInt("0", "testField")
+
+		assert.Error(t, err)
+		assert.Equal(t, 0, result)
+		assert.Contains(t, err.Error(), "testField must be greater than zero")
+	})
+
+	t.Run("error path - negative value", func(t *testing.T) {
+		result, err := parsePositiveInt("-5", "testField")
+
+		assert.Error(t, err)
+		assert.Equal(t, 0, result)
+		assert.Contains(t, err.Error(), "testField must be greater than zero")
+	})
+
+	t.Run("happy path - positive value", func(t *testing.T) {
+		result, err := parsePositiveInt("10", "testField")
+
+		assert.NoError(t, err)
+		assert.Equal(t, 10, result)
+	})
+}
+
+func TestCollectCircuitBreakerConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("error path - invalid minimumRequests", func(t *testing.T) {
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
+		mockOptionsForm.EXPECT().GetString("minimumRequests").Return("invalid")
+
+		result, err := collectCircuitBreakerConfig(mockOptionsForm)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse minimumRequests")
+	})
+
+	t.Run("error path - invalid openTimeoutMs", func(t *testing.T) {
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
+		mockOptionsForm.EXPECT().GetString("minimumRequests").Return("10")
+		mockOptionsForm.EXPECT().GetString("openTimeoutMs").Return("invalid")
+
+		result, err := collectCircuitBreakerConfig(mockOptionsForm)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse openTimeoutMs")
+	})
+
+	t.Run("error path - invalid halfOpenMaxRequests", func(t *testing.T) {
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
+		mockOptionsForm.EXPECT().GetString("minimumRequests").Return("10")
+		mockOptionsForm.EXPECT().GetString("openTimeoutMs").Return("30000")
+		mockOptionsForm.EXPECT().GetString("halfOpenMaxRequests").Return("invalid")
+
+		result, err := collectCircuitBreakerConfig(mockOptionsForm)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse halfOpenMaxRequests")
+	})
+
+	t.Run("error path - invalid successThreshold", func(t *testing.T) {
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
+		mockOptionsForm.EXPECT().GetString("minimumRequests").Return("10")
+		mockOptionsForm.EXPECT().GetString("openTimeoutMs").Return("30000")
+		mockOptionsForm.EXPECT().GetString("halfOpenMaxRequests").Return("2")
+		mockOptionsForm.EXPECT().GetString("successThreshold").Return("invalid")
+
+		result, err := collectCircuitBreakerConfig(mockOptionsForm)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to parse successThreshold")
+	})
+
+	t.Run("error path - non-positive failureThreshold", func(t *testing.T) {
+		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+
+		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
+		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("0")
+
+		result, err := collectCircuitBreakerConfig(mockOptionsForm)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failureThreshold must be greater than zero")
+	})
+}
+
 func TestCreateRouteInternal(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

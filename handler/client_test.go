@@ -15,6 +15,85 @@ import (
 	"github.com/lynicis/inzibat/config"
 )
 
+func TestClientHandler_allowRequest(t *testing.T) {
+	t.Run("happy path - no circuit breaker", func(t *testing.T) {
+		clientHandler := &ClientHandler{}
+
+		allowed, err := clientHandler.allowRequest(false, "")
+
+		assert.NoError(t, err)
+		assert.True(t, allowed)
+	})
+}
+
+func TestClientHandler_recordSuccess(t *testing.T) {
+	t.Run("happy path - no circuit breaker", func(t *testing.T) {
+		clientHandler := &ClientHandler{}
+
+		err := clientHandler.recordSuccess(false, "")
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("happy path - with circuit breaker", func(t *testing.T) {
+		circuitBreakerStore, err := NewCircuitBreakerStore()
+		require.NoError(t, err)
+
+		routeKey := "GET /proxy -> GET http://example.com/"
+		require.NoError(t, circuitBreakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+			Enabled:          config.BoolPointer(true),
+			FailureThreshold: 1,
+			MinimumRequests:  1,
+		}))
+
+		clientHandler := &ClientHandler{
+			CircuitBreakerStore: circuitBreakerStore,
+		}
+
+		err = clientHandler.recordSuccess(true, routeKey)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("error path - circuit breaker store returns error", func(t *testing.T) {
+		circuitBreakerStore, err := NewCircuitBreakerStore()
+		require.NoError(t, err)
+
+		clientHandler := &ClientHandler{
+			CircuitBreakerStore: circuitBreakerStore,
+		}
+
+		err = clientHandler.recordSuccess(true, "non-existent")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update circuit breaker success")
+	})
+}
+
+func TestClientHandler_recordFailure(t *testing.T) {
+	t.Run("happy path - no circuit breaker", func(t *testing.T) {
+		clientHandler := &ClientHandler{}
+
+		err := clientHandler.recordFailure(false, "")
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("error path - circuit breaker store returns error", func(t *testing.T) {
+		circuitBreakerStore, err := NewCircuitBreakerStore()
+		require.NoError(t, err)
+
+		clientHandler := &ClientHandler{
+			CircuitBreakerStore: circuitBreakerStore,
+		}
+
+		err = clientHandler.recordFailure(true, "non-existent")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update circuit breaker failure")
+	})
+}
+
 func TestClientHandler_CreateHandler(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		t.Run("GET method", func(t *testing.T) {

@@ -493,16 +493,224 @@ func TestCollectBodyStringFromFormPublic(t *testing.T) {
 }
 
 func TestCollectHeadersFromFormInternal(t *testing.T) {
-	t.Skip("Skipping interactive form test - form.Run() requires TTY and will hang in non-interactive environments")
-	t.Run("happy path - form creators are called correctly", func(t *testing.T) {
+	t.Run("happy path - single header", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
+		headerForm := NewMockFormRunner(ctrl)
+		continueForm := NewMockFormRunner(ctrl)
+
+		headerForm.EXPECT().Run().Return(nil)
+		headerForm.EXPECT().GetString("key").Return("Content-Type")
+		headerForm.EXPECT().GetString("value").Return("application/json")
+		continueForm.EXPECT().Run().Return(nil)
+		continueForm.EXPECT().GetBool("continue").Return(false)
+
+		headers, err := collectHeadersFromFormInternal(
+			func() FormRunner { return headerForm },
+			func() FormRunner { return continueForm },
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "application/json", headers.Get("Content-Type"))
+	})
+
+	t.Run("happy path - multiple headers", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		headerForm1 := NewMockFormRunner(ctrl)
+		headerForm2 := NewMockFormRunner(ctrl)
+		continueForm1 := NewMockFormRunner(ctrl)
+		continueForm2 := NewMockFormRunner(ctrl)
+
+		headerForms := []FormRunner{headerForm1, headerForm2}
+		continueForms := []FormRunner{continueForm1, continueForm2}
+		headerIndex := 0
+		continueIndex := 0
+
+		headerForm1.EXPECT().Run().Return(nil)
+		headerForm1.EXPECT().GetString("key").Return("Content-Type")
+		headerForm1.EXPECT().GetString("value").Return("application/json")
+		continueForm1.EXPECT().Run().Return(nil)
+		continueForm1.EXPECT().GetBool("continue").Return(true)
+		headerForm2.EXPECT().Run().Return(nil)
+		headerForm2.EXPECT().GetString("key").Return("Authorization")
+		headerForm2.EXPECT().GetString("value").Return("Bearer token")
+		continueForm2.EXPECT().Run().Return(nil)
+		continueForm2.EXPECT().GetBool("continue").Return(false)
+
+		headers, err := collectHeadersFromFormInternal(
+			func() FormRunner {
+				form := headerForms[headerIndex]
+				headerIndex++
+				return form
+			},
+			func() FormRunner {
+				form := continueForms[continueIndex]
+				continueIndex++
+				return form
+			},
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "application/json", headers.Get("Content-Type"))
+		assert.Equal(t, "Bearer token", headers.Get("Authorization"))
+	})
+
+	t.Run("error path - header form run fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		headerForm := NewMockFormRunner(ctrl)
+		expectedErr := errors.New("header form failed")
+
+		headerForm.EXPECT().Run().Return(expectedErr)
+
+		headers, err := collectHeadersFromFormInternal(
+			func() FormRunner { return headerForm },
+			func() FormRunner { return NewMockFormRunner(ctrl) },
+		)
+
+		require.Error(t, err)
+		assert.Nil(t, headers)
+		assert.Contains(t, err.Error(), "failed to collect header")
+		assert.ErrorIs(t, err, expectedErr)
+	})
+
+	t.Run("error path - continue form run fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		headerForm := NewMockFormRunner(ctrl)
+		continueForm := NewMockFormRunner(ctrl)
+		expectedErr := errors.New("continue form failed")
+
+		headerForm.EXPECT().Run().Return(nil)
+		headerForm.EXPECT().GetString("key").Return("Content-Type")
+		headerForm.EXPECT().GetString("value").Return("application/json")
+		continueForm.EXPECT().Run().Return(expectedErr)
+
+		headers, err := collectHeadersFromFormInternal(
+			func() FormRunner { return headerForm },
+			func() FormRunner { return continueForm },
+		)
+
+		require.Error(t, err)
+		assert.Nil(t, headers)
+		assert.Contains(t, err.Error(), "failed to get user input")
+		assert.ErrorIs(t, err, expectedErr)
 	})
 }
 
 func TestCollectBodyFromFormInternal(t *testing.T) {
-	t.Skip("Skipping interactive form test - form.Run() requires TTY and will hang in non-interactive environments")
-	t.Run("happy path - form creators are called correctly", func(t *testing.T) {
+	t.Run("happy path - single body field", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
+		bodyForm := NewMockFormRunner(ctrl)
+		continueForm := NewMockFormRunner(ctrl)
+
+		bodyForm.EXPECT().Run().Return(nil)
+		bodyForm.EXPECT().GetString("key").Return("message")
+		bodyForm.EXPECT().GetString("value").Return("success")
+		continueForm.EXPECT().Run().Return(nil)
+		continueForm.EXPECT().GetBool("continue").Return(false)
+
+		body, err := collectBodyFromFormInternal(
+			func() FormRunner { return bodyForm },
+			func() FormRunner { return continueForm },
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "success", body["message"])
+	})
+
+	t.Run("happy path - multiple body fields", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		bodyForm1 := NewMockFormRunner(ctrl)
+		bodyForm2 := NewMockFormRunner(ctrl)
+		continueForm1 := NewMockFormRunner(ctrl)
+		continueForm2 := NewMockFormRunner(ctrl)
+
+		bodyForms := []FormRunner{bodyForm1, bodyForm2}
+		continueForms := []FormRunner{continueForm1, continueForm2}
+		bodyIndex := 0
+		continueIndex := 0
+
+		bodyForm1.EXPECT().Run().Return(nil)
+		bodyForm1.EXPECT().GetString("key").Return("message")
+		bodyForm1.EXPECT().GetString("value").Return("success")
+		continueForm1.EXPECT().Run().Return(nil)
+		continueForm1.EXPECT().GetBool("continue").Return(true)
+		bodyForm2.EXPECT().Run().Return(nil)
+		bodyForm2.EXPECT().GetString("key").Return("code")
+		bodyForm2.EXPECT().GetString("value").Return("200")
+		continueForm2.EXPECT().Run().Return(nil)
+		continueForm2.EXPECT().GetBool("continue").Return(false)
+
+		body, err := collectBodyFromFormInternal(
+			func() FormRunner {
+				form := bodyForms[bodyIndex]
+				bodyIndex++
+				return form
+			},
+			func() FormRunner {
+				form := continueForms[continueIndex]
+				continueIndex++
+				return form
+			},
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "success", body["message"])
+		assert.Equal(t, "200", body["code"])
+	})
+
+	t.Run("error path - body form run fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		bodyForm := NewMockFormRunner(ctrl)
+		expectedErr := errors.New("body form failed")
+
+		bodyForm.EXPECT().Run().Return(expectedErr)
+
+		body, err := collectBodyFromFormInternal(
+			func() FormRunner { return bodyForm },
+			func() FormRunner { return NewMockFormRunner(ctrl) },
+		)
+
+		require.Error(t, err)
+		assert.Nil(t, body)
+		assert.Contains(t, err.Error(), "failed to collect body field")
+		assert.ErrorIs(t, err, expectedErr)
+	})
+
+	t.Run("error path - continue form run fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		bodyForm := NewMockFormRunner(ctrl)
+		continueForm := NewMockFormRunner(ctrl)
+		expectedErr := errors.New("continue form failed")
+
+		bodyForm.EXPECT().Run().Return(nil)
+		bodyForm.EXPECT().GetString("key").Return("message")
+		bodyForm.EXPECT().GetString("value").Return("success")
+		continueForm.EXPECT().Run().Return(expectedErr)
+
+		body, err := collectBodyFromFormInternal(
+			func() FormRunner { return bodyForm },
+			func() FormRunner { return continueForm },
+		)
+
+		require.Error(t, err)
+		assert.Nil(t, body)
+		assert.Contains(t, err.Error(), "failed to get user input")
+		assert.ErrorIs(t, err, expectedErr)
 	})
 }
 

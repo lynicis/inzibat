@@ -34,8 +34,8 @@ func (r *HuhFormRunner) GetBool(key string) bool {
 }
 
 func collectHeadersFromFormInternal(
-	headerFormCreator func() *huh.Form,
-	continueFormCreator func() *huh.Form,
+	headerFormCreator func() FormRunner,
+	continueFormCreator func() FormRunner,
 ) (http.Header, error) {
 	headers := make(http.Header)
 
@@ -103,14 +103,16 @@ func createContinueForm(message string) *huh.Form {
 
 func CollectHeadersFromForm() (http.Header, error) {
 	return collectHeadersFromFormInternal(
-		createHeaderForm,
-		func() *huh.Form { return createContinueForm("Add another header?") },
+		func() FormRunner { return &HuhFormRunner{Form: createHeaderForm()} },
+		func() FormRunner {
+			return &HuhFormRunner{Form: createContinueForm("Add another header?")}
+		},
 	)
 }
 
 func collectBodyFromFormInternal(
-	bodyFormCreator func() *huh.Form,
-	continueFormCreator func() *huh.Form,
+	bodyFormCreator func() FormRunner,
+	continueFormCreator func() FormRunner,
 ) (config.HttpBody, error) {
 	body := make(config.HttpBody)
 
@@ -172,8 +174,10 @@ func createBodyForm() *huh.Form {
 
 func CollectBodyFromForm() (config.HttpBody, error) {
 	return collectBodyFromFormInternal(
-		createBodyForm,
-		func() *huh.Form { return createContinueForm("Add another body field?") },
+		func() FormRunner { return &HuhFormRunner{Form: createBodyForm()} },
+		func() FormRunner {
+			return &HuhFormRunner{Form: createContinueForm("Add another body field?")}
+		},
 	)
 }
 
