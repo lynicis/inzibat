@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-19
+
+### Added
+- Request Recorder feature to capture incoming HTTP requests and responses flowing through the mock/proxy server.
+- New `record` CLI command tree with `list`, `export`, and `clear` subcommands.
+- Flag `--record`/`-r` for the `start` command to activate request recording on startup.
+- Admin HTTP endpoints under `/_inzibat/recorder` to retrieve or clear recorded session data.
+
+### Fixed
+- Replaced deprecated fasthttp `VisitAll` calls with Go 1.23+ iterators (`All()`) in recorder middleware.
+
 ## [0.3.11] - 2026-06-16
 
 ### Fixed
@@ -114,7 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Switched default JSON parsing and serialization package to high-performance library.
 
-[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.3.11...HEAD
+[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Lynicis/inzibat/compare/v0.3.11...v0.4.0
 [0.3.11]: https://github.com/Lynicis/inzibat/compare/v0.3.10...v0.3.11
 [0.3.10]: https://github.com/Lynicis/inzibat/compare/v0.3.9...v0.3.10
 [0.3.9]: https://github.com/Lynicis/inzibat/compare/v0.3.8...v0.3.9
