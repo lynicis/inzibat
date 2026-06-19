@@ -32,6 +32,10 @@ Perfect for frontend development, backend integration testing, and CI/CD pipelin
     - [Create Routes](#create-routes)
     - [List Routes](#list-routes)
     - [Command Aliases](#command-aliases)
+  - [📹 Request Recorder](#-request-recorder)
+    - [Start Recording](#start-recording)
+    - [Export Session](#export-session)
+    - [Clear Session](#clear-session)
   - [🧪 Testing](#-testing)
   - [📝 Configuration](#-configuration)
     - [Basic Configuration Structure](#basic-configuration-structure)
@@ -291,6 +295,55 @@ For convenience, all commands have shorter aliases:
 | `start` | `start-server`, `server`, `s` |
 | `create` | `create-route`, `c` |
 | `list` | `list-routes`, `ls`, `l` |
+
+## 📹 Request Recorder
+
+Inzibat features a **Request Recorder** that intercepts and stores incoming HTTP requests and responses flowing through the mock/proxy server, allowing you to export them as raw JSON or convert them directly into native Inzibat mock configurations for testing.
+
+### Start Recording
+
+Start the server with the `--record` (or `-r`) flag to enable the request recorder:
+
+```bash
+# Start server with recording enabled
+inzibat start --record
+# Or
+inzibat start -r
+```
+
+### Export Session
+
+Use the `record` command group to interact with the recorded session:
+
+```bash
+# List all captured requests (IDs, methods, paths, status codes, duration)
+inzibat record list
+# Or
+inzibat record ls
+
+# Export the raw session data to a JSON file
+inzibat record export -o session.json
+
+# Convert and export the session specifically into the Inzibat mock format
+inzibat record export --format inzibat -o my-mocks.json
+```
+
+### Clear Session
+
+To clear all captured requests from the session store:
+
+```bash
+# Clear the captured requests
+inzibat record clear
+```
+
+### Admin API
+
+When recording is enabled, you can also manage the recording store programmatically via the built-in HTTP Admin API:
+
+- `GET /_inzibat/recorder/entries` — Returns all captured entries in the session.
+- `GET /_inzibat/recorder/session` — Returns the current recorder session with metadata.
+- `POST /_inzibat/recorder/clear` — Clears the recorder store.
 
 ## 🧪 Testing
 
