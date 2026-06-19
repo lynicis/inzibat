@@ -10,6 +10,7 @@ import (
 var (
 	configFile      string
 	isGlobalConfig  = true
+	recordEnabled   bool
 	startServerFunc = server.StartServer
 )
 
@@ -27,7 +28,7 @@ The server will read the configuration from (in order of precedence):
 The server will start listening on the port specified in the configuration
 and serve the routes defined in the config file.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := startServerFunc(configFile, isGlobalConfig); err != nil {
+		if err := startServerFunc(configFile, isGlobalConfig, recordEnabled); err != nil {
 			zap.L().Fatal("failed to start server", zap.Error(err))
 		}
 	},
@@ -47,6 +48,13 @@ func init() {
 		"g",
 		false,
 		"Use the global config file (~/.inzibat.config.json)",
+	)
+	startServerCmd.Flags().BoolVarP(
+		&recordEnabled,
+		"record",
+		"r",
+		false,
+		"Enable request recording to capture incoming HTTP traffic",
 	)
 	rootCmd.AddCommand(startServerCmd)
 }

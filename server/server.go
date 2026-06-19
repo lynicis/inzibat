@@ -17,16 +17,22 @@ import (
 	"github.com/lynicis/inzibat/config"
 	"github.com/lynicis/inzibat/handler"
 	_ "github.com/lynicis/inzibat/log"
+	"github.com/lynicis/inzibat/recorder"
 	"github.com/lynicis/inzibat/router"
 )
 
-func StartServer(configFile string, isGlobalConfig bool) error {
+func StartServer(configFile string, isGlobalConfig bool, recordEnabled bool) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	return StartServerWithContext(ctx, configFile, isGlobalConfig)
+	return StartServerWithContext(ctx, configFile, isGlobalConfig, recordEnabled)
 }
 
-func StartServerWithContext(ctx context.Context, configFile string, isGlobalConfig bool) error {
+func StartServerWithContext(
+	ctx context.Context,
+	configFile string,
+	isGlobalConfig bool,
+	recordEnabled bool,
+) error {
 	var resolvedPath string
 	if configFile != "" {
 		absPath, err := config.ResolveAbsolutePath(configFile)
@@ -41,7 +47,7 @@ func StartServerWithContext(ctx context.Context, configFile string, isGlobalConf
 		return err
 	}
 
-	fiberApp, err := setupServer(cfg)
+	fiberApp, err := setupServer(cfg, recordEnabled)
 	if err != nil {
 		return err
 	}
@@ -59,7 +65,7 @@ func loadConfig(explicitPath string, isGlobalConfig bool) (*config.Cfg, error) {
 	return cfg, nil
 }
 
-func setupServer(cfg *config.Cfg) (*fiber.App, error) {
+func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 	endpointHandler := &handler.EndpointHandler{
 		RouteConfig: &cfg.Routes,
 	}
@@ -99,6 +105,14 @@ func setupServer(cfg *config.Cfg) (*fiber.App, error) {
 		JSONEncoder:           json.Marshal,
 		ReadBufferSize:        4 * 1024 * 1024,
 	})
+
+	if recordEnabled {
+		recordStore := recorder.NewStore(recorder.DefaultStoreCapacity)
+		fiberApp.Use(recorder.NewRecorderMiddleware(recordStore))
+		recorder.RegisterAdminRoutes(fiberApp, recordStore)
+		zap.L().Info("🔴 Request recording enabled")
+	}
+
 	mainRouter := &router.MainRouter{
 		Config:          cfg,
 		FiberApp:        fiberApp,

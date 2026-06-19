@@ -72,7 +72,7 @@ func TestStartServerCmd_GlobalFlag(t *testing.T) {
 		}()
 
 		var calledWithGlobal bool
-		startServerFunc = func(_ string, isGlobal bool) error {
+		startServerFunc = func(_ string, isGlobal bool, _ bool) error {
 			calledWithGlobal = isGlobal
 			return nil
 		}

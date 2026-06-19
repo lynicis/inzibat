@@ -50,7 +50,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile, false)
+			done <- StartServerWithContext(ctx, configFile, false, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -72,7 +72,7 @@ func TestStartServer(t *testing.T) {
 
 	t.Run("error path - config file path resolution fails", func(t *testing.T) {
 		invalidPath := "/nonexistent/path/to/config.json"
-		err := StartServer(invalidPath, false)
+		err := StartServer(invalidPath, false, false)
 
 		assert.Error(t, err)
 		assert.True(t,
@@ -85,7 +85,7 @@ func TestStartServer(t *testing.T) {
 		tmpDir := t.TempDir()
 		nonExistentFile := filepath.Join(tmpDir, "nonexistent.json")
 
-		err := StartServer(nonExistentFile, false)
+		err := StartServer(nonExistentFile, false, false)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
@@ -133,7 +133,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, "", false)
+			done <- StartServerWithContext(ctx, "", false, false)
 		}()
 
 		time.Sleep(50 * time.Millisecond)
@@ -182,7 +182,7 @@ func TestStartServer(t *testing.T) {
 		err = os.WriteFile(invalidConfigFile, []byte("invalid json"), 0644)
 		require.NoError(t, err)
 
-		err = StartServer(invalidConfigFile, false)
+		err = StartServer(invalidConfigFile, false, false)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
@@ -218,7 +218,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, "", false)
+			done <- StartServerWithContext(ctx, "", false, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -269,7 +269,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, "", true)
+			done <- StartServerWithContext(ctx, "", true, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -317,7 +317,7 @@ func TestStartServer(t *testing.T) {
 
 		done := make(chan error, 1)
 		go func() {
-			done <- StartServerWithContext(ctx, configFile, false)
+			done <- StartServerWithContext(ctx, configFile, false, false)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
@@ -373,7 +373,7 @@ func TestStartServer(t *testing.T) {
 
 		serverDone := make(chan error, 1)
 		go func() {
-			serverDone <- StartServerWithContext(ctx, configFile, false)
+			serverDone <- StartServerWithContext(ctx, configFile, false, false)
 		}()
 
 		time.Sleep(500 * time.Millisecond)
