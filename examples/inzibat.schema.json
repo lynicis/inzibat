@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Inzibat Configuration",
+  "description": "Schema for Inzibat configuration files",
+  "type": "object",
+  "properties": {
+    "server": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "The port the server will listen on"
+        },
+        "concurrency": {
+          "type": "integer",
+          "description": "Maximum number of concurrent connections"
+        }
+      },
+      "additionalProperties": false
+    },
+    "circuit_breaker": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable or disable the global circuit breaker"
+        },
+        "max_requests": {
+          "type": "integer",
+          "description": "Maximum number of requests allowed to pass through when the circuit breaker is half-open"
+        },
+        "interval": {
+          "type": "string",
+          "description": "The cyclic period of the closed state for the circuit breaker"
+        },
+        "timeout": {
+          "type": "string",
+          "description": "The period of the open state, after which the state becomes half-open"
+        },
+        "ready_to_trip": {
+          "type": "object",
+          "properties": {
+            "threshold": {
+              "type": "integer",
+              "description": "Number of consecutive failures before tripping the circuit breaker"
+            }
+          },
+          "additionalProperties": false
+        },
+        "on_state_change": {
+          "type": "object",
+          "properties": {
+            "log": {
+              "type": "boolean",
+              "description": "Log state changes of the circuit breaker"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "routes": {
+      "type": "array",
+      "description": "List of route configurations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "HTTP method for the route",
+            "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "ANY"]
+          },
+          "path": {
+            "type": "string",
+            "description": "Path for the route"
+          },
+          "request_to": {
+            "type": "object",
+            "description": "Proxy destination configuration",
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Destination host URL"
+              },
+              "path": {
+                "type": "string",
+                "description": "Destination path"
+              },
+              "forward_headers": {
+                "type": "boolean",
+                "description": "Whether to forward incoming headers to the destination"
+              },
+              "forward_body": {
+                "type": "boolean",
+                "description": "Whether to forward incoming body to the destination"
+              }
+            },
+            "required": ["host", "path"],
+            "additionalProperties": false
+          },
+          "circuit_breaker": {
+            "type": "object",
+            "description": "Per-route circuit breaker configuration (overrides global)",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "max_requests": {
+                "type": "integer"
+              },
+              "timeout": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["method", "path", "request_to"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

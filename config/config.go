@@ -145,6 +145,10 @@ func normalizeRoutes(config *Cfg) error {
 }
 
 func WriteConfig(cfg *Cfg, filePath string) error {
+	if cfg.Schema == "" {
+		cfg.Schema = DefaultSchemaFileName
+	}
+
 	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve file path: %w", err)
@@ -170,6 +174,7 @@ func WriteConfig(cfg *Cfg, filePath string) error {
 func ReadOrCreateConfig(configPath string) (*Cfg, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return &Cfg{
+			Schema:           DefaultSchemaFileName,
 			ServerPort:       8080,
 			Concurrency:      5,
 			HealthCheckRoute: false,
@@ -190,6 +195,10 @@ func ReadOrCreateConfig(configPath string) (*Cfg, error) {
 	cfg, err := readerStrategy.Read(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
+	}
+
+	if cfg.Schema == "" {
+		cfg.Schema = DefaultSchemaFileName
 	}
 
 	return cfg, nil

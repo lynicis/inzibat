@@ -11,9 +11,11 @@ const (
 	EnvironmentVariableConfigFileName = "CONFIG_FN"
 	DefaultConfigFileName             = "inzibat.json"
 	GlobalConfigFileName              = ".inzibat.config.json"
+	DefaultSchemaFileName             = "https://raw.githubusercontent.com/lynicis/inzibat/refs/heads/master/examples/inzibat.schema.json" //nolint:lll
 )
 
 type Cfg struct {
+	Schema           string                `json:"$schema,omitempty" yaml:"$schema,omitempty" toml:"$schema,omitempty" koanf:"$schema"` //nolint:lll
 	ServerPort       int                   `json:"serverPort" koanf:"serverPort" validate:"required"`
 	Routes           []Route               `json:"routes" koanf:"routes" validate:"required,gt=0,dive,required"`
 	Concurrency      int                   `json:"concurrency" koanf:"concurrency"`

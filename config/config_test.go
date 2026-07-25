@@ -341,13 +341,14 @@ func TestReadOrCreateConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
+		assert.Equal(t, DefaultSchemaFileName, cfg.Schema)
 		assert.Equal(t, 8080, cfg.ServerPort)
 		assert.Equal(t, 5, cfg.Concurrency)
 		assert.False(t, cfg.HealthCheckRoute)
 		assert.Empty(t, cfg.Routes)
 	})
 
-	t.Run("happy path - read existing JSON config", func(t *testing.T) {
+	t.Run("happy path - read existing JSON config without schema defaults to schema file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configPath := filepath.Join(tmpDir, "inzibat.json")
 		configJSON := `{
@@ -366,12 +367,37 @@ func TestReadOrCreateConfig(t *testing.T) {
 
 		cfg, err := ReadOrCreateConfig(configPath)
 
+		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
+		assert.Equal(t, DefaultSchemaFileName, cfg.Schema)
 		assert.Equal(t, 9090, cfg.ServerPort)
 		assert.Equal(t, 10, cfg.Concurrency)
 		assert.True(t, cfg.HealthCheckRoute)
 		assert.Len(t, cfg.Routes, 1)
 		assert.Equal(t, "/test", cfg.Routes[0].Path)
+	})
+
+	t.Run("happy path - read existing JSON config with custom schema", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "inzibat.json")
+		configJSON := `{
+			"$schema": "custom.schema.json",
+			"serverPort": 9090,
+			"routes": [
+				{
+					"method": "GET",
+					"path": "/test"
+				}
+			]
+		}`
+		err := os.WriteFile(configPath, []byte(configJSON), 0644)
+		require.NoError(t, err)
+
+		cfg, err := ReadOrCreateConfig(configPath)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.Equal(t, "custom.schema.json", cfg.Schema)
 	})
 
 	t.Run("happy path - file without extension defaults to JSON", func(t *testing.T) {
@@ -414,7 +440,7 @@ func TestReadOrCreateConfig(t *testing.T) {
 }
 
 func TestWriteConfig(t *testing.T) {
-	t.Run("happy path - write config to file", func(t *testing.T) {
+	t.Run("happy path - write config to file with empty schema defaults to standard schema", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configPath := filepath.Join(tmpDir, "inzibat.json")
 		cfg := &Cfg{
@@ -442,9 +468,42 @@ func TestWriteConfig(t *testing.T) {
 		var readCfg Cfg
 		err = json.Unmarshal(data, &readCfg)
 		require.NoError(t, err)
+		assert.Equal(t, DefaultSchemaFileName, readCfg.Schema)
 		assert.Equal(t, cfg.ServerPort, readCfg.ServerPort)
 		assert.Equal(t, cfg.Concurrency, readCfg.Concurrency)
 		assert.Len(t, readCfg.Routes, 1)
+	})
+
+	t.Run("happy path - write config to file preserves custom schema", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "inzibat.json")
+		cfg := &Cfg{
+			Schema:           "https://example.com/custom.schema.json",
+			ServerPort:       8080,
+			Concurrency:      5,
+			HealthCheckRoute: false,
+			Routes: []Route{
+				{
+					Method: "GET",
+					Path:   "/test",
+					FakeResponse: &FakeResponse{
+						StatusCode: 200,
+					},
+				},
+			},
+		}
+
+		err := WriteConfig(cfg, configPath)
+
+		assert.NoError(t, err)
+		assert.FileExists(t, configPath)
+
+		data, err := os.ReadFile(configPath)
+		require.NoError(t, err)
+		var readCfg Cfg
+		err = json.Unmarshal(data, &readCfg)
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.com/custom.schema.json", readCfg.Schema)
 	})
 
 	t.Run("error path - invalid directory", func(t *testing.T) {
