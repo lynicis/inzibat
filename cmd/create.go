@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/lynicis/inzibat/cmd/form_builder"
+	"github.com/lynicis/inzibat/cmd/formbuilder"
 	"github.com/lynicis/inzibat/config"
 	_ "github.com/lynicis/inzibat/log"
 )
@@ -44,7 +44,7 @@ func createRouteForm() *huh.Form {
 				Key("path").
 				Title("Route Path").
 				Placeholder("/users").
-				Validate(form_builder.ValidatePath),
+				Validate(formbuilder.ValidatePath),
 			huh.NewSelect[string]().
 				Key("method").
 				Title("HTTP Method").
@@ -61,9 +61,9 @@ func createRouteForm() *huh.Form {
 }
 
 func createMockResponseFormInternal(
-	statusFormRunner form_builder.FormRunner,
+	statusFormRunner formbuilder.FormRunner,
 	headersCollector func() (http.Header, error),
-	bodyTypeFormRunner form_builder.FormRunner,
+	bodyTypeFormRunner formbuilder.FormRunner,
 	bodyCollector func() (config.HttpBody, error),
 	bodyStringCollector func() (string, error),
 ) (*config.FakeResponse, error) {
@@ -120,7 +120,7 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 				Title("Status Code").
 				Placeholder(status).
 				Value(&status).
-				Validate(form_builder.ValidateStatusCode),
+				Validate(formbuilder.ValidateStatusCode),
 		),
 	).
 		WithInput(os.Stdin).
@@ -135,7 +135,7 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 				Options([]huh.Option[string]{
 					{Key: "Body (JSON object)", Value: BodyTypeBody},
 					{Key: "BodyString (string)", Value: BodyTypeBodyString},
-					{Key: "Skip", Value: form_builder.SourceSkip},
+					{Key: "Skip", Value: formbuilder.SourceSkip},
 				}...),
 		),
 	).
@@ -143,24 +143,24 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 		WithOutput(os.Stdout).
 		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
-	statusFormRunner := &form_builder.HuhFormRunner{Form: statusForm}
-	bodyTypeFormRunner := &form_builder.HuhFormRunner{Form: bodyForm}
+	statusFormRunner := &formbuilder.HuhFormRunner{Form: statusForm}
+	bodyTypeFormRunner := &formbuilder.HuhFormRunner{Form: bodyForm}
 
 	return createMockResponseFormInternal(
 		statusFormRunner,
-		form_builder.CollectHeaders,
+		formbuilder.CollectHeaders,
 		bodyTypeFormRunner,
-		form_builder.CollectBody,
-		form_builder.CollectBodyString,
+		formbuilder.CollectBody,
+		formbuilder.CollectBodyString,
 	)
 }
 
 func createClientRequestFormInternal(
-	basicFormRunner form_builder.FormRunner,
+	basicFormRunner formbuilder.FormRunner,
 	headersCollector func() (http.Header, error),
-	bodyTypeFormRunner form_builder.FormRunner,
+	bodyTypeFormRunner formbuilder.FormRunner,
 	bodyCollector func() (config.HttpBody, error),
-	optionsFormRunner form_builder.FormRunner,
+	optionsFormRunner formbuilder.FormRunner,
 ) (*config.RequestTo, error) {
 	if err := basicFormRunner.Run(); err != nil {
 		return nil, fmt.Errorf("failed to get basic request info: %w", err)
@@ -207,7 +207,7 @@ func createClientRequestFormInternal(
 }
 
 func collectClientRequestBody(
-	bodyTypeFormRunner form_builder.FormRunner,
+	bodyTypeFormRunner formbuilder.FormRunner,
 	bodyCollector func() (config.HttpBody, error),
 ) (config.HttpBody, error) {
 	if bodyTypeFormRunner.GetString("bodyType") != BodyTypeStructured {
@@ -223,7 +223,7 @@ func collectClientRequestBody(
 }
 
 func collectCircuitBreakerConfig(
-	optionsFormRunner form_builder.FormRunner,
+	optionsFormRunner formbuilder.FormRunner,
 ) (*config.CircuitBreakerConfig, error) {
 	circuitBreakerEnabled := optionsFormRunner.GetBool("circuitBreakerEnabled")
 	circuitBreakerConfig := &config.CircuitBreakerConfig{
@@ -303,12 +303,12 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Key("host").
 				Title("Target Host URL").
 				Placeholder("http://localhost:8081").
-				Validate(form_builder.ValidateHost),
+				Validate(formbuilder.ValidateHost),
 			huh.NewInput().
 				Key("path").
 				Title("Target Path").
 				Placeholder("/api/users").
-				Validate(form_builder.ValidateHost),
+				Validate(formbuilder.ValidateHost),
 			huh.NewSelect[string]().
 				Key("method").
 				Title("Target HTTP Method").
@@ -326,7 +326,7 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Title("Request Body Type").
 				Options([]huh.Option[string]{
 					{Key: "Structured (JSON object)", Value: BodyTypeStructured},
-					{Key: "Skip", Value: form_builder.SourceSkip},
+					{Key: "Skip", Value: formbuilder.SourceSkip},
 				}...),
 		),
 	).
@@ -352,48 +352,48 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Key("failureThreshold").
 				Title("Circuit Breaker Failure Threshold").
 				Value(&defaultFailureThreshold).
-				Validate(form_builder.ValidatePositiveInt),
+				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("minimumRequests").
 				Title("Circuit Breaker Minimum Requests").
 				Value(&defaultMinimumRequests).
-				Validate(form_builder.ValidatePositiveInt),
+				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("openTimeoutMs").
 				Title("Circuit Breaker Open Timeout (ms)").
 				Value(&defaultOpenTimeoutMs).
-				Validate(form_builder.ValidatePositiveInt),
+				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("halfOpenMaxRequests").
 				Title("Circuit Breaker Half-Open Max Requests").
 				Value(&defaultHalfOpenMaxRequests).
-				Validate(form_builder.ValidatePositiveInt),
+				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("successThreshold").
 				Title("Circuit Breaker Success Threshold").
 				Value(&defaultSuccessThreshold).
-				Validate(form_builder.ValidatePositiveInt),
+				Validate(formbuilder.ValidatePositiveInt),
 		),
 	).
 		WithInput(os.Stdin).
 		WithOutput(os.Stdout).
 		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 
-	basicFormRunner := &form_builder.HuhFormRunner{Form: basicForm}
-	bodyTypeFormRunner := &form_builder.HuhFormRunner{Form: bodyForm}
-	optionsFormRunner := &form_builder.HuhFormRunner{Form: optionsForm}
+	basicFormRunner := &formbuilder.HuhFormRunner{Form: basicForm}
+	bodyTypeFormRunner := &formbuilder.HuhFormRunner{Form: bodyForm}
+	optionsFormRunner := &formbuilder.HuhFormRunner{Form: optionsForm}
 
 	return createClientRequestFormInternal(
 		basicFormRunner,
-		form_builder.CollectHeaders,
+		formbuilder.CollectHeaders,
 		bodyTypeFormRunner,
-		form_builder.CollectBody,
+		formbuilder.CollectBody,
 		optionsFormRunner,
 	)
 }
 
 func createRouteInternal(
-	routeFormRunner form_builder.FormRunner,
+	routeFormRunner formbuilder.FormRunner,
 	mockResponseFormCreator func() (*config.FakeResponse, error),
 	clientRequestFormCreator func() (*config.RequestTo, error),
 ) (*config.Route, error) {
@@ -433,7 +433,7 @@ func createRouteInternal(
 
 func createRoute() (*config.Route, error) {
 	routeForm := createRouteForm()
-	routeFormRunner := &form_builder.HuhFormRunner{Form: routeForm}
+	routeFormRunner := &formbuilder.HuhFormRunner{Form: routeForm}
 
 	return createRouteInternal(
 		routeFormRunner,

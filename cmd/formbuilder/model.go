@@ -1,4 +1,4 @@
-package form_builder
+package formbuilder
 
 const (
 	SourceFile  = "file"

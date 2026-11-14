@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"github.com/lynicis/inzibat/cmd/form_builder"
+	"github.com/lynicis/inzibat/cmd/formbuilder"
 	"github.com/lynicis/inzibat/config"
 )
 
@@ -81,7 +81,7 @@ func TestCreateMockResponseForm_Structure(t *testing.T) {
 					Title("Status Code").
 					Placeholder(status).
 					Value(&status).
-					Validate(form_builder.ValidateStatusCode),
+					Validate(formbuilder.ValidateStatusCode),
 			),
 		)
 
@@ -97,7 +97,7 @@ func TestCreateMockResponseForm_Structure(t *testing.T) {
 					Options([]huh.Option[string]{
 						{Key: "Body (JSON object)", Value: BodyTypeBody},
 						{Key: "BodyString (string)", Value: BodyTypeBodyString},
-						{Key: "Skip", Value: form_builder.SourceSkip},
+						{Key: "Skip", Value: formbuilder.SourceSkip},
 					}...),
 			),
 		)
@@ -120,12 +120,12 @@ func TestCreateClientRequestForm_Structure(t *testing.T) {
 					Key("host").
 					Title("Target Host URL").
 					Placeholder("http://localhost:8081").
-					Validate(form_builder.ValidateHost),
+					Validate(formbuilder.ValidateHost),
 				huh.NewInput().
 					Key("path").
 					Title("Target Path").
 					Placeholder("/api/users").
-					Validate(form_builder.ValidateHost),
+					Validate(formbuilder.ValidateHost),
 				huh.NewSelect[string]().
 					Key("method").
 					Title("Target HTTP Method").
@@ -144,7 +144,7 @@ func TestCreateClientRequestForm_Structure(t *testing.T) {
 					Title("Request Body Type").
 					Options([]huh.Option[string]{
 						{Key: "Structured (JSON object)", Value: BodyTypeStructured},
-						{Key: "Skip", Value: form_builder.SourceSkip},
+						{Key: "Skip", Value: formbuilder.SourceSkip},
 					}...),
 			),
 		)
@@ -421,7 +421,7 @@ func TestCreateMockResponseForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - body type skip branch", func(t *testing.T) {
-		bodyType := form_builder.SourceSkip
+		bodyType := formbuilder.SourceSkip
 
 		assert.NotEqual(t, BodyTypeBody, bodyType)
 		assert.NotEqual(t, BodyTypeBodyString, bodyType)
@@ -461,7 +461,7 @@ func TestCreateClientRequestForm_LogicBranches(t *testing.T) {
 	})
 
 	t.Run("happy path - body type skip branch", func(t *testing.T) {
-		bodyType := form_builder.SourceSkip
+		bodyType := formbuilder.SourceSkip
 
 		assert.NotEqual(t, BodyTypeStructured, bodyType)
 		if bodyType == BodyTypeStructured {
@@ -571,13 +571,13 @@ func TestCreateMockResponseForm_StatusCodes(t *testing.T) {
 
 func TestCreateMockResponseForm_BodyTypes(t *testing.T) {
 	t.Run("happy path - body type constants are distinct", func(t *testing.T) {
-		bodyTypes := []string{BodyTypeBody, BodyTypeBodyString, form_builder.SourceSkip}
+		bodyTypes := []string{BodyTypeBody, BodyTypeBodyString, formbuilder.SourceSkip}
 
 		assert.Equal(t, "body", BodyTypeBody)
 		assert.Equal(t, "bodyString", BodyTypeBodyString)
 		assert.NotEqual(t, BodyTypeBody, BodyTypeBodyString)
-		assert.NotEqual(t, BodyTypeBody, form_builder.SourceSkip)
-		assert.NotEqual(t, BodyTypeBodyString, form_builder.SourceSkip)
+		assert.NotEqual(t, BodyTypeBody, formbuilder.SourceSkip)
+		assert.NotEqual(t, BodyTypeBodyString, formbuilder.SourceSkip)
 		uniqueMap := make(map[string]bool)
 		for _, bt := range bodyTypes {
 			assert.False(t, uniqueMap[bt], "body type %q should be unique", bt)
@@ -713,7 +713,7 @@ func TestCreateClientRequestForm_BodyHandling(t *testing.T) {
 	})
 
 	t.Run("happy path - skip body type", func(t *testing.T) {
-		bodyType := form_builder.SourceSkip
+		bodyType := formbuilder.SourceSkip
 		var body config.HttpBody
 
 		assert.NotEqual(t, BodyTypeStructured, bodyType)
@@ -1047,8 +1047,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - statusFormRunner.Run() returns error", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("status form error")
 
 		mockStatusForm.EXPECT().Run().Return(expectedError)
@@ -1068,8 +1068,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - invalid status code string", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockStatusForm.EXPECT().Run().Return(nil)
 		mockStatusForm.EXPECT().GetString("statusCode").Return("invalid")
@@ -1089,8 +1089,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - headersCollector returns error", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("headers error")
 
 		mockStatusForm.EXPECT().Run().Return(nil)
@@ -1111,8 +1111,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - bodyTypeFormRunner.Run() returns error", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("body type form error")
 
 		mockStatusForm.EXPECT().Run().Return(nil)
@@ -1134,8 +1134,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("happy path - body type BodyTypeBody", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 		headers.Set("Content-Type", "application/json")
 		body := config.HttpBody{"message": "success"}
@@ -1164,8 +1164,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("happy path - body type BodyTypeBodyString", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 		bodyString := `{"message": "success"}`
 
@@ -1191,14 +1191,14 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("happy path - body type skip", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 
 		mockStatusForm.EXPECT().Run().Return(nil)
 		mockStatusForm.EXPECT().GetString("statusCode").Return("204")
 		mockBodyTypeForm.EXPECT().Run().Return(nil)
-		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(formbuilder.SourceSkip)
 
 		result, err := createMockResponseFormInternal(
 			mockStatusForm,
@@ -1217,8 +1217,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - bodyCollector returns error", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("body collection error")
 
 		mockStatusForm.EXPECT().Run().Return(nil)
@@ -1241,8 +1241,8 @@ func TestCreateMockResponseFormInternal(t *testing.T) {
 
 	t.Run("error path - bodyStringCollector returns error", func(t *testing.T) {
 
-		mockStatusForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
+		mockStatusForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("body string collection error")
 
 		mockStatusForm.EXPECT().Run().Return(nil)
@@ -1270,9 +1270,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("error path - basicFormRunner.Run() returns error", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("basic form error")
 
 		mockBasicForm.EXPECT().Run().Return(expectedError)
@@ -1292,9 +1292,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("error path - headersCollector returns error", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("headers error")
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1317,9 +1317,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("error path - bodyTypeFormRunner.Run() returns error", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("body type form error")
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1343,9 +1343,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("error path - bodyCollector returns error when bodyType is structured", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("body collection error")
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1370,9 +1370,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("error path - optionsFormRunner.Run() returns error", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("options form error")
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1380,7 +1380,7 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
 		mockBasicForm.EXPECT().GetString("method").Return("GET")
 		mockBodyTypeForm.EXPECT().Run().Return(nil)
-		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(formbuilder.SourceSkip)
 		mockOptionsForm.EXPECT().Run().Return(expectedError)
 
 		result, err := createClientRequestFormInternal(
@@ -1397,16 +1397,16 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 	})
 
 	t.Run("error path - invalid circuit breaker threshold", func(t *testing.T) {
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockBasicForm.EXPECT().Run().Return(nil)
 		mockBasicForm.EXPECT().GetString("host").Return("http://localhost:8081")
 		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
 		mockBasicForm.EXPECT().GetString("method").Return("GET")
 		mockBodyTypeForm.EXPECT().Run().Return(nil)
-		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(formbuilder.SourceSkip)
 		mockOptionsForm.EXPECT().Run().Return(nil)
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("abc")
@@ -1426,9 +1426,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("happy path - with structured body", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 		headers.Set("Authorization", "Bearer token")
 		body := config.HttpBody{"name": "test", "id": float64(1)}
@@ -1471,9 +1471,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 
 	t.Run("happy path - skip body", func(t *testing.T) {
 
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1481,7 +1481,7 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
 		mockBasicForm.EXPECT().GetString("method").Return("GET")
 		mockBodyTypeForm.EXPECT().Run().Return(nil)
-		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(formbuilder.SourceSkip)
 		mockOptionsForm.EXPECT().Run().Return(nil)
 		mockOptionsForm.EXPECT().GetBool("passWithRequestBody").Return(false)
 		mockOptionsForm.EXPECT().GetBool("passWithRequestHeaders").Return(false)
@@ -1511,9 +1511,9 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 	})
 
 	t.Run("happy path - circuit breaker enabled", func(t *testing.T) {
-		mockBasicForm := form_builder.NewMockFormRunner(ctrl)
-		mockBodyTypeForm := form_builder.NewMockFormRunner(ctrl)
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockBasicForm := formbuilder.NewMockFormRunner(ctrl)
+		mockBodyTypeForm := formbuilder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 		headers := make(http.Header)
 
 		mockBasicForm.EXPECT().Run().Return(nil)
@@ -1521,7 +1521,7 @@ func TestCreateClientRequestFormInternal(t *testing.T) {
 		mockBasicForm.EXPECT().GetString("path").Return("/api/users")
 		mockBasicForm.EXPECT().GetString("method").Return("GET")
 		mockBodyTypeForm.EXPECT().Run().Return(nil)
-		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(form_builder.SourceSkip)
+		mockBodyTypeForm.EXPECT().GetString("bodyType").Return(formbuilder.SourceSkip)
 		mockOptionsForm.EXPECT().Run().Return(nil)
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("6")
@@ -1584,7 +1584,7 @@ func TestCollectCircuitBreakerConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("error path - invalid minimumRequests", func(t *testing.T) {
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
@@ -1598,7 +1598,7 @@ func TestCollectCircuitBreakerConfig(t *testing.T) {
 	})
 
 	t.Run("error path - invalid openTimeoutMs", func(t *testing.T) {
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
@@ -1613,7 +1613,7 @@ func TestCollectCircuitBreakerConfig(t *testing.T) {
 	})
 
 	t.Run("error path - invalid halfOpenMaxRequests", func(t *testing.T) {
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
@@ -1629,7 +1629,7 @@ func TestCollectCircuitBreakerConfig(t *testing.T) {
 	})
 
 	t.Run("error path - invalid successThreshold", func(t *testing.T) {
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("5")
@@ -1646,7 +1646,7 @@ func TestCollectCircuitBreakerConfig(t *testing.T) {
 	})
 
 	t.Run("error path - non-positive failureThreshold", func(t *testing.T) {
-		mockOptionsForm := form_builder.NewMockFormRunner(ctrl)
+		mockOptionsForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockOptionsForm.EXPECT().GetBool("circuitBreakerEnabled").Return(true)
 		mockOptionsForm.EXPECT().GetString("failureThreshold").Return("0")
@@ -1664,7 +1664,7 @@ func TestCreateRouteInternal(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("error path - routeFormRunner.Run() returns error", func(t *testing.T) {
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("route form error")
 
 		mockRouteForm.EXPECT().Run().Return(expectedError)
@@ -1682,7 +1682,7 @@ func TestCreateRouteInternal(t *testing.T) {
 
 	t.Run("error path - mockResponseFormCreator returns error", func(t *testing.T) {
 
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("mock response form error")
 
 		mockRouteForm.EXPECT().Run().Return(nil)
@@ -1703,7 +1703,7 @@ func TestCreateRouteInternal(t *testing.T) {
 
 	t.Run("error path - clientRequestFormCreator returns error", func(t *testing.T) {
 
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 		expectedError := fmt.Errorf("client request form error")
 
 		mockRouteForm.EXPECT().Run().Return(nil)
@@ -1724,7 +1724,7 @@ func TestCreateRouteInternal(t *testing.T) {
 
 	t.Run("happy path - mock route", func(t *testing.T) {
 
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 		fakeResponse := &config.FakeResponse{
 			StatusCode: 200,
 			Headers:    make(http.Header),
@@ -1753,7 +1753,7 @@ func TestCreateRouteInternal(t *testing.T) {
 
 	t.Run("happy path - client route", func(t *testing.T) {
 
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 		requestTo := &config.RequestTo{
 			Host:    "http://localhost:8081",
 			Path:    "/target",
@@ -1783,7 +1783,7 @@ func TestCreateRouteInternal(t *testing.T) {
 
 	t.Run("happy path - unknown route type (no fakeResponse or requestTo)", func(t *testing.T) {
 
-		mockRouteForm := form_builder.NewMockFormRunner(ctrl)
+		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 
 		mockRouteForm.EXPECT().Run().Return(nil)
 		mockRouteForm.EXPECT().GetString("path").Return("/api/test")

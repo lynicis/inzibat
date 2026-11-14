@@ -55,7 +55,7 @@ server/                — Fiber bootstrap, graceful shutdown
 
 Run `make generate-mock` after changing interfaces in:
 - `config/reader.go`
-- `cmd/form_builder/form_collector.go`
+- `cmd/formbuilder/form_collector.go`
 - `cmd/create.go`
 
 Mock files (`*_mock.go`) are excluded from SonarCloud coverage and linting.

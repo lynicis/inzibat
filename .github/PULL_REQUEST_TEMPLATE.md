@@ -29,5 +29,5 @@ go test -v ./...
 - [ ] I have made corresponding changes to the documentation
 - [ ] I have run the linters locally via `make lint` and fixed any warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] I have regenerated mocks using `make generate-mock` (if I modified interface definitions in `config/reader.go`, `cmd/form_builder/form_collector.go`, or `cmd/create.go`)
+- [ ] I have regenerated mocks using `make generate-mock` (if I modified interface definitions in `config/reader.go`, `cmd/formbuilder/form_collector.go`, or `cmd/create.go`)
 - [ ] My changes generate no new warnings or build errors
