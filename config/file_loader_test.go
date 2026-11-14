@@ -85,6 +85,17 @@ func TestHeadersLoader_Load(t *testing.T) {
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to parse JSON")
 	})
+
+	t.Run("read error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		loader := &HeadersLoader{}
+
+		result, err := loader.Load(tempDir) // Reading a directory should fail
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to read")
+	})
 }
 
 func TestBodyLoader_Load(t *testing.T) {
@@ -167,6 +178,17 @@ func TestBodyLoader_Load(t *testing.T) {
 		assert.NotNil(t, body["user"])
 		assert.NotNil(t, body["tags"])
 	})
+
+	t.Run("read error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		loader := &BodyLoader{}
+
+		result, err := loader.Load(tempDir) // Reading a directory should fail
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to read")
+	})
 }
 
 func TestBodyStringLoader_Load(t *testing.T) {
@@ -238,6 +260,17 @@ func TestBodyStringLoader_Load(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, jsonContent, result)
+	})
+
+	t.Run("read error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		loader := &BodyStringLoader{}
+
+		result, err := loader.Load(tempDir) // Reading a directory should fail
+
+		assert.Error(t, err)
+		assert.Equal(t, "", result)
+		assert.Contains(t, err.Error(), "failed to read")
 	})
 }
 

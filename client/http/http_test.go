@@ -462,26 +462,6 @@ func TestClient_shouldRetry(t *testing.T) {
 	})
 }
 
-func TestGetFreePort(t *testing.T) {
-	t.Run("happy path - returns a free port", func(t *testing.T) {
-		port, err := GetFreePort()
-
-		assert.NoError(t, err)
-		assert.Greater(t, port, 0)
-		assert.LessOrEqual(t, port, 65535)
-	})
-
-	t.Run("happy path - returns different ports on multiple calls", func(t *testing.T) {
-		port1, err1 := GetFreePort()
-		port2, err2 := GetFreePort()
-
-		assert.NoError(t, err1)
-		assert.NoError(t, err2)
-		assert.Greater(t, port1, 0)
-		assert.Greater(t, port2, 0)
-	})
-}
-
 func TestClient_buildRequest(t *testing.T) {
 	t.Run("happy path - builds request with headers and body", func(t *testing.T) {
 		httpClient := NewHttpClient()

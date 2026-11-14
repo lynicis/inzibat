@@ -399,3 +399,47 @@ func TestStartServer(t *testing.T) {
 		}
 	})
 }
+
+func TestSetupServer_RecordEnabled(t *testing.T) {
+	cfg := &config.Cfg{
+		ServerPort:  8080,
+		Concurrency: 1,
+		Routes: []config.Route{
+			{
+				Method: "GET",
+				Path:   "/test",
+				FakeResponse: &config.FakeResponse{
+					StatusCode: 200,
+				},
+			},
+		},
+	}
+
+	app, err := setupServer(cfg, true)
+	require.NoError(t, err)
+	assert.NotNil(t, app)
+}
+
+func TestSetupServer_CircuitBreaker(t *testing.T) {
+	cfg := &config.Cfg{
+		ServerPort:  8080,
+		Concurrency: 1,
+		Routes: []config.Route{
+			{
+				Method: "GET",
+				Path:   "/test",
+				RequestTo: &config.RequestTo{
+					Path: "/target",
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						Enabled:          config.BoolPointer(true),
+						FailureThreshold: 5,
+					},
+				},
+			},
+		},
+	}
+
+	app, err := setupServer(cfg, false)
+	require.NoError(t, err)
+	assert.NotNil(t, app)
+}

@@ -13,3 +13,4 @@ inzibat
 *.html
 dist/
 !skills-lock.json
+.DS_Store

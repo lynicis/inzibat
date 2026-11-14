@@ -112,4 +112,36 @@ func TestReader_ReadConfig(t *testing.T) {
 			assert.Nil(t, cfg)
 		})
 	})
+
+	t.Run("config unmarshalling error", func(t *testing.T) {
+		t.Run("json reader", func(t *testing.T) {
+			jsonReader := &JsonReader{
+				KoanfInstance: koanf.New("."),
+			}
+			cfg, err := jsonReader.Read("bad_unmarshal.json")
+
+			assert.ErrorIs(t, err, ErrorUnmarshalling)
+			assert.Nil(t, cfg)
+		})
+
+		t.Run("yaml reader", func(t *testing.T) {
+			yamlReader := &YamlReader{
+				KoanfInstance: koanf.New("."),
+			}
+			cfg, err := yamlReader.Read("bad_unmarshal.yaml")
+
+			assert.ErrorIs(t, err, ErrorUnmarshalling)
+			assert.Nil(t, cfg)
+		})
+
+		t.Run("toml reader", func(t *testing.T) {
+			tomlReader := &TomlReader{
+				KoanfInstance: koanf.New("."),
+			}
+			cfg, err := tomlReader.Read("bad_unmarshal.toml")
+
+			assert.ErrorIs(t, err, ErrorUnmarshalling)
+			assert.Nil(t, cfg)
+		})
+	})
 }

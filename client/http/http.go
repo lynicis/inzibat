@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -220,19 +219,4 @@ func (httpClient *Client) makeRequest(
 	}
 
 	return nil, errors.New("request failed after all retries")
-}
-
-func GetFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	tcpListener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer tcpListener.Close()
-
-	return tcpListener.Addr().(*net.TCPAddr).Port, nil
 }
