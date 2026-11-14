@@ -355,3 +355,72 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 		})
 	})
 }
+
+func TestClientHandler_CreateHandler_NoNullBody(t *testing.T) {
+	captureBody := func(t *testing.T) (*httptest.Server, chan string) {
+		t.Helper()
+		bodies := make(chan string, 1)
+		targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			bodies <- string(body)
+			w.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(targetServer.Close)
+
+		return targetServer, bodies
+	}
+
+	t.Run("GET sends zero bytes", func(t *testing.T) {
+		targetServer, bodies := captureBody(t)
+
+		clientHandler := &ClientHandler{
+			Client: httpPkg.NewHttpClient(),
+			RouteConfig: &[]config.Route{
+				{
+					Method: http.MethodGet,
+					Path:   "/proxy",
+					RequestTo: &config.RequestTo{
+						Method: http.MethodGet,
+						Host:   targetServer.URL,
+						Path:   "/",
+					},
+				},
+			},
+		}
+
+		fiberApp := fiber.New()
+		fiberApp.Get("/proxy", clientHandler.CreateHandler(0))
+
+		response, err := fiberApp.Test(httptest.NewRequest(http.MethodGet, "/proxy", nil))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, "", <-bodies)
+	})
+
+	t.Run("POST with empty configured body sends zero bytes", func(t *testing.T) {
+		targetServer, bodies := captureBody(t)
+
+		clientHandler := &ClientHandler{
+			Client: httpPkg.NewHttpClient(),
+			RouteConfig: &[]config.Route{
+				{
+					Method: http.MethodPost,
+					Path:   "/proxy",
+					RequestTo: &config.RequestTo{
+						Method: http.MethodPost,
+						Host:   targetServer.URL,
+						Path:   "/",
+					},
+				},
+			},
+		}
+
+		fiberApp := fiber.New()
+		fiberApp.Post("/proxy", clientHandler.CreateHandler(0))
+
+		response, err := fiberApp.Test(httptest.NewRequest(http.MethodPost, "/proxy", nil))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, "", <-bodies)
+	})
+}

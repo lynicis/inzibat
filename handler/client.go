@@ -37,9 +37,12 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 			return fmt.Errorf("failed to parse request URL: %w", err)
 		}
 
-		bodyBytes, err := json.Marshal(&requestTo.Body)
-		if err != nil {
-			return fmt.Errorf("failed to marshal request body: %w", err)
+		var bodyBytes []byte
+		if len(requestTo.Body) > 0 {
+			bodyBytes, err = json.Marshal(&requestTo.Body)
+			if err != nil {
+				return fmt.Errorf("failed to marshal request body: %w", err)
+			}
 		}
 
 		response, err := clientRoute.Client.Do(
