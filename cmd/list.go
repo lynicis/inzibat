@@ -39,10 +39,33 @@ The routes will be read from (in order of precedence):
 		t := table.New().
 			Border(lipgloss.NormalBorder()).
 			Headers("METHOD", "PATH", "TYPE").
-			Rows(cfg.ConvertRoutesTuiTable()...)
+			Rows(routeRows(cfg)...)
 
 		fmt.Println(t)
 	},
+}
+
+func routeRows(cfg *config.Cfg) [][]string {
+	var rows [][]string
+
+	for _, route := range cfg.Routes {
+		routeType := "UNKNOWN"
+
+		if route.FakeResponse != nil {
+			routeType = "MOCK"
+		}
+		if route.RequestTo != nil {
+			routeType = "PROXY"
+		}
+
+		rows = append(rows, []string{
+			route.Method,
+			route.Path,
+			routeType,
+		})
+	}
+
+	return rows
 }
 
 func init() {

@@ -248,3 +248,40 @@ func TestListCmd_Run(t *testing.T) {
 	})
 
 }
+
+func TestRouteRows(t *testing.T) {
+	t.Run("happy path - converts routes to table rows with correct types", func(t *testing.T) {
+		cfg := &config.Cfg{
+			Routes: []config.Route{
+				{
+					Method:       "GET",
+					Path:         "/mock",
+					FakeResponse: &config.FakeResponse{StatusCode: 200},
+				},
+				{
+					Method: "POST",
+					Path:   "/proxy",
+					RequestTo: &config.RequestTo{
+						Host: "http://example.com",
+						Path: "/proxy",
+					},
+				},
+				{
+					Method: "DELETE",
+					Path:   "/unknown",
+				},
+			},
+		}
+
+		rows := routeRows(cfg)
+
+		assert.Len(t, rows, 3)
+		assert.Equal(t, []string{"GET", "/mock", "MOCK"}, rows[0])
+		assert.Equal(t, []string{"POST", "/proxy", "PROXY"}, rows[1])
+		assert.Equal(t, []string{"DELETE", "/unknown", "UNKNOWN"}, rows[2])
+	})
+
+	t.Run("no routes", func(t *testing.T) {
+		assert.Nil(t, routeRows(&config.Cfg{}))
+	})
+}
