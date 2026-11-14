@@ -350,7 +350,7 @@ func TestReadOrCreateConfig(t *testing.T) {
 		configJSON := `{
 			"serverPort": 9090,
 			"concurrency": 10,
-			"isHealthCheckRouteEnabled": true,
+			"healthCheckRoute": true,
 			"routes": [
 				{
 					"method": "GET",
@@ -506,6 +506,33 @@ func TestResolveConfigPath(t *testing.T) {
 		assert.Equal(t, filepath.Join(workingDirectory, "custom.json"), path)
 		assert.Equal(t, DefaultConfigExtension, extension)
 	})
+}
+
+func TestHealthCheckRouteRoundTrip(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "inzibat.json")
+	cfg := &Cfg{
+		ServerPort:       8080,
+		HealthCheckRoute: true,
+		Routes: []Route{
+			{
+				Method:       "GET",
+				Path:         "/test",
+				FakeResponse: &FakeResponse{StatusCode: 200},
+			},
+		},
+	}
+
+	require.NoError(t, WriteConfig(cfg, configPath))
+
+	loader, err := NewLoader(nil, false, configPath)
+	require.NoError(t, err)
+
+	readCfg, err := loader.Read()
+	require.NoError(t, err)
+
+	assert.True(t, readCfg.HealthCheckRoute)
+	assert.Len(t, readCfg.Routes, 2)
+	assert.Equal(t, "/health", readCfg.Routes[1].Path)
 }
 
 func TestWriteConfig(t *testing.T) {
