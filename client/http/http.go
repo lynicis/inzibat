@@ -121,13 +121,16 @@ func (httpClient *Client) executeRequest(req *fasthttp.Request) (*fasthttp.Respo
 	return resp, nil
 }
 
-func (httpClient *Client) handleResponse(resp *fasthttp.Response, req *fasthttp.Request) (*Response, error) {
+func (httpClient *Client) handleResponse(
+	resp *fasthttp.Response,
+	req *fasthttp.Request,
+) (*Response, int, error) {
 	statusCode := resp.StatusCode()
 
 	if statusCode >= http.StatusInternalServerError {
 		fasthttp.ReleaseRequest(req)
 		fasthttp.ReleaseResponse(resp)
-		return nil, errors.New("response failed")
+		return nil, statusCode, errors.New("response failed")
 	}
 
 	body := make([]byte, len(resp.Body()))
@@ -139,7 +142,7 @@ func (httpClient *Client) handleResponse(resp *fasthttp.Response, req *fasthttp.
 	return &Response{
 		Status: statusCode,
 		Body:   body,
-	}, nil
+	}, statusCode, nil
 }
 
 func (httpClient *Client) shouldRetry(err error, statusCode, attempt int) bool {
@@ -171,10 +174,10 @@ func (httpClient *Client) makeRequest(
 			return nil, err
 		}
 
-		response, err := httpClient.handleResponse(resp, req)
+		response, statusCode, err := httpClient.handleResponse(resp, req)
 		if err != nil {
 			lastErr = err
-			if httpClient.shouldRetry(nil, resp.StatusCode(), attempt) {
+			if httpClient.shouldRetry(nil, statusCode, attempt) {
 				continue
 			}
 			return nil, lastErr

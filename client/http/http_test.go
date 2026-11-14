@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -561,11 +562,12 @@ func TestClient_handleResponse(t *testing.T) {
 		resp.SetStatusCode(fiber.StatusOK)
 		resp.SetBody(TestRespBody)
 
-		result, err := httpClient.handleResponse(resp, req)
+		result, statusCode, err := httpClient.handleResponse(resp, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, fiber.StatusOK, result.Status)
+		assert.Equal(t, fiber.StatusOK, statusCode)
 		assert.Equal(t, TestRespBody, result.Body)
 	})
 
@@ -575,11 +577,12 @@ func TestClient_handleResponse(t *testing.T) {
 		resp := fasthttp.AcquireResponse()
 		resp.SetStatusCode(fiber.StatusMovedPermanently)
 
-		result, err := httpClient.handleResponse(resp, req)
+		result, statusCode, err := httpClient.handleResponse(resp, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, fiber.StatusMovedPermanently, result.Status)
+		assert.Equal(t, fiber.StatusMovedPermanently, statusCode)
 	})
 
 	t.Run("happy path - handles 4xx client error response", func(t *testing.T) {
@@ -588,11 +591,12 @@ func TestClient_handleResponse(t *testing.T) {
 		resp := fasthttp.AcquireResponse()
 		resp.SetStatusCode(fiber.StatusBadRequest)
 
-		result, err := httpClient.handleResponse(resp, req)
+		result, statusCode, err := httpClient.handleResponse(resp, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, fiber.StatusBadRequest, result.Status)
+		assert.Equal(t, fiber.StatusBadRequest, statusCode)
 	})
 
 	t.Run("error path - handles 5xx server error response", func(t *testing.T) {
@@ -601,10 +605,11 @@ func TestClient_handleResponse(t *testing.T) {
 		resp := fasthttp.AcquireResponse()
 		resp.SetStatusCode(fiber.StatusInternalServerError)
 
-		result, err := httpClient.handleResponse(resp, req)
+		result, statusCode, err := httpClient.handleResponse(resp, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
+		assert.Equal(t, fiber.StatusInternalServerError, statusCode)
 		assert.Contains(t, err.Error(), "response failed")
 	})
 }
@@ -719,4 +724,42 @@ func TestClient_makeRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 	})
+}
+
+func TestClient_makeRequest_RetriesOn5xxThenSucceeds(t *testing.T) {
+	freePort, err := testutil.GetFreePort()
+	require.NoError(t, err)
+
+	httpClient := NewHttpClient()
+	httpClient.SetRetryConfig(RetryConfig{
+		MaxRetries:        2,
+		InitialBackoff:    time.Millisecond,
+		MaxBackoff:        5 * time.Millisecond,
+		BackoffMultiplier: 2.0,
+	})
+
+	mockServer := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	var attempts atomic.Int32
+	mockServer.Get("/flaky", func(ctx *fiber.Ctx) error {
+		if attempts.Add(1) == 1 {
+			return ctx.Status(fiber.StatusInternalServerError).SendString("boom")
+		}
+
+		return ctx.Status(fiber.StatusTeapot).SendString("recovered")
+	})
+
+	go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+	defer mockServer.Shutdown()
+	time.Sleep(1 * time.Second)
+
+	uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/flaky")
+	response, err := httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, int32(2), attempts.Load())
+	assert.Equal(t, fiber.StatusTeapot, response.Status)
+	assert.Equal(t, []byte("recovered"), response.Body)
 }
