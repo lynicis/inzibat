@@ -70,6 +70,36 @@ func loadConfig(explicitPath string, isGlobalConfig bool) (*config.Cfg, error) {
 	return cfg, nil
 }
 
+// seedCircuitBreakers registers a breaker per proxy route, with defaults applied.
+func seedCircuitBreakers(
+	cfg *config.Cfg,
+	store *handler.CircuitBreakerStore,
+) (map[int]string, error) {
+	routeKeys := make(map[int]string)
+
+	for routeIndex := range cfg.Routes {
+		route := cfg.Routes[routeIndex]
+		if route.RequestTo == nil || route.RequestTo.CircuitBreaker == nil {
+			continue
+		}
+
+		if route.RequestTo.CircuitBreaker.Enabled == nil || !*route.RequestTo.CircuitBreaker.Enabled {
+			continue
+		}
+
+		routeKey := handler.BuildCircuitBreakerRouteKey(route)
+		breakerConfig := config.MergeCircuitBreakerConfig(nil, route.RequestTo.CircuitBreaker)
+
+		if err := store.Seed(routeKey, *breakerConfig); err != nil {
+			return nil, fmt.Errorf("failed to seed circuit breaker store: %w", err)
+		}
+
+		routeKeys[routeIndex] = routeKey
+	}
+
+	return routeKeys, nil
+}
+
 func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 	endpointHandler := &handler.EndpointHandler{
 		RouteConfig: &cfg.Routes,
@@ -77,21 +107,9 @@ func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 	httpClient := http.NewHttpClient()
 	circuitBreakerStore := handler.NewCircuitBreakerStore()
 
-	circuitBreakerRouteKeys := make(map[int]string)
-	for routeIndex := range cfg.Routes {
-		route := cfg.Routes[routeIndex]
-		if route.RequestTo == nil || route.RequestTo.CircuitBreaker == nil {
-			continue
-		}
-
-		if route.RequestTo.CircuitBreaker.Enabled != nil && *route.RequestTo.CircuitBreaker.Enabled {
-			routeKey := handler.BuildCircuitBreakerRouteKey(route)
-			if seedErr := circuitBreakerStore.Seed(routeKey, *route.RequestTo.CircuitBreaker); seedErr != nil {
-				return nil, fmt.Errorf("failed to seed circuit breaker store: %w", seedErr)
-			}
-
-			circuitBreakerRouteKeys[routeIndex] = routeKey
-		}
+	circuitBreakerRouteKeys, err := seedCircuitBreakers(cfg, circuitBreakerStore)
+	if err != nil {
+		return nil, err
 	}
 
 	clientHandler := &handler.ClientHandler{

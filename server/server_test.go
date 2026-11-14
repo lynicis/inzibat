@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lynicis/inzibat/config"
+	"github.com/lynicis/inzibat/handler"
 	"github.com/lynicis/inzibat/internal/testutil"
 )
 
@@ -488,4 +489,42 @@ func TestRunServer_ReturnsListenError(t *testing.T) {
 
 	stopFirst()
 	require.NoError(t, <-firstDone)
+}
+
+func TestSeedCircuitBreakers_AppliesDefaults(t *testing.T) {
+	store := handler.NewCircuitBreakerStore()
+
+	cfg := &config.Cfg{
+		Routes: []config.Route{
+			{
+				Method: "GET",
+				Path:   "/proxy",
+				RequestTo: &config.RequestTo{
+					Method: "GET",
+					Host:   "http://upstream.example",
+					Path:   "/",
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						Enabled: config.BoolPointer(true),
+					},
+				},
+			},
+			{
+				Method:       "GET",
+				Path:         "/mock",
+				FakeResponse: &config.FakeResponse{StatusCode: 200},
+			},
+		},
+	}
+
+	routeKeys, err := seedCircuitBreakers(cfg, store)
+	require.NoError(t, err)
+	require.Len(t, routeKeys, 1)
+
+	record, err := store.Get(routeKeys[0])
+	require.NoError(t, err)
+	assert.Equal(t, 5, record.Config.FailureThreshold)
+	assert.Equal(t, 10, record.Config.MinimumRequests)
+	assert.Equal(t, 2, record.Config.HalfOpenMaxRequests)
+	assert.Equal(t, 30000, record.Config.OpenTimeoutMs)
+	assert.Equal(t, 2, record.Config.SuccessThreshold)
 }
