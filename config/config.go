@@ -12,7 +12,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 )
 
 const DefaultConfigExtension = ".json"
@@ -67,22 +66,22 @@ func ResolveConfigPath(isGlobal bool, explicitPath string) (string, error) {
 	return filePath, err
 }
 
-func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string) *Reader {
+func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string) (*Reader, error) {
 	filePath, fileExtension, err := resolveConfigPath(isGlobal, explicitPath)
 	if err != nil {
-		zap.L().Fatal("failed to resolve config file path", zap.Error(err))
+		return nil, fmt.Errorf("failed to resolve config file path: %w", err)
 	}
 
 	configReader, err := NewReaderStrategy(fileExtension)
 	if err != nil {
-		zap.L().Fatal("failed to create config reader strategy", zap.Error(err))
+		return nil, fmt.Errorf("failed to create config reader strategy: %w", err)
 	}
 
 	return &Reader{
 		ConfigReader: configReader,
 		Validator:    validator,
 		Filepath:     filePath,
-	}
+	}, nil
 }
 
 func (reader *Reader) Read() (*Cfg, error) {

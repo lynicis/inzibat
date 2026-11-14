@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -28,12 +27,15 @@ The routes will be read from (in order of precedence):
   2. The file specified by the INZIBAT_CONFIG_FILE environment variable
   3. inzibat.json in the current working directory
   4. ~/.inzibat.config.json if --global flag is used`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cfgLoader := config.NewLoader(nil, listIsGlobalConfig, listConfigFile)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfgLoader, err := config.NewLoader(nil, listIsGlobalConfig, listConfigFile)
+		if err != nil {
+			return fmt.Errorf("failed to resolve config file: %w", err)
+		}
 
 		cfg, err := cfgLoader.Read()
 		if err != nil {
-			zap.L().Fatal("failed to list routes", zap.Error(err))
+			return fmt.Errorf("failed to list routes: %w", err)
 		}
 
 		t := table.New().
@@ -42,6 +44,8 @@ The routes will be read from (in order of precedence):
 			Rows(routeRows(cfg)...)
 
 		fmt.Println(t)
+
+		return nil
 	},
 }
 

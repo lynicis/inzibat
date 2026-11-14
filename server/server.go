@@ -57,7 +57,12 @@ func StartServerWithContext(
 
 func loadConfig(explicitPath string, isGlobalConfig bool) (*config.Cfg, error) {
 	validator := validatorPkg.New()
-	configLoader := config.NewLoader(validator, isGlobalConfig, explicitPath)
+
+	configLoader, err := config.NewLoader(validator, isGlobalConfig, explicitPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve config file: %w", err)
+	}
+
 	cfg, err := configLoader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)

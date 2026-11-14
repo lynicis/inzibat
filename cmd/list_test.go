@@ -27,8 +27,8 @@ func TestListCmd(t *testing.T) {
 		assert.Contains(t, listCmd.Short, "List")
 	})
 
-	t.Run("happy path - command has Run function", func(t *testing.T) {
-		assert.NotNil(t, listCmd.Run)
+	t.Run("happy path - command has RunE function", func(t *testing.T) {
+		assert.NotNil(t, listCmd.RunE)
 	})
 }
 
@@ -75,9 +75,7 @@ func TestListCmd_Run(t *testing.T) {
 
 		listIsGlobalConfig = true
 
-		assert.NotPanics(t, func() {
-			listCmd.Run(listCmd, []string{})
-		})
+		require.NoError(t, listCmd.RunE(listCmd, []string{}))
 
 		_, err = os.Stat(globalConfigPath)
 		assert.NoError(t, err)
@@ -125,9 +123,7 @@ func TestListCmd_Run(t *testing.T) {
 
 		listIsGlobalConfig = true
 
-		assert.NotPanics(t, func() {
-			listCmd.Run(listCmd, []string{})
-		})
+		require.NoError(t, listCmd.RunE(listCmd, []string{}))
 
 		_, err = os.Stat(globalConfigPath)
 		assert.NoError(t, err)
@@ -201,9 +197,7 @@ func TestListCmd_Run(t *testing.T) {
 
 		listIsGlobalConfig = true
 
-		assert.NotPanics(t, func() {
-			listCmd.Run(listCmd, []string{})
-		})
+		require.NoError(t, listCmd.RunE(listCmd, []string{}))
 
 		_, err = os.Stat(globalConfigPath)
 		assert.NoError(t, err)

@@ -618,7 +618,8 @@ func TestNewLoader(t *testing.T) {
 		}()
 		os.Unsetenv(EnvironmentVariableConfigFileName)
 
-		loader := NewLoader(validator, false, "")
+		loader, err := NewLoader(validator, false, "")
+		require.NoError(t, err)
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
@@ -638,7 +639,8 @@ func TestNewLoader(t *testing.T) {
 		customFileName := "custom-config.json"
 		os.Setenv(EnvironmentVariableConfigFileName, customFileName)
 
-		loader := NewLoader(validator, false, "")
+		loader, err := NewLoader(validator, false, "")
+		require.NoError(t, err)
 
 		assert.NotNil(t, loader)
 		assert.Contains(t, loader.Filepath, customFileName)
@@ -655,7 +657,8 @@ func TestNewLoader(t *testing.T) {
 		}()
 		os.Setenv(EnvironmentVariableConfigFileName, "config.json")
 
-		loader := NewLoader(validator, false, "")
+		loader, err := NewLoader(validator, false, "")
+		require.NoError(t, err)
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
@@ -671,7 +674,8 @@ func TestNewLoader(t *testing.T) {
 			}
 		}()
 
-		loader := NewLoader(validator, true, "")
+		loader, err := NewLoader(validator, true, "")
+		require.NoError(t, err)
 
 		assert.NotNil(t, loader)
 		assert.NotNil(t, loader.ConfigReader)
@@ -682,7 +686,8 @@ func TestNewLoader(t *testing.T) {
 		tmpDir := t.TempDir()
 		explicitPath := filepath.Join(tmpDir, "custom.yaml")
 
-		loader := NewLoader(validator, false, explicitPath)
+		loader, err := NewLoader(validator, false, explicitPath)
+		require.NoError(t, err)
 
 		assert.Equal(t, explicitPath, loader.Filepath)
 	})
@@ -697,5 +702,10 @@ func TestNewLoader(t *testing.T) {
 			}
 		}()
 		os.Setenv(EnvironmentVariableConfigFileName, "config.unknown")
+
+		loader, err := NewLoader(validator, false, "")
+
+		assert.Nil(t, loader)
+		assert.ErrorContains(t, err, "ambiguous file extension")
 	})
 }
