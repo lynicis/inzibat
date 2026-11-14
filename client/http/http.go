@@ -145,8 +145,21 @@ func (httpClient *Client) handleResponse(
 	}, statusCode, nil
 }
 
-func (httpClient *Client) shouldRetry(err error, statusCode, attempt int) bool {
+func (httpClient *Client) shouldRetry(method string, err error, statusCode, attempt int) bool {
+	if !isIdempotent(method) {
+		return false
+	}
+
 	return isRetryableError(err, statusCode) && attempt < httpClient.retryConfig.MaxRetries
+}
+
+func isIdempotent(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodPut, http.MethodDelete:
+		return true
+	default:
+		return false
+	}
 }
 
 func (httpClient *Client) makeRequest(
@@ -168,7 +181,7 @@ func (httpClient *Client) makeRequest(
 
 		if err != nil {
 			lastErr = err
-			if httpClient.shouldRetry(err, 0, attempt) {
+			if httpClient.shouldRetry(method, err, 0, attempt) {
 				continue
 			}
 			return nil, err
@@ -177,7 +190,7 @@ func (httpClient *Client) makeRequest(
 		response, statusCode, err := httpClient.handleResponse(resp, req)
 		if err != nil {
 			lastErr = err
-			if httpClient.shouldRetry(nil, statusCode, attempt) {
+			if httpClient.shouldRetry(method, nil, statusCode, attempt) {
 				continue
 			}
 			return nil, lastErr

@@ -440,10 +440,10 @@ func TestClient_shouldRetry(t *testing.T) {
 			MaxRetries: 3,
 		})
 
-		assert.True(t, httpClient.shouldRetry(assert.AnError, 0, 0))
-		assert.True(t, httpClient.shouldRetry(assert.AnError, 0, 1))
-		assert.True(t, httpClient.shouldRetry(assert.AnError, 0, 2))
-		assert.False(t, httpClient.shouldRetry(assert.AnError, 0, 3))
+		assert.True(t, httpClient.shouldRetry(http.MethodGet, assert.AnError, 0, 0))
+		assert.True(t, httpClient.shouldRetry(http.MethodGet, assert.AnError, 0, 1))
+		assert.True(t, httpClient.shouldRetry(http.MethodGet, assert.AnError, 0, 2))
+		assert.False(t, httpClient.shouldRetry(http.MethodGet, assert.AnError, 0, 3))
 	})
 
 	t.Run("happy path - should retry for 5xx status codes", func(t *testing.T) {
@@ -452,16 +452,28 @@ func TestClient_shouldRetry(t *testing.T) {
 			MaxRetries: 3,
 		})
 
-		assert.True(t, httpClient.shouldRetry(nil, http.StatusInternalServerError, 0))
-		assert.True(t, httpClient.shouldRetry(nil, http.StatusBadGateway, 1))
-		assert.False(t, httpClient.shouldRetry(nil, http.StatusInternalServerError, 3))
+		assert.True(t, httpClient.shouldRetry(http.MethodGet, nil, http.StatusInternalServerError, 0))
+		assert.True(t, httpClient.shouldRetry(http.MethodPut, nil, http.StatusBadGateway, 1))
+		assert.False(t, httpClient.shouldRetry(http.MethodDelete, nil, http.StatusInternalServerError, 3))
 	})
 
 	t.Run("happy path - should not retry for 2xx status codes", func(t *testing.T) {
 		httpClient := NewHttpClient()
 
-		assert.False(t, httpClient.shouldRetry(nil, http.StatusOK, 0))
-		assert.False(t, httpClient.shouldRetry(nil, http.StatusCreated, 1))
+		assert.False(t, httpClient.shouldRetry(http.MethodGet, nil, http.StatusOK, 0))
+		assert.False(t, httpClient.shouldRetry(http.MethodGet, nil, http.StatusCreated, 1))
+	})
+
+	t.Run("non-idempotent methods never retry", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries: 3,
+		})
+
+		assert.False(t, httpClient.shouldRetry(http.MethodPost, assert.AnError, 0, 0))
+		assert.False(t, httpClient.shouldRetry(http.MethodPost, nil, http.StatusInternalServerError, 0))
+		assert.False(t, httpClient.shouldRetry(http.MethodPatch, assert.AnError, 0, 0))
+		assert.False(t, httpClient.shouldRetry(http.MethodPatch, nil, http.StatusBadGateway, 0))
 	})
 }
 
@@ -724,6 +736,48 @@ func TestClient_makeRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 	})
+}
+
+func TestClient_makeRequest_RetryMethodMatrix(t *testing.T) {
+	freePort, err := testutil.GetFreePort()
+	require.NoError(t, err)
+
+	var getAttempts, postAttempts atomic.Int32
+
+	mockServer := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	mockServer.Get("/fail", func(ctx *fiber.Ctx) error {
+		getAttempts.Add(1)
+		return ctx.Status(fiber.StatusInternalServerError).SendString("boom")
+	})
+	mockServer.Post("/fail", func(ctx *fiber.Ctx) error {
+		postAttempts.Add(1)
+		return ctx.Status(fiber.StatusInternalServerError).SendString("boom")
+	})
+
+	go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+	defer mockServer.Shutdown()
+	time.Sleep(1 * time.Second)
+
+	uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/fail")
+
+	httpClient := NewHttpClient()
+	httpClient.SetRetryConfig(RetryConfig{
+		MaxRetries:        2,
+		InitialBackoff:    time.Millisecond,
+		MaxBackoff:        5 * time.Millisecond,
+		BackoffMultiplier: 2.0,
+	})
+
+	_, err = httpClient.makeRequest(uri, http.MethodGet, http.Header{}, nil)
+	assert.Error(t, err)
+	assert.Equal(t, int32(3), getAttempts.Load())
+
+	_, err = httpClient.makeRequest(uri, http.MethodPost, http.Header{}, []byte("{}"))
+	assert.Error(t, err)
+	assert.Equal(t, int32(1), postAttempts.Load())
 }
 
 func TestClient_makeRequest_RetriesOn5xxThenSucceeds(t *testing.T) {
