@@ -1,43 +1,23 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewReader(t *testing.T) {
-	t.Run("json reader", func(t *testing.T) {
-		jsonReader, err := NewReaderStrategy(".json")
-
-		assert.NoError(t, err)
-		assert.Implements(t, (*ReaderStrategy)(nil), jsonReader)
-	})
-
-	t.Run("yaml reader", func(t *testing.T) {
-		t.Run("with .yaml extension", func(t *testing.T) {
-			yamlReader, err := NewReaderStrategy(".yaml")
+	for _, extension := range []string{".json", ".yaml", ".yml", ".toml"} {
+		t.Run(extension, func(t *testing.T) {
+			reader, err := NewReaderStrategy(extension)
 
 			assert.NoError(t, err)
-			assert.Implements(t, (*ReaderStrategy)(nil), yamlReader)
+			assert.Implements(t, (*ReaderStrategy)(nil), reader)
 		})
-
-		t.Run("with .yml extension", func(t *testing.T) {
-			yamlReader, err := NewReaderStrategy(".yml")
-
-			assert.NoError(t, err)
-			assert.Implements(t, (*ReaderStrategy)(nil), yamlReader)
-		})
-	})
-
-	t.Run("toml reader", func(t *testing.T) {
-		tomlReader, err := NewReaderStrategy(".toml")
-
-		assert.NoError(t, err)
-		assert.Implements(t, (*ReaderStrategy)(nil), tomlReader)
-	})
+	}
 
 	t.Run("unknown file extension", func(t *testing.T) {
 		unknownReader, err := NewReaderStrategy(".unknown")
@@ -49,99 +29,72 @@ func TestNewReader(t *testing.T) {
 
 func TestReader_ReadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		t.Run("json reader", func(t *testing.T) {
-			jsonReader := &JsonReader{
-				KoanfInstance: koanf.New("."),
-			}
+		testCases := map[string]string{
+			".json": "inzibat.json",
+			".yaml": "inzibat.yaml",
+			".yml":  "inzibat.yaml",
+			".toml": "inzibat.toml",
+		}
 
-			cfg, err := jsonReader.Read(filepath.Join("../", "examples", "inzibat.json"))
+		for extension, fileName := range testCases {
+			t.Run(extension, func(t *testing.T) {
+				reader, err := NewReaderStrategy(extension)
+				require.NoError(t, err)
 
-			assert.NoError(t, err)
-			assert.NotNil(t, cfg)
-		})
+				cfg, err := reader.Read(filepath.Join("../", "examples", fileName))
 
-		t.Run("yaml reader", func(t *testing.T) {
-			yamlReader := &YamlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := yamlReader.Read(filepath.Join("../", "examples", "inzibat.yaml"))
-
-			assert.NoError(t, err)
-			assert.NotNil(t, cfg)
-		})
-
-		t.Run("toml reader", func(t *testing.T) {
-			tomlReader := &TomlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := tomlReader.Read(filepath.Join("../", "examples", "inzibat.toml"))
-
-			assert.NoError(t, err)
-			assert.NotNil(t, cfg)
-		})
+				assert.NoError(t, err)
+				assert.NotNil(t, cfg)
+			})
+		}
 	})
 
 	t.Run("config file not found", func(t *testing.T) {
-		t.Run("json reader", func(t *testing.T) {
-			jsonReader := &JsonReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := jsonReader.Read("")
+		reader, err := NewReaderStrategy(DefaultConfigExtension)
+		require.NoError(t, err)
 
-			assert.Error(t, err, ErrorReadFile)
-			assert.Nil(t, cfg)
-		})
+		cfg, err := reader.Read("")
 
-		t.Run("yaml reader", func(t *testing.T) {
-			jsonReader := &YamlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := jsonReader.Read("")
-
-			assert.Error(t, err, ErrorReadFile)
-			assert.Nil(t, cfg)
-		})
-
-		t.Run("toml reader", func(t *testing.T) {
-			jsonReader := &TomlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := jsonReader.Read("")
-
-			assert.Error(t, err, ErrorReadFile)
-			assert.Nil(t, cfg)
-		})
+		assert.ErrorIs(t, err, ErrorReadFile)
+		assert.Nil(t, cfg)
 	})
 
 	t.Run("config unmarshalling error", func(t *testing.T) {
-		t.Run("json reader", func(t *testing.T) {
-			jsonReader := &JsonReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := jsonReader.Read("bad_unmarshal.json")
+		testCases := map[string]string{
+			".json": "bad_unmarshal.json",
+			".yaml": "bad_unmarshal.yaml",
+			".toml": "bad_unmarshal.toml",
+		}
 
-			assert.ErrorIs(t, err, ErrorUnmarshalling)
-			assert.Nil(t, cfg)
-		})
+		for extension, fileName := range testCases {
+			t.Run(extension, func(t *testing.T) {
+				reader, err := NewReaderStrategy(extension)
+				require.NoError(t, err)
 
-		t.Run("yaml reader", func(t *testing.T) {
-			yamlReader := &YamlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := yamlReader.Read("bad_unmarshal.yaml")
+				cfg, err := reader.Read(fileName)
 
-			assert.ErrorIs(t, err, ErrorUnmarshalling)
-			assert.Nil(t, cfg)
-		})
-
-		t.Run("toml reader", func(t *testing.T) {
-			tomlReader := &TomlReader{
-				KoanfInstance: koanf.New("."),
-			}
-			cfg, err := tomlReader.Read("bad_unmarshal.toml")
-
-			assert.ErrorIs(t, err, ErrorUnmarshalling)
-			assert.Nil(t, cfg)
-		})
+				assert.ErrorIs(t, err, ErrorUnmarshalling)
+				assert.Nil(t, cfg)
+			})
+		}
 	})
+}
+
+func TestReader_ReadDoesNotAccumulateState(t *testing.T) {
+	first := filepath.Join(t.TempDir(), "first.json")
+	require.NoError(t, os.WriteFile(first, []byte(`{"serverPort":1234}`), 0o600))
+
+	second := filepath.Join(t.TempDir(), "second.json")
+	require.NoError(t, os.WriteFile(second, []byte(`{"routes":[]}`), 0o600))
+
+	reader, err := NewReaderStrategy(DefaultConfigExtension)
+	require.NoError(t, err)
+
+	firstCfg, err := reader.Read(first)
+	require.NoError(t, err)
+	assert.Equal(t, 1234, firstCfg.ServerPort)
+
+	secondCfg, err := reader.Read(second)
+	require.NoError(t, err)
+	assert.Zero(t, secondCfg.ServerPort)
 }

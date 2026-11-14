@@ -14,77 +14,35 @@ type ReaderStrategy interface {
 	Read(filename string) (*Cfg, error)
 }
 
+type koanfReader struct {
+	parser koanf.Parser
+}
+
 func NewReaderStrategy(fileExtension string) (ReaderStrategy, error) {
-	koanfInstance := koanf.New(".")
-	readerMapper := map[string]ReaderStrategy{
-		DefaultConfigExtension: &JsonReader{KoanfInstance: koanfInstance},
-		".yaml":                &YamlReader{KoanfInstance: koanfInstance},
-		".yml":                 &YamlReader{KoanfInstance: koanfInstance},
-		".toml":                &TomlReader{KoanfInstance: koanfInstance},
+	parsers := map[string]koanf.Parser{
+		DefaultConfigExtension: json.Parser(),
+		".yaml":                yaml.Parser(),
+		".yml":                 yaml.Parser(),
+		".toml":                toml.Parser(),
 	}
 
-	reader := readerMapper[fileExtension]
-	if reader == nil {
+	parser := parsers[fileExtension]
+	if parser == nil {
 		return nil, errors.New("ambiguous file extension")
 	}
 
-	return reader, nil
+	return &koanfReader{parser: parser}, nil
 }
 
-type JsonReader struct {
-	KoanfInstance *koanf.Koanf
-}
+func (reader *koanfReader) Read(filename string) (*Cfg, error) {
+	instance := koanf.New(".")
 
-func (jsonReader *JsonReader) Read(filename string) (*Cfg, error) {
-	if err := jsonReader.KoanfInstance.Load(
-		file.Provider(filename),
-		json.Parser(),
-	); err != nil {
+	if err := instance.Load(file.Provider(filename), reader.parser); err != nil {
 		return nil, ErrorReadFile
 	}
 
 	var config *Cfg
-	if err := jsonReader.KoanfInstance.Unmarshal("", &config); err != nil {
-		return nil, ErrorUnmarshalling
-	}
-
-	return config, nil
-}
-
-type YamlReader struct {
-	KoanfInstance *koanf.Koanf
-}
-
-func (yamlReader *YamlReader) Read(filename string) (*Cfg, error) {
-	if err := yamlReader.KoanfInstance.Load(
-		file.Provider(filename),
-		yaml.Parser(),
-	); err != nil {
-		return nil, ErrorReadFile
-	}
-
-	var config *Cfg
-	if err := yamlReader.KoanfInstance.Unmarshal("", &config); err != nil {
-		return nil, ErrorUnmarshalling
-	}
-
-	return config, nil
-}
-
-type TomlReader struct {
-	KoanfInstance *koanf.Koanf
-}
-
-func (tomlReader *TomlReader) Read(filename string) (*Cfg, error) {
-	if err := tomlReader.KoanfInstance.Load(
-		file.Provider(filename),
-		toml.Parser(),
-	); err != nil {
-		return nil, ErrorReadFile
-	}
-
-	var config *Cfg
-	if err := tomlReader.KoanfInstance.Unmarshal("", &config); err != nil {
+	if err := instance.Unmarshal("", &config); err != nil {
 		return nil, ErrorUnmarshalling
 	}
 
