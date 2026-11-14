@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Rewrote the README: corrected the quick start to the real config schema (`serverPort`, `fakeResponse.statusCode`, object `body`), fixed dead install URLs, stated project status, and moved contributing content to CONTRIBUTING.md.
+
 ## [0.4.0] - 2026-06-19
 
 ### Added

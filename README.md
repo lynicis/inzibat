@@ -3,465 +3,125 @@
 [![Release Version](https://img.shields.io/github/v/release/Lynicis/inzibat?label=version)](https://github.com/Lynicis/inzibat/releases)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=lynicis_inzibat&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=lynicis_inzibat)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=lynicis_inzibat&metric=coverage)](https://sonarcloud.io/summary/new_code?id=lynicis_inzibat)
-[![Go Version](https://img.shields.io/badge/go-1.26-blue)](https://golang.org)
 [![License](https://img.shields.io/github/license/Lynicis/inzibat)](LICENSE)
 
-**Inzibat** (from Turkish, meaning "Military Police") is a lightweight, fully-customizable HTTP mock server designed for microservices testing and development. Built in Go and powered by [Fiber](https://gofiber.io/), it provides a fast and simple way to simulate downstream services through declarative configuration files.
+Inzibat (Turkish for "military police") is a config-driven HTTP mock and proxy server. Mock your downstream APIs from a config file — no server code to write, nothing extra to keep running. It serves the mocks, proxies the routes you don't mock, and records real traffic to replay as mocks.
 
-Perfect for frontend development, backend integration testing, and CI/CD pipelines—configure your mock responses in JSON, TOML, or YAML without writing a single line of server code.
+**Status:** actively maintained · [v0.4.0](https://github.com/Lynicis/inzibat/releases) · pre-1.0, config format may change between minor versions · [MIT](LICENSE)
 
----
-
-## 🧭 Table of Contents
-
-- [Inzibat 🪖](#inzibat-)
-  - [🧭 Table of Contents](#-table-of-contents)
-  - [✨ Key Features](#-key-features)
-  - [🎯 Why Inzibat?](#-why-inzibat)
-  - [🛠️ Installation](#️-installation)
-    - [From Releases (Recommended)](#from-releases-recommended)
-    - [From Source](#from-source)
-      - [Option 1: Quick Install](#option-1-quick-install)
-      - [Option 2: Build from Clone](#option-2-build-from-clone)
-  - [🚀 Quick Start](#-quick-start)
-    - [Step 1: Create a Configuration File](#step-1-create-a-configuration-file)
-    - [Step 2: Start the Server](#step-2-start-the-server)
-    - [Step 3: Test It](#step-3-test-it)
-  - [💻 CLI Commands](#-cli-commands)
-    - [Start Server](#start-server)
-    - [Create Routes](#create-routes)
-    - [List Routes](#list-routes)
-    - [Command Aliases](#command-aliases)
-  - [📹 Request Recorder](#-request-recorder)
-    - [Start Recording](#start-recording)
-    - [Export Session](#export-session)
-    - [Clear Session](#clear-session)
-  - [🧪 Testing](#-testing)
-  - [📝 Configuration](#-configuration)
-    - [Basic Configuration Structure](#basic-configuration-structure)
-    - [Route Types](#route-types)
-  - [🤝 Contributing](#-contributing)
-    - [Getting Started](#getting-started)
-    - [Guidelines](#guidelines)
-    - [Reporting Issues](#reporting-issues)
-    - [Roadmap](#roadmap)
-  - [📜 License](#-license)
-
-## ✨ Key Features
-
-- Lightweight HTTP mock server implemented in Go
-- Config-driven (JSON, TOML, YAML) for easy scenario definition
-- Fast — built on top of [Fiber](https://gofiber.io/) (which uses fasthttp)
-- Simple, declarative API for defining routes and responses
-
-## 🎯 Why Inzibat?
-
-- **For Frontend Teams:** Get predictable API responses for your UI development without waiting for the backend.
-- **For Backend Teams:** Isolate your service during integration testing by mocking downstream dependencies.
-- **For CI Pipelines:** Run reliable end-to-end tests by simulating third-party APIs.
-- **No-Code Scenarios:** Implement complex mock behavior without writing a single line of server code.
-
-## 🛠️ Installation
-
-### From Releases (Recommended)
-
-This is the easiest way to get `inzibat` for most users.
-
-1. Go to the [**Releases Page**](https://github.com/Lynicis/inzibat/releases).
-2. Download the archive matching your OS and architecture (e.g., `inzibat_linux_amd64.tar.gz`).
-3. Extract the archive and move the `inzibat` binary to a directory in your system's `PATH`.
-
-```bash
-# Example for Linux/macOS
-tar -xzf inzibat_linux_amd64.tar.gz
-sudo mv inzibat /usr/local/bin/
-```
-
-### Homebrew (macOS / Linux)
-
-```bash
-brew tap lynicis/tap
-brew install inzibat
-```
-
-### Chocolatey (Windows)
-
-```powershell
-choco install inzibat
-```
-
-### Scoop (Windows)
-
-```powershell
-scoop bucket add inzibat https://github.com/lynicis/scoop-bucket.git
-scoop install inzibat
-```
-
-### Linux Packages (deb / rpm)
-
-Pre-built `.deb` and `.rpm` packages are attached to each release.
-
-**Debian / Ubuntu**
-
-```bash
-curl -LO https://github.com/lynicis/inzibat/releases/latest/download/inzibat_linux_amd64.deb
-sudo dpkg -i inzibat_linux_amd64.deb
-```
-
-**Fedora / CentOS / RHEL**
-
-```bash
-sudo rpm -i https://github.com/lynicis/inzibat/releases/latest/download/inzibat_linux_amd64.rpm
-```
-
-### From Source
-
-If you have Go 1.25+ installed, you can build `inzibat` from source.
-
-#### Option 1: Quick Install
-
-```bash
-go install github.com/lynicis/inzibat@latest
-```
-
-This installs the latest version to your `$GOPATH/bin` directory.
-
-#### Option 2: Build from Clone
-
-For development or custom builds:
-
-```bash
-git clone https://github.com/Lynicis/inzibat.git
-cd inzibat
-go build -o inzibat .
-```
-
-This creates a local `inzibat` binary in the project directory.
-
----
-
-## 🚀 Quick Start
-
-Get a mock server running in under 30 seconds.
-
-### Step 1: Create a Configuration File
-
-Create a file named `inzibat.json` (or `inzibat.yml`, `inzibat.toml`) in your current directory:
-
-```yaml
-# inzibat.yml
-port: 8080
-routes:
-  - path: /api/hello
-    method: GET
-    response:
-      status_code: 200
-      headers:
-        Content-Type: application/json
-      body: '{"message": "Hello, World!"}'
-```
-
-### Step 2: Start the Server
-
-Run Inzibat:
-
-```bash
-inzibat start
-# or use the short alias
-inzibat s
-```
-
-The server will start on port 8080 (or the port specified in your config).
-
-### Step 3: Test It
-
-In another terminal, send a request:
-
-```bash
-curl http://localhost:8080/api/hello
-```
-
-You should receive:
-
-```json
-{"message": "Hello, World!"}
-```
-
-## 💻 CLI Commands
-
-Inzibat provides a powerful CLI for managing routes and starting the server interactively.
-
-### Start Server
-
-Start the mock server with the `start` command:
-
-```bash
-# Start with default config (inzibat.json in current directory)
-inzibat start
-
-# Use the short alias
-inzibat s
-
-# Specify a custom config file
-inzibat start --config /path/to/config.yml
-inzibat start -c /path/to/config.yml
-
-# Use the global config stored at ~/.inzibat.config.json
-inzibat start --global
-```
-
-**Configuration Precedence:**
-
-The server reads configuration in the following order:
-
-1. File specified by the `--config` / `-c` flag
-2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
-3. `inzibat.json` in the current working directory
-
-Use the `--global` (`-g`) flag to bypass this order and load the global config at `~/.inzibat.config.json`.
-
-### Create Routes
-
-Create new routes interactively using the `create` command:
-
-```bash
-# Launch interactive route creation (saves to inzibat.json in current directory)
-inzibat create
-
-# Or use the short alias
-inzibat c
-
-# Create route in a custom config file
-inzibat create --config /path/to/config.json
-inzibat create -c /path/to/config.json
-
-# Create route in the global config file (~/.inzibat.config.json)
-inzibat create --global
-inzibat create -g
-```
-
-The interactive form guides you through:
-
-- Setting the route path and HTTP method
-- Choosing between mock responses or proxy routes
-- Configuring response status codes, headers, and body
-- Setting up proxy targets for client routes
-
-**Configuration Precedence:**
-
-Routes are saved to the configuration file in the following order:
-1. File specified by the `--config` / `-c` flag
-2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
-3. `inzibat.json` in the current working directory
-4. `~/.inzibat.config.json` if `--global` / `-g` flag is used
-
-### List Routes
-
-View all configured routes:
-
-```bash
-# List all routes from inzibat.json in current directory
-inzibat list
-
-# Or use the short aliases
-inzibat ls
-inzibat l
-
-# List routes from a custom config file
-inzibat list --config /path/to/config.json
-inzibat list -c /path/to/config.json
-
-# List routes from the global config file (~/.inzibat.config.json)
-inzibat list --global
-inzibat list -g
-```
-
-This displays all routes from your configuration file in a structured, easy-to-read format.
-
-**Configuration Precedence:**
-
-Routes are read from the configuration file in the following order:
-1. File specified by the `--config` / `-c` flag
-2. File specified by the `INZIBAT_CONFIG_FILE` environment variable
-3. `inzibat.json` in the current working directory
-4. `~/.inzibat.config.json` if `--global` / `-g` flag is used
-
-### Command Aliases
-
-For convenience, all commands have shorter aliases:
-
-| Command | Aliases |
-|---------|---------|
-| `start` | `start-server`, `server`, `s` |
-| `create` | `create-route`, `c` |
-| `list` | `list-routes`, `ls`, `l` |
-
-## 📹 Request Recorder
-
-Inzibat features a **Request Recorder** that intercepts and stores incoming HTTP requests and responses flowing through the mock/proxy server, allowing you to export them as raw JSON or convert them directly into native Inzibat mock configurations for testing.
-
-### Start Recording
-
-Start the server with the `--record` (or `-r`) flag to enable the request recorder:
-
-```bash
-# Start server with recording enabled
-inzibat start --record
-# Or
-inzibat start -r
-```
-
-### Export Session
-
-Use the `record` command group to interact with the recorded session:
-
-```bash
-# List all captured requests (IDs, methods, paths, status codes, duration)
-inzibat record list
-# Or
-inzibat record ls
-
-# Export the raw session data to a JSON file
-inzibat record export -o session.json
-
-# Convert and export the session specifically into the Inzibat mock format
-inzibat record export --format inzibat -o my-mocks.json
-```
-
-### Clear Session
-
-To clear all captured requests from the session store:
-
-```bash
-# Clear the captured requests
-inzibat record clear
-```
-
-### Admin API
-
-When recording is enabled, you can also manage the recording store programmatically via the built-in HTTP Admin API:
-
-- `GET /_inzibat/recorder/entries` — Returns all captured entries in the session.
-- `GET /_inzibat/recorder/session` — Returns the current recorder session with metadata.
-- `POST /_inzibat/recorder/clear` — Clears the recorder store.
-
-## 🧪 Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-go test ./... -v
-
-# Run tests with coverage
-go test ./... -cover
-
-# Run tests for a specific package
-go test ./handler -v
-```
-
-## 📝 Configuration
-
-Inzibat supports configuration files in JSON, TOML, and YAML formats.
-
-### Basic Configuration Structure
+Save this as `inzibat.json`:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/lynicis/inzibat/refs/heads/master/examples/inzibat.schema.json",
   "serverPort": 8080,
-  "circuitBreaker": {
-    "enabled": true,
-    "failureThreshold": 5,
-    "minimumRequests": 10,
-    "openTimeoutMs": 30000,
-    "halfOpenMaxRequests": 2,
-    "successThreshold": 2
-  },
   "routes": [
     {
       "method": "GET",
-      "path": "/proxy/users",
-      "requestTo": {
-        "method": "GET",
-        "host": "http://localhost:8081",
-        "path": "/users",
-        "passWithRequestHeaders": true,
-        "passWithRequestBody": false,
-        "inErrorReturn500": false,
-        "circuitBreaker": {
-          "enabled": true,
-          "failureThreshold": 3
-        }
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/mock/health",
+      "path": "/api/hello",
       "fakeResponse": {
         "statusCode": 200,
-        "body": {
-          "status": "ok"
-        }
+        "headers": { "Content-Type": "application/json" },
+        "body": { "message": "Hello, World!" }
       }
     }
   ]
 }
 ```
 
-### Route Types
+Start it and call it:
 
-- **Mock Routes**: Use `fakeResponse` to return predefined status, headers, and body
-- **Proxy Routes**: Use `requestTo` to forward requests to upstream services
+```console
+$ inzibat start
+{"level":"info","timestamp":"2026-11-14T13:07:38.128+0300","caller":"server/server.go:144","msg":"🫡 INZIBAT 🪖","pid":30235,"open_routes":1,"server_port":8080}
 
-### Circuit Breaker
+$ curl http://localhost:8080/api/hello
+{"message": "Hello, World!"}
+```
 
-- Circuit breaker applies only to proxy routes (`requestTo`)
-- Failure signal is network errors and `5xx` responses; `4xx` responses do not trip the breaker
-- You can configure breaker globally (`circuitBreaker`) and override per-route (`requestTo.circuitBreaker`)
+The same file ships as [`examples/quickstart.json`](examples/quickstart.json) — run it with `inzibat start -c examples/quickstart.json`. YAML and TOML configs work the same way.
 
-## 🤝 Contributing
+## Why Inzibat
 
-Contributions are welcome! We appreciate your help in making Inzibat better.
+[WireMock](https://wiremock.org/) needs a JVM, [Prism](https://stoplight.io/open-source/prism/) needs Node, [Mockoon](https://mockoon.com/) is a desktop app. Inzibat is one self-contained Go binary — drop it into a CI image or a `docker-compose` sidecar and it runs.
 
-### Getting Started
+Beyond static mocks, one config file gives you:
 
-1. **Fork the repository** and clone your fork
-2. **Create a feature branch** (`git checkout -b feature/my-new-feature`)
-3. **Make your changes** and add tests for any new behavior
-4. **Run the tests** to ensure everything passes:
+- **Proxying with a circuit breaker** — routes with `requestTo` forward to a real upstream. The breaker trips on network errors and 5xx (not 4xx), configurable globally and per route.
+- **Traffic recording** — start with `--record` and Inzibat captures requests passing through, then exports them as a new Inzibat config. Record once against the real service, replay it as mocks.
+- **Interactive route builder** — `inzibat create` is a terminal form that writes routes into your config file.
+- **Schema-validated config** — set `$schema` to [examples/inzibat.schema.json](examples/inzibat.schema.json) for editor completion and validation, in JSON, TOML, or YAML.
 
-   ```bash
-   go test ./... -v
-   ```
+What it deliberately does not do: responses are static — fixed status, headers, and body, no templating or scripted behaviour — and there is no web UI. If you need stateful request matching or response templating, WireMock is the better tool. If you want mocks inline in Go tests, use [`httptest`](https://pkg.go.dev/net/http/httptest).
 
-5. **Commit your changes** with clear, descriptive messages
-6. **Push to your fork** and open a Pull Request
+## Installation
 
-### Guidelines
+**Homebrew** (macOS, Linux — builds from source):
 
-- Follow Go best practices and conventions
-- Add tests for new features and bug fixes
-- Update documentation as needed
-- Keep commits focused and atomic
-- Write clear commit messages
+```bash
+brew tap lynicis/tap
+brew install inzibat
+```
 
-### Reporting Issues
+**Chocolatey** (Windows):
 
-For bug reports or feature requests, please [open an issue](https://github.com/Lynicis/inzibat/issues) with:
+```powershell
+choco install inzibat
+```
 
-- A clear description of the problem or feature request
-- Steps to reproduce (for bugs)
-- Expected vs. actual behavior
-- Environment details (OS, Go version, etc.)
+**Scoop** (Windows):
 
-### Roadmap
+```powershell
+scoop bucket add inzibat https://github.com/lynicis/scoop-bucket.git
+scoop install inzibat
+```
 
-See [ROADMAP.md](ROADMAP.md) for planned features and improvements.
+**Binaries and Linux packages** — `tar.gz`/`zip` archives and `.deb`/`.rpm` packages for each release are on the [releases page](https://github.com/Lynicis/inzibat/releases). Asset names carry the version and platform, e.g. `inzibat_0.4.0_linux_amd64.deb`.
 
-We welcome feedback, feature suggestions, and contributions to help advance Inzibat's capabilities.
-If you notice gaps in feature coverage or want to propose an enhancement, please open an issue or Pull Request!
+**From source** — needs Go 1.26+:
 
-## 📜 License
+```bash
+go install github.com/lynicis/inzibat@latest
+```
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+## Usage
+
+```bash
+inzibat start                # serve ./inzibat.json
+inzibat start -c api.yml     # any JSON, TOML, or YAML file
+inzibat start -g             # use ~/.inzibat.config.json
+inzibat start --record       # also capture passing traffic
+inzibat create               # add a route interactively
+inzibat list                 # print the routes a config defines
+inzibat record list          # show captured requests
+inzibat record export --format inzibat -o mocks.json   # traffic → mock config
+inzibat record clear         # drop the capture
+```
+
+Commands resolve the config file in this order: `--config`/`-c`, then the `INZIBAT_CONFIG_FILE` environment variable, then `./inzibat.json`. The `-g`/`--global` flag uses `~/.inzibat.config.json` instead. Aliases: `start` = `s` `server` `start-server`, `create` = `c` `create-route`, `list` = `l` `ls` `list-routes`.
+
+While recording, the server exposes an admin API: `GET /_inzibat/recorder/entries`, `GET /_inzibat/recorder/session`, and `POST /_inzibat/recorder/clear`.
+
+## Configuration
+
+The full shape is defined by [examples/inzibat.schema.json](examples/inzibat.schema.json); working configs in all three formats are under [examples/](examples/). The keys most people touch:
+
+| Key | What it does |
+|---|---|
+| `serverPort` | Port to listen on (required) |
+| `healthCheckRoute` | `true` adds `GET /health` returning 200 |
+| `routes[].method` | One of `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
+| `routes[].fakeResponse` | Static mock: `statusCode`, `headers`, `body` (object) or `bodyString` (raw string) |
+| `routes[].requestTo` | Proxy: `host`, `path`, `method`, `passWithRequestBody`, `passWithRequestHeaders`, `inErrorReturn500` |
+| `circuitBreaker` | Global breaker defaults; override per route with `requestTo.circuitBreaker` |
+
+A route takes either `fakeResponse` or `requestTo`. If both are present, `requestTo` is served and the mock is dropped with a warning.
+
+## Project status
+
+Inzibat is under active, single-maintainer development. Releases follow [Semantic Versioning](https://semver.org/); until 1.0 the config format may change between minor versions. See [CHANGELOG.md](CHANGELOG.md) for release history and [ROADMAP.md](ROADMAP.md) for what is planned.
+
+Support: [open an issue](https://github.com/Lynicis/inzibat/issues). Security reports follow [SECURITY.md](SECURITY.md). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE)
