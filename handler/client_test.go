@@ -37,8 +37,7 @@ func TestClientHandler_recordSuccess(t *testing.T) {
 	})
 
 	t.Run("happy path - with circuit breaker", func(t *testing.T) {
-		circuitBreakerStore, err := NewCircuitBreakerStore()
-		require.NoError(t, err)
+		circuitBreakerStore := NewCircuitBreakerStore()
 
 		routeKey := "GET /proxy -> GET http://example.com/"
 		require.NoError(t, circuitBreakerStore.Seed(routeKey, config.CircuitBreakerConfig{
@@ -51,20 +50,19 @@ func TestClientHandler_recordSuccess(t *testing.T) {
 			CircuitBreakerStore: circuitBreakerStore,
 		}
 
-		err = clientHandler.recordSuccess(true, routeKey)
+		err := clientHandler.recordSuccess(true, routeKey)
 
 		assert.NoError(t, err)
 	})
 
 	t.Run("error path - circuit breaker store returns error", func(t *testing.T) {
-		circuitBreakerStore, err := NewCircuitBreakerStore()
-		require.NoError(t, err)
+		circuitBreakerStore := NewCircuitBreakerStore()
 
 		clientHandler := &ClientHandler{
 			CircuitBreakerStore: circuitBreakerStore,
 		}
 
-		err = clientHandler.recordSuccess(true, "non-existent")
+		err := clientHandler.recordSuccess(true, "non-existent")
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update circuit breaker success")
@@ -81,14 +79,13 @@ func TestClientHandler_recordFailure(t *testing.T) {
 	})
 
 	t.Run("error path - circuit breaker store returns error", func(t *testing.T) {
-		circuitBreakerStore, err := NewCircuitBreakerStore()
-		require.NoError(t, err)
+		circuitBreakerStore := NewCircuitBreakerStore()
 
 		clientHandler := &ClientHandler{
 			CircuitBreakerStore: circuitBreakerStore,
 		}
 
-		err = clientHandler.recordFailure(true, "non-existent")
+		err := clientHandler.recordFailure(true, "non-existent")
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update circuit breaker failure")
@@ -321,11 +318,10 @@ func TestClientHandler_CreateHandler(t *testing.T) {
 				},
 			}
 
-			circuitBreakerStore, err := NewCircuitBreakerStore()
-			require.NoError(t, err)
+			circuitBreakerStore := NewCircuitBreakerStore()
 
 			routeKey := "GET /proxy -> GET " + targetServer.URL + "/"
-			err = circuitBreakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+			err := circuitBreakerStore.Seed(routeKey, config.CircuitBreakerConfig{
 				Enabled:             config.BoolPointer(true),
 				FailureThreshold:    1,
 				MinimumRequests:     1,

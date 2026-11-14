@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/lynicis/inzibat/config"
 )
 
@@ -31,37 +29,16 @@ type CircuitBreakerRecord struct {
 }
 
 type CircuitBreakerStore struct {
-	db    *memdb.MemDB
-	clock func() time.Time
-	mu    sync.Mutex
+	records map[string]*CircuitBreakerRecord
+	clock   func() time.Time
+	mu      sync.Mutex
 }
 
-func NewCircuitBreakerStore() (*CircuitBreakerStore, error) {
-	schema := &memdb.DBSchema{
-		Tables: map[string]*memdb.TableSchema{
-			"circuit_breakers": {
-				Name: "circuit_breakers",
-				Indexes: map[string]*memdb.IndexSchema{
-					"id": {
-						Name:    "id",
-						Unique:  true,
-						Indexer: &memdb.StringFieldIndex{Field: "RouteKey"},
-					},
-					"state": {
-						Name:    "state",
-						Indexer: &memdb.StringFieldIndex{Field: "State"},
-					},
-				},
-			},
-		},
+func NewCircuitBreakerStore() *CircuitBreakerStore {
+	return &CircuitBreakerStore{
+		records: make(map[string]*CircuitBreakerRecord),
+		clock:   time.Now,
 	}
-
-	db, err := memdb.NewMemDB(schema)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create circuit breaker memdb: %w", err)
-	}
-
-	return &CircuitBreakerStore{db: db, clock: time.Now}, nil
 }
 
 func BuildCircuitBreakerRouteKey(route config.Route) string {
@@ -83,36 +60,20 @@ func (store *CircuitBreakerStore) Seed(routeKey string, cfg config.CircuitBreake
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	txn := store.db.Txn(true)
-	defer txn.Abort()
+	if record, ok := store.records[routeKey]; ok {
+		record.Config = cfg
+		record.UpdatedAt = store.clock()
 
-	existingRaw, err := txn.First("circuit_breakers", "id", routeKey)
-	if err != nil {
-		return fmt.Errorf("failed to lookup circuit breaker record: %w", err)
-	}
-
-	if existingRaw != nil {
-		existingRecord := existingRaw.(*CircuitBreakerRecord)
-		existingRecord.Config = cfg
-		existingRecord.UpdatedAt = store.clock()
-		if err = txn.Insert("circuit_breakers", existingRecord); err != nil {
-			return fmt.Errorf("failed to update circuit breaker record: %w", err)
-		}
-		txn.Commit()
 		return nil
 	}
 
-	record := &CircuitBreakerRecord{
+	store.records[routeKey] = &CircuitBreakerRecord{
 		RouteKey:  routeKey,
 		State:     CircuitBreakerStateClosed,
 		Config:    cfg,
 		UpdatedAt: store.clock(),
 	}
-	if err = txn.Insert("circuit_breakers", record); err != nil {
-		return fmt.Errorf("failed to insert circuit breaker record: %w", err)
-	}
 
-	txn.Commit()
 	return nil
 }
 
@@ -187,20 +148,16 @@ func (store *CircuitBreakerStore) State(routeKey string) (CircuitBreakerState, e
 }
 
 func (store *CircuitBreakerStore) Get(routeKey string) (*CircuitBreakerRecord, error) {
-	txn := store.db.Txn(false)
-	defer txn.Abort()
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	recordRaw, err := txn.First("circuit_breakers", "id", routeKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to lookup circuit breaker record: %w", err)
-	}
-
-	if recordRaw == nil {
+	record, ok := store.records[routeKey]
+	if !ok {
 		return nil, fmt.Errorf("circuit breaker record not found for route key %s", routeKey)
 	}
 
-	record := recordRaw.(*CircuitBreakerRecord)
 	recordCopy := *record
+
 	return &recordCopy, nil
 }
 
@@ -208,27 +165,14 @@ func (store *CircuitBreakerStore) update(routeKey string, updateFn func(record *
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	txn := store.db.Txn(true)
-	defer txn.Abort()
-
-	recordRaw, err := txn.First("circuit_breakers", "id", routeKey)
-	if err != nil {
-		return fmt.Errorf("failed to lookup circuit breaker record: %w", err)
-	}
-
-	if recordRaw == nil {
+	record, ok := store.records[routeKey]
+	if !ok {
 		return fmt.Errorf("circuit breaker record not found for route key %s", routeKey)
 	}
 
-	record := recordRaw.(*CircuitBreakerRecord)
 	updateFn(record)
 	record.UpdatedAt = store.clock()
 
-	if err = txn.Insert("circuit_breakers", record); err != nil {
-		return fmt.Errorf("failed to update circuit breaker record: %w", err)
-	}
-
-	txn.Commit()
 	return nil
 }
 

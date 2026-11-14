@@ -41,8 +41,7 @@ func TestBuildCircuitBreakerRouteKey(t *testing.T) {
 
 func TestCircuitBreakerStore_Seed(t *testing.T) {
 	t.Run("happy path - update existing record", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		routeKey := "GET /proxy"
 		initialConfig := config.CircuitBreakerConfig{
@@ -65,8 +64,7 @@ func TestCircuitBreakerStore_Seed(t *testing.T) {
 
 func TestCircuitBreakerStore_Allow(t *testing.T) {
 	t.Run("happy path - default state allows request", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		routeKey := "GET /proxy"
 		assert.NoError(t, breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
@@ -93,8 +91,7 @@ func TestCircuitBreakerStore_Allow(t *testing.T) {
 
 func TestCircuitBreakerStore_OnSuccess(t *testing.T) {
 	t.Run("happy path - closed state increments request count", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		routeKey := "GET /proxy"
 		assert.NoError(t, breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
@@ -118,8 +115,7 @@ func TestCircuitBreakerStore_OnSuccess(t *testing.T) {
 func TestCircuitBreakerStore_OnFailure(t *testing.T) {
 	t.Run("happy path - open state does not change", func(t *testing.T) {
 		now := time.Now()
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 		breakerStore.clock = func() time.Time { return now }
 
 		routeKey := "GET /proxy"
@@ -144,8 +140,7 @@ func TestCircuitBreakerStore_OnFailure(t *testing.T) {
 
 	t.Run("happy path - half-open state opens again", func(t *testing.T) {
 		now := time.Now()
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 		breakerStore.clock = func() time.Time { return now }
 
 		routeKey := "GET /proxy"
@@ -174,8 +169,7 @@ func TestCircuitBreakerStore_OnFailure(t *testing.T) {
 
 func TestCircuitBreakerStore_State(t *testing.T) {
 	t.Run("error path - record not found", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		state, err := breakerStore.State("non-existent")
 		assert.Error(t, err)
@@ -185,8 +179,7 @@ func TestCircuitBreakerStore_State(t *testing.T) {
 
 func TestCircuitBreakerStore_Get(t *testing.T) {
 	t.Run("error path - record not found", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		record, err := breakerStore.Get("non-existent")
 		assert.Error(t, err)
@@ -208,11 +201,10 @@ func TestAllowHalfOpen(t *testing.T) {
 
 func TestCircuitBreaker(t *testing.T) {
 	t.Run("opens after threshold is reached", func(t *testing.T) {
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 
 		routeKey := "GET /proxy -> GET http://example.com/api"
-		err = breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+		err := breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
 			Enabled:             config.BoolPointer(true),
 			FailureThreshold:    2,
 			MinimumRequests:     2,
@@ -243,12 +235,11 @@ func TestCircuitBreaker(t *testing.T) {
 
 	t.Run("transitions to half-open and closes after success threshold", func(t *testing.T) {
 		now := time.Now()
-		breakerStore, err := NewCircuitBreakerStore()
-		assert.NoError(t, err)
+		breakerStore := NewCircuitBreakerStore()
 		breakerStore.clock = func() time.Time { return now }
 
 		routeKey := "GET /proxy -> GET http://example.com/api"
-		err = breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+		err := breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
 			Enabled:             config.BoolPointer(true),
 			FailureThreshold:    1,
 			MinimumRequests:     1,

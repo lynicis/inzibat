@@ -75,10 +75,7 @@ func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 		RouteConfig: &cfg.Routes,
 	}
 	httpClient := http.NewHttpClient()
-	circuitBreakerStore, err := handler.NewCircuitBreakerStore()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize circuit breaker store: %w", err)
-	}
+	circuitBreakerStore := handler.NewCircuitBreakerStore()
 
 	circuitBreakerRouteKeys := make(map[int]string)
 	for routeIndex := range cfg.Routes {
@@ -89,8 +86,8 @@ func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 
 		if route.RequestTo.CircuitBreaker.Enabled != nil && *route.RequestTo.CircuitBreaker.Enabled {
 			routeKey := handler.BuildCircuitBreakerRouteKey(route)
-			if err = circuitBreakerStore.Seed(routeKey, *route.RequestTo.CircuitBreaker); err != nil {
-				return nil, fmt.Errorf("failed to seed circuit breaker store: %w", err)
+			if seedErr := circuitBreakerStore.Seed(routeKey, *route.RequestTo.CircuitBreaker); seedErr != nil {
+				return nil, fmt.Errorf("failed to seed circuit breaker store: %w", seedErr)
 			}
 
 			circuitBreakerRouteKeys[routeIndex] = routeKey
