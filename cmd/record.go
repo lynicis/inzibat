@@ -51,15 +51,15 @@ var recordListCmd = &cobra.Command{
 Displays a table with method, path, status code, duration, and timestamp
 for each recorded request.`,
 	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchRecordedEntries(recordAddr)
 		if err != nil {
-			zap.L().Fatal("failed to fetch recorded entries", zap.Error(err))
+			return fmt.Errorf("failed to fetch recorded entries: %w", err)
 		}
 
 		if len(entries) == 0 {
 			fmt.Println("No recorded requests.")
-			return
+			return nil
 		}
 
 		rows := make([][]string, 0, len(entries))
@@ -79,6 +79,8 @@ for each recorded request.`,
 			Rows(rows...)
 
 		fmt.Println(t)
+
+		return nil
 	},
 }
 
@@ -126,7 +128,7 @@ var recordClearCmd = &cobra.Command{
 	Short:   "Clear all recorded requests",
 	Long:    `Clear all recorded HTTP requests from the running inzibat server.`,
 	Args:    cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		url := fmt.Sprintf("http://%s/_inzibat/recorder/clear", recordAddr)
 
 		request, err := http.NewRequestWithContext(
@@ -136,28 +138,23 @@ var recordClearCmd = &cobra.Command{
 			nil,
 		)
 		if err != nil {
-			zap.L().Fatal("failed to build request", zap.Error(err))
+			return fmt.Errorf("failed to build request: %w", err)
 		}
 		request.Header.Set("Content-Type", "application/json")
 
 		resp, err := httpClient.Do(request)
 		if err != nil {
-			zap.L().Fatal(
-				"failed to clear recorded entries",
-				zap.String("addr", recordAddr),
-				zap.Error(err),
-			)
+			return fmt.Errorf("failed to clear recorded entries: %w", err)
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			zap.L().Fatal(
-				"unexpected response from server",
-				zap.Int("statusCode", resp.StatusCode),
-			)
+			return fmt.Errorf("unexpected response from server: status %d", resp.StatusCode)
 		}
 
 		fmt.Println("All recorded requests cleared.")
+
+		return nil
 	},
 }
 

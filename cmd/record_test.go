@@ -153,3 +153,37 @@ func TestRecordExportCmd_RejectsUnknownFormat(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported export format")
 	assert.NoFileExists(t, outputPath)
 }
+
+func TestRecordListCmd_ReturnsConnectionError(t *testing.T) {
+	originalAddr := recordAddr
+	originalTimeout := httpClient.Timeout
+	defer func() {
+		recordAddr = originalAddr
+		httpClient.Timeout = originalTimeout
+	}()
+
+	recordAddr = "127.0.0.1:1"
+	httpClient.Timeout = 100 * time.Millisecond
+
+	err := recordListCmd.RunE(recordListCmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch recorded entries")
+}
+
+func TestRecordClearCmd_ReturnsConnectionError(t *testing.T) {
+	originalAddr := recordAddr
+	originalTimeout := httpClient.Timeout
+	defer func() {
+		recordAddr = originalAddr
+		httpClient.Timeout = originalTimeout
+	}()
+
+	recordAddr = "127.0.0.1:1"
+	httpClient.Timeout = 100 * time.Millisecond
+
+	err := recordClearCmd.RunE(recordClearCmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to clear recorded entries")
+}
