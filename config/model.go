@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	EnvironmentVariableConfigFileName = "CONFIG_FN"
+	EnvironmentVariableConfigFileName = "INZIBAT_CONFIG_FILE"
 	DefaultConfigFileName             = "inzibat.json"
 	GlobalConfigFileName              = ".inzibat.config.json"
 	DefaultSchemaFileName             = "https://raw.githubusercontent.com/lynicis/inzibat/refs/heads/master/examples/inzibat.schema.json" //nolint:lll

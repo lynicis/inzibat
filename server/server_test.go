@@ -395,7 +395,7 @@ func TestStartServer(t *testing.T) {
 
 func TestSetupServer_RecordEnabled(t *testing.T) {
 	cfg := &config.Cfg{
-		ServerPort:  8080,
+		ServerPort: 8080,
 		Routes: []config.Route{
 			{
 				Method: "GET",
@@ -414,7 +414,7 @@ func TestSetupServer_RecordEnabled(t *testing.T) {
 
 func TestSetupServer_CircuitBreaker(t *testing.T) {
 	cfg := &config.Cfg{
-		ServerPort:  8080,
+		ServerPort: 8080,
 		Routes: []config.Route{
 			{
 				Method: "GET",

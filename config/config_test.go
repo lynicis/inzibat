@@ -485,7 +485,7 @@ func TestResolveConfigPath(t *testing.T) {
 		workingDirectory, err := os.Getwd()
 		require.NoError(t, err)
 
-		t.Setenv(EnvironmentVariableConfigFileName, "custom.yaml")
+		t.Setenv("INZIBAT_CONFIG_FILE", "custom.yaml")
 
 		path, extension, err := resolveConfigPath(false, "")
 
