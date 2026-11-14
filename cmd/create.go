@@ -297,7 +297,7 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Key("path").
 				Title("Target Path").
 				Placeholder("/api/users").
-				Validate(formbuilder.ValidateHost),
+				Validate(formbuilder.ValidatePath),
 			huh.NewSelect[string]().
 				Key("method").
 				Title("Target HTTP Method").

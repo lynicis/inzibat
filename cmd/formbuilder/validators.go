@@ -30,7 +30,8 @@ func ValidatePath(path string) error {
 }
 
 func ValidateHost(host string) error {
-	if _, err := url.Parse(host); err != nil {
+	parsedHost, err := url.Parse(host)
+	if err != nil || parsedHost.Scheme == "" || parsedHost.Host == "" {
 		return fmt.Errorf("invalid hostname")
 	}
 

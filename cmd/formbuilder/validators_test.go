@@ -1,7 +1,6 @@
 package formbuilder
 
 import (
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -92,30 +91,16 @@ func TestValidateHost(t *testing.T) {
 
 	t.Run("error path - invalid URL", func(t *testing.T) {
 		invalidHosts := []string{
+			"",
+			"localhost:8081",
 			"not a url",
 			"://invalid",
 		}
 
 		for _, host := range invalidHosts {
-			_, parseErr := url.Parse(host)
-			if parseErr != nil {
-				err := ValidateHost(host)
-				assert.Error(t, err, "host: %s", host)
-				assert.Contains(t, err.Error(), "invalid hostname")
-			}
-		}
-	})
-
-	t.Run("happy path - empty string (url.Parse allows it)", func(t *testing.T) {
-		host := ""
-
-		err := ValidateHost(host)
-
-		_, parseErr := url.Parse(host)
-		if parseErr == nil {
-			assert.NoError(t, err)
-		} else {
-			assert.Error(t, err)
+			err := ValidateHost(host)
+			assert.Error(t, err, "host: %s", host)
+			assert.Contains(t, err.Error(), "invalid hostname")
 		}
 	})
 }
