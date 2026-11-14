@@ -141,56 +141,43 @@ var recordClearCmd = &cobra.Command{
 	},
 }
 
-func fetchRecordedEntries(addr string) ([]recorder.RecordedEntry, error) {
-	url := fmt.Sprintf("http://%s/_inzibat/recorder/entries", addr)
+var httpClient = &http.Client{}
 
-	resp, err := http.Get(url) //nolint:noctx
+func getJSON[T any](url string, addr, kind string) (T, error) {
+	var result T
+
+	response, err := httpClient.Get(url) //nolint:noctx
 	if err != nil {
-		return nil, fmt.Errorf(
+		return result, fmt.Errorf(
 			"could not connect to inzibat server at %s: %w",
 			addr,
 			err,
 		)
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return result, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var entries []recorder.RecordedEntry
-	if err = json.Unmarshal(body, &entries); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
+	if err = json.Unmarshal(body, &result); err != nil {
+		return result, fmt.Errorf("failed to parse %s: %w", kind, err)
 	}
 
-	return entries, nil
+	return result, nil
+}
+
+func fetchRecordedEntries(addr string) ([]recorder.RecordedEntry, error) {
+	url := fmt.Sprintf("http://%s/_inzibat/recorder/entries", addr)
+
+	return getJSON[[]recorder.RecordedEntry](url, addr, "response")
 }
 
 func fetchRecordedSession(addr string) (*recorder.RecordedSession, error) {
 	url := fmt.Sprintf("http://%s/_inzibat/recorder/session", addr)
 
-	resp, err := http.Get(url) //nolint:noctx
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not connect to inzibat server at %s: %w",
-			addr,
-			err,
-		)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	var session recorder.RecordedSession
-	if err = json.Unmarshal(body, &session); err != nil {
-		return nil, fmt.Errorf("failed to parse session: %w", err)
-	}
-
-	return &session, nil
+	return getJSON[*recorder.RecordedSession](url, addr, "session")
 }
 
 func exportAsJSON(session *recorder.RecordedSession) {
