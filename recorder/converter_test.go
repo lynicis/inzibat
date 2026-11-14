@@ -1,9 +1,11 @@
 package recorder
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -224,4 +226,30 @@ func TestConvertHeaders(t *testing.T) {
 		result := convertHeaders(headers)
 		assert.Equal(t, []string{"application/json"}, result["Content-Type"])
 	})
+}
+
+func TestConvertToInzibatConfig_SkipsUnmockableMethods(t *testing.T) {
+	session := RecordedSession{
+		Entries: []RecordedEntry{
+			{
+				Request:  RecordedRequest{Method: http.MethodHead, Path: "/users"},
+				Response: RecordedResponse{StatusCode: http.StatusOK},
+			},
+			{
+				Request:  RecordedRequest{Method: http.MethodOptions, Path: "/users"},
+				Response: RecordedResponse{StatusCode: http.StatusOK},
+			},
+			{
+				Request:  RecordedRequest{Method: http.MethodGet, Path: "/users"},
+				Response: RecordedResponse{StatusCode: http.StatusOK},
+			},
+		},
+	}
+
+	cfg := ConvertToInzibatConfig(session, 8080)
+
+	require.Len(t, cfg.Routes, 1)
+	assert.Equal(t, http.MethodGet, cfg.Routes[0].Method)
+
+	require.NoError(t, validator.New().Struct(cfg))
 }

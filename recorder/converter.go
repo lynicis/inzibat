@@ -8,6 +8,16 @@ import (
 	"github.com/lynicis/inzibat/config"
 )
 
+// mockableMethods are the methods config.Route accepts; a route with any
+// other method makes the exported config unloadable.
+var mockableMethods = map[string]struct{}{
+	http.MethodGet:    {},
+	http.MethodPost:   {},
+	http.MethodPut:    {},
+	http.MethodPatch:  {},
+	http.MethodDelete: {},
+}
+
 // ConvertToInzibatConfig converts a recorded session into an inzibat mock configuration.
 // Duplicate (method, path) pairs are deduplicated — the last recording wins.
 func ConvertToInzibatConfig(session RecordedSession, serverPort int) *config.Cfg {
@@ -19,6 +29,10 @@ func ConvertToInzibatConfig(session RecordedSession, serverPort int) *config.Cfg
 	routeOrder := []string{}
 
 	for _, entry := range session.Entries {
+		if _, mockable := mockableMethods[entry.Request.Method]; !mockable {
+			continue
+		}
+
 		key := entry.Request.Method + " " + entry.Request.Path
 
 		route := &config.Route{
