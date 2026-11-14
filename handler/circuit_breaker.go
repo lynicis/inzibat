@@ -24,7 +24,7 @@ type CircuitBreakerRecord struct {
 	RequestCount         int
 	ConsecutiveFailures  int
 	ConsecutiveSuccesses int
-	HalfOpenRequests     int
+	HalfOpenInFlight     int
 	UpdatedAt            time.Time
 }
 
@@ -87,7 +87,7 @@ func (store *CircuitBreakerStore) Allow(routeKey string) (bool, error) {
 			openTimeout := time.Duration(record.Config.OpenTimeoutMs) * time.Millisecond
 			if store.clock().Sub(record.OpenedAt) >= openTimeout {
 				record.State = CircuitBreakerStateHalfOpen
-				record.HalfOpenRequests = 0
+				record.HalfOpenInFlight = 0
 				record.ConsecutiveSuccesses = 0
 			}
 			allowed = allowHalfOpen(record)
@@ -104,6 +104,7 @@ func (store *CircuitBreakerStore) Allow(routeKey string) (bool, error) {
 func (store *CircuitBreakerStore) OnSuccess(routeKey string) error {
 	return store.update(routeKey, func(record *CircuitBreakerRecord) {
 		if record.State == CircuitBreakerStateHalfOpen {
+			releaseHalfOpen(record)
 			record.ConsecutiveSuccesses++
 			if record.ConsecutiveSuccesses >= record.Config.SuccessThreshold {
 				resetToClosed(record)
@@ -121,6 +122,7 @@ func (store *CircuitBreakerStore) OnSuccess(routeKey string) error {
 func (store *CircuitBreakerStore) OnFailure(routeKey string) error {
 	return store.update(routeKey, func(record *CircuitBreakerRecord) {
 		if record.State == CircuitBreakerStateHalfOpen {
+			releaseHalfOpen(record)
 			openRecord(record, store.clock())
 			return
 		}
@@ -176,16 +178,23 @@ func (store *CircuitBreakerStore) update(routeKey string, updateFn func(record *
 	return nil
 }
 
+// releaseHalfOpen frees a half-open slot held by the request that just finished.
+func releaseHalfOpen(record *CircuitBreakerRecord) {
+	if record.HalfOpenInFlight > 0 {
+		record.HalfOpenInFlight--
+	}
+}
+
 func allowHalfOpen(record *CircuitBreakerRecord) bool {
 	if record.State != CircuitBreakerStateHalfOpen {
 		return false
 	}
 
-	if record.HalfOpenRequests >= record.Config.HalfOpenMaxRequests {
+	if record.HalfOpenInFlight >= record.Config.HalfOpenMaxRequests {
 		return false
 	}
 
-	record.HalfOpenRequests++
+	record.HalfOpenInFlight++
 	return true
 }
 
@@ -194,7 +203,7 @@ func openRecord(record *CircuitBreakerRecord, now time.Time) {
 	record.OpenedAt = now
 	record.ConsecutiveFailures = 0
 	record.ConsecutiveSuccesses = 0
-	record.HalfOpenRequests = 0
+	record.HalfOpenInFlight = 0
 }
 
 func resetToClosed(record *CircuitBreakerRecord) {
@@ -202,5 +211,5 @@ func resetToClosed(record *CircuitBreakerRecord) {
 	record.RequestCount = 0
 	record.ConsecutiveFailures = 0
 	record.ConsecutiveSuccesses = 0
-	record.HalfOpenRequests = 0
+	record.HalfOpenInFlight = 0
 }

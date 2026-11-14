@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lynicis/inzibat/config"
 )
@@ -273,4 +274,46 @@ func TestCircuitBreaker(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, CircuitBreakerStateClosed, state)
 	})
+}
+
+func TestCircuitBreaker_HalfOpenGaugeReleased(t *testing.T) {
+	now := time.Now()
+	breakerStore := NewCircuitBreakerStore()
+	breakerStore.clock = func() time.Time { return now }
+
+	routeKey := "GET /limited"
+	require.NoError(t, breakerStore.Seed(routeKey, config.CircuitBreakerConfig{
+		Enabled:             config.BoolPointer(true),
+		FailureThreshold:    1,
+		MinimumRequests:     1,
+		OpenTimeoutMs:       0,
+		HalfOpenMaxRequests: 1,
+		SuccessThreshold:    2,
+	}))
+
+	require.NoError(t, breakerStore.OnFailure(routeKey))
+
+	allowed, err := breakerStore.Allow(routeKey)
+	require.NoError(t, err)
+	assert.True(t, allowed, "first half-open request should pass")
+
+	allowed, err = breakerStore.Allow(routeKey)
+	require.NoError(t, err)
+	assert.False(t, allowed, "in-flight gauge is full")
+
+	require.NoError(t, breakerStore.OnSuccess(routeKey))
+
+	allowed, err = breakerStore.Allow(routeKey)
+	require.NoError(t, err)
+	assert.True(t, allowed, "completed request must free its half-open slot")
+
+	require.NoError(t, breakerStore.OnSuccess(routeKey))
+
+	state, err := breakerStore.State(routeKey)
+	require.NoError(t, err)
+	assert.Equal(t, CircuitBreakerStateClosed, state)
+
+	allowed, err = breakerStore.Allow(routeKey)
+	require.NoError(t, err)
+	assert.True(t, allowed)
 }
