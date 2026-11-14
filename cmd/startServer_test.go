@@ -79,7 +79,7 @@ func TestStartServerCmd_GlobalFlag(t *testing.T) {
 		err := startServerCmd.Flags().Set("global", "true")
 		require.NoError(t, err)
 
-		startServerCmd.Run(startServerCmd, []string{})
+		require.NoError(t, startServerCmd.RunE(startServerCmd, []string{}))
 
 		assert.True(t, calledWithGlobal)
 	})

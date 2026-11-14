@@ -8,6 +8,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "inzibat",
+	Args:  cobra.NoArgs,
+	RunE:  runStartServer,
 	Short: "A lightweight HTTP mock server for microservices testing and development",
 	Long: `Inzibat (from Turkish, meaning "Military Police") is a small, fully-customizable 
 mock service intended for use as a lightweight HTTP mock server.

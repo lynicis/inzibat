@@ -130,3 +130,54 @@ func TestExecute_ErrorPath(t *testing.T) {
 		assert.Equal(t, 1, capturedExitCode, "Execute() should call exitFunc with code 1 when rootCmd.Execute() returns error")
 	})
 }
+
+func TestRootCmd_RunsServer(t *testing.T) {
+	resetServerFlags := func(t *testing.T) {
+		t.Helper()
+
+		for _, command := range []*cobra.Command{rootCmd, startServerCmd} {
+			require.NoError(t, command.Flags().Set("config", ""))
+			require.NoError(t, command.Flags().Set("global", "false"))
+			require.NoError(t, command.Flags().Set("record", "false"))
+		}
+
+		if helpFlag := rootCmd.Flags().Lookup("help"); helpFlag != nil {
+			require.NoError(t, helpFlag.Value.Set("false"))
+		}
+
+		command := rootCmd
+		t.Cleanup(func() { command.SetArgs(nil) })
+	}
+
+	t.Run("bare root command starts the server with default flags", func(t *testing.T) {
+		resetServerFlags(t)
+
+		originalStartServerFunc := startServerFunc
+		t.Cleanup(func() { startServerFunc = originalStartServerFunc })
+
+		var (
+			gotConfig string
+			gotGlobal bool
+			gotRecord bool
+		)
+		startServerFunc = func(configFile string, isGlobalConfig bool, recordEnabled bool) error {
+			gotConfig, gotGlobal, gotRecord = configFile, isGlobalConfig, recordEnabled
+			return nil
+		}
+
+		rootCmd.SetArgs([]string{"--config", "x"})
+
+		require.NoError(t, rootCmd.Execute())
+		assert.Equal(t, "x", gotConfig)
+		assert.False(t, gotGlobal)
+		assert.False(t, gotRecord)
+	})
+
+	t.Run("unknown argument is rejected", func(t *testing.T) {
+		resetServerFlags(t)
+
+		rootCmd.SetArgs([]string{"bogus-argument"})
+
+		require.Error(t, rootCmd.Execute())
+	})
+}
