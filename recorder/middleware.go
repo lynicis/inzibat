@@ -78,13 +78,13 @@ func captureBody(body []byte) json.RawMessage {
 	return encoded
 }
 
-func captureRequestHeaders(c *fiber.Ctx) map[string][]string {
+func captureHeaderValues(visit func(yield func(key, value string))) map[string][]string {
 	headers := map[string][]string{}
 
-	for key, value := range c.Request().Header.All() {
-		k := string(key)
-		headers[k] = append(headers[k], string(value))
-	}
+	// fasthttp reuses header buffers after the visit, so copy into strings here.
+	visit(func(key, value string) {
+		headers[key] = append(headers[key], value)
+	})
 
 	if len(headers) == 0 {
 		return nil
@@ -93,17 +93,18 @@ func captureRequestHeaders(c *fiber.Ctx) map[string][]string {
 	return headers
 }
 
+func captureRequestHeaders(c *fiber.Ctx) map[string][]string {
+	return captureHeaderValues(func(yield func(key, value string)) {
+		for key, value := range c.Request().Header.All() {
+			yield(string(key), string(value))
+		}
+	})
+}
+
 func captureResponseHeaders(c *fiber.Ctx) map[string][]string {
-	headers := map[string][]string{}
-
-	for key, value := range c.Response().Header.All() {
-		k := string(key)
-		headers[k] = append(headers[k], string(value))
-	}
-
-	if len(headers) == 0 {
-		return nil
-	}
-
-	return headers
+	return captureHeaderValues(func(yield func(key, value string)) {
+		for key, value := range c.Response().Header.All() {
+			yield(string(key), string(value))
+		}
+	})
 }
