@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,45 +23,54 @@ type Reader struct {
 	Filepath     string
 }
 
-func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string) *Reader {
-	var (
-		filePath      string
-		fileExtension string
-	)
-
-	switch {
-	case explicitPath != "":
-		filePath = explicitPath
-		fileExtension = filepath.Ext(explicitPath)
-		if fileExtension == "" {
-			fileExtension = DefaultConfigExtension
+func resolveConfigPath(isGlobal bool, explicitPath string) (string, string, error) {
+	if explicitPath != "" {
+		extension := filepath.Ext(explicitPath)
+		if extension == "" {
+			extension = DefaultConfigExtension
 		}
-	case isGlobal:
+
+		return explicitPath, extension, nil
+	}
+
+	if isGlobal {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			zap.L().Fatal("failed to get current user home directory")
+			return "", "", fmt.Errorf("failed to get current user home directory: %w", err)
 		}
 
-		filePath = filepath.Join(homeDir, GlobalConfigFileName)
-		fileExtension = DefaultConfigExtension
-	default:
-		configFileName := os.Getenv(EnvironmentVariableConfigFileName)
-		if configFileName == "" {
-			configFileName = DefaultConfigFileName
-		}
+		return filepath.Join(homeDir, GlobalConfigFileName), DefaultConfigExtension, nil
+	}
 
-		workingDirectory, err := os.Getwd()
-		if err != nil {
-			zap.L().Fatal("failed to get current working directory path", zap.Error(err))
-		}
+	configFileName := os.Getenv(EnvironmentVariableConfigFileName)
+	if configFileName == "" {
+		configFileName = DefaultConfigFileName
+	}
 
-		fileExtension = filepath.Ext(configFileName)
-		if fileExtension == "" {
-			configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
-			fileExtension = DefaultConfigExtension
-		}
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get current working directory path: %w", err)
+	}
 
-		filePath = filepath.Join(workingDirectory, configFileName)
+	extension := filepath.Ext(configFileName)
+	if extension == "" {
+		configFileName = filepath.Clean(fmt.Sprintf("%s.json", configFileName))
+		extension = DefaultConfigExtension
+	}
+
+	return filepath.Join(workingDirectory, configFileName), extension, nil
+}
+
+// ResolveConfigPath returns the config file path the commands would use.
+func ResolveConfigPath(isGlobal bool, explicitPath string) (string, error) {
+	filePath, _, err := resolveConfigPath(isGlobal, explicitPath)
+	return filePath, err
+}
+
+func NewLoader(validator *validator.Validate, isGlobal bool, explicitPath string) *Reader {
+	filePath, fileExtension, err := resolveConfigPath(isGlobal, explicitPath)
+	if err != nil {
+		zap.L().Fatal("failed to resolve config file path", zap.Error(err))
 	}
 
 	configReader, err := NewReaderStrategy(fileExtension)
@@ -171,23 +182,31 @@ func WriteConfig(cfg *Cfg, filePath string) error {
 	return nil
 }
 
+func DefaultCfg() *Cfg {
+	return &Cfg{
+		Schema:           DefaultSchemaFileName,
+		ServerPort:       8080,
+		Concurrency:      5,
+		HealthCheckRoute: false,
+		Routes:           []Route{},
+	}
+}
+
 func ReadOrCreateConfig(configPath string) (*Cfg, error) {
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return &Cfg{
-			Schema:           DefaultSchemaFileName,
-			ServerPort:       8080,
-			Concurrency:      5,
-			HealthCheckRoute: false,
-			Routes:           []Route{},
-		}, nil
+	_, err := os.Stat(configPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return DefaultCfg(), nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat config file: %w", err)
 	}
 
-	ext := filepath.Ext(configPath)
-	if ext == "" {
-		ext = ".json"
+	_, extension, err := resolveConfigPath(false, configPath)
+	if err != nil {
+		return nil, err
 	}
 
-	readerStrategy, err := NewReaderStrategy(ext)
+	readerStrategy, err := NewReaderStrategy(extension)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reader strategy: %w", err)
 	}

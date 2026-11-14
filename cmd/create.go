@@ -460,8 +460,10 @@ The route will be added to the configuration file (in order of precedence):
 			zap.L().Fatal("failed to create route", zap.Error(err))
 		}
 
-		cfgLoader := config.NewLoader(nil, createIsGlobalConfig, createConfigFile)
-		cfgFilePath := cfgLoader.Filepath
+		cfgFilePath, err := config.ResolveConfigPath(createIsGlobalConfig, createConfigFile)
+		if err != nil {
+			zap.L().Fatal("failed to resolve config file path", zap.Error(err))
+		}
 
 		cfg, err := config.ReadOrCreateConfig(cfgFilePath)
 		if err != nil {

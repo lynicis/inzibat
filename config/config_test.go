@@ -424,6 +424,13 @@ func TestReadOrCreateConfig(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create reader strategy")
 	})
 
+	t.Run("error path - config path is a directory", func(t *testing.T) {
+		cfg, err := ReadOrCreateConfig(t.TempDir())
+
+		assert.Nil(t, cfg)
+		assert.Error(t, err)
+	})
+
 	t.Run("error path - read error", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configPath := filepath.Join(tmpDir, "inzibat.json")
@@ -436,6 +443,73 @@ func TestReadOrCreateConfig(t *testing.T) {
 		assert.Nil(t, cfg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
+	})
+}
+
+func TestResolveConfigPath(t *testing.T) {
+	t.Run("explicit path keeps its extension", func(t *testing.T) {
+		path, err := ResolveConfigPath(false, "/tmp/custom.yaml")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/tmp/custom.yaml", path)
+	})
+
+	t.Run("explicit path without extension defaults to json", func(t *testing.T) {
+		path, extension, err := resolveConfigPath(true, "/tmp/custom")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/tmp/custom", path)
+		assert.Equal(t, DefaultConfigExtension, extension)
+	})
+
+	t.Run("global config ignores the working directory", func(t *testing.T) {
+		homeDir := t.TempDir()
+		t.Setenv("HOME", homeDir)
+
+		path, extension, err := resolveConfigPath(true, "")
+
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(homeDir, GlobalConfigFileName), path)
+		assert.Equal(t, DefaultConfigExtension, extension)
+	})
+
+	t.Run("default filename in the working directory", func(t *testing.T) {
+		workingDirectory, err := os.Getwd()
+		require.NoError(t, err)
+
+		t.Setenv(EnvironmentVariableConfigFileName, "")
+
+		path, extension, err := resolveConfigPath(false, "")
+
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(workingDirectory, DefaultConfigFileName), path)
+		assert.Equal(t, DefaultConfigExtension, extension)
+	})
+
+	t.Run("environment variable overrides the filename", func(t *testing.T) {
+		workingDirectory, err := os.Getwd()
+		require.NoError(t, err)
+
+		t.Setenv(EnvironmentVariableConfigFileName, "custom.yaml")
+
+		path, extension, err := resolveConfigPath(false, "")
+
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(workingDirectory, "custom.yaml"), path)
+		assert.Equal(t, ".yaml", extension)
+	})
+
+	t.Run("environment variable without extension defaults to json", func(t *testing.T) {
+		workingDirectory, err := os.Getwd()
+		require.NoError(t, err)
+
+		t.Setenv(EnvironmentVariableConfigFileName, "custom")
+
+		path, extension, err := resolveConfigPath(false, "")
+
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(workingDirectory, "custom.json"), path)
+		assert.Equal(t, DefaultConfigExtension, extension)
 	})
 }
 
