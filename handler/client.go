@@ -122,7 +122,7 @@ func mergeHeaders(incoming map[string][]string, configured http.Header) http.Hea
 	merged := make(http.Header, len(incoming)+len(configured))
 
 	for key, values := range incoming {
-		if isUnforwardableHeader(key) {
+		if httpPkg.IsUnforwardableHeader(key) {
 			continue
 		}
 
@@ -130,7 +130,7 @@ func mergeHeaders(incoming map[string][]string, configured http.Header) http.Hea
 	}
 
 	for key, values := range configured {
-		if isUnforwardableHeader(key) {
+		if httpPkg.IsUnforwardableHeader(key) {
 			continue
 		}
 
@@ -155,15 +155,4 @@ func resolveBody(incoming []byte, requestTo *config.RequestTo) ([]byte, error) {
 	}
 
 	return bodyBytes, nil
-}
-
-// isUnforwardableHeader reports headers the transport owns or that only apply to one hop.
-func isUnforwardableHeader(name string) bool {
-	switch http.CanonicalHeaderKey(name) {
-	case "Host", "Content-Length", "Transfer-Encoding", "Connection", "Keep-Alive",
-		"Upgrade", "Proxy-Connection", "Te", "Trailer", "Proxy-Authorization":
-		return true
-	default:
-		return false
-	}
 }

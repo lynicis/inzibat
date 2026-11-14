@@ -97,7 +97,7 @@ func (httpClient *Client) buildRequest(
 
 	if len(requestHeader) > 0 {
 		for headerKey, headerValues := range requestHeader {
-			if isSkipHeader(headerKey) {
+			if IsUnforwardableHeader(headerKey) {
 				continue
 			}
 
@@ -114,10 +114,11 @@ func (httpClient *Client) buildRequest(
 	return req
 }
 
-// isSkipHeader reports headers fasthttp owns; forwarding them would corrupt framing.
-func isSkipHeader(name string) bool {
+// IsUnforwardableHeader reports headers the transport owns or that only apply to one hop.
+func IsUnforwardableHeader(name string) bool {
 	switch http.CanonicalHeaderKey(name) {
-	case "Host", "Content-Length", "Connection", "Transfer-Encoding", "Keep-Alive":
+	case "Host", "Content-Length", "Transfer-Encoding", "Connection", "Keep-Alive",
+		"Upgrade", "Proxy-Connection", "Te", "Trailer", "Proxy-Authorization":
 		return true
 	default:
 		return false

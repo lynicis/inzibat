@@ -454,6 +454,7 @@ func TestClientHandler_CreateHandler_PassThrough(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
 		request.Header.Set("X-Test", "1")
 		request.Header.Set("Content-Length", "0")
+		request.Header.Set("Upgrade", "websocket")
 
 		response, err := fiberApp.Test(request)
 		require.NoError(t, err)
@@ -462,6 +463,7 @@ func TestClientHandler_CreateHandler_PassThrough(t *testing.T) {
 		forwarded := <-headers
 		assert.Equal(t, "1", forwarded.Get("X-Test"))
 		assert.Equal(t, "configured", forwarded.Get("X-Configured"))
+		assert.Empty(t, forwarded.Get("Upgrade"))
 	})
 
 	t.Run("passWithRequestBody forwards the incoming body verbatim", func(t *testing.T) {

@@ -861,3 +861,17 @@ func TestClient_makeRequest_RetriesOn5xxThenSucceeds(t *testing.T) {
 	assert.Equal(t, fiber.StatusTeapot, response.Status)
 	assert.Equal(t, []byte("recovered"), response.Body)
 }
+
+func TestIsUnforwardableHeader(t *testing.T) {
+	for _, name := range []string{
+		"Host", "Content-Length", "Connection", "Transfer-Encoding", "Keep-Alive",
+		"Upgrade", "Proxy-Connection", "Te", "Trailer", "Proxy-Authorization",
+		"host", "transfer-encoding",
+	} {
+		assert.True(t, IsUnforwardableHeader(name), "header: %s", name)
+	}
+
+	for _, name := range []string{"X-Test", "Content-Type", "Authorization"} {
+		assert.False(t, IsUnforwardableHeader(name), "header: %s", name)
+	}
+}
