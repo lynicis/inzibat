@@ -10,10 +10,6 @@
         "port": {
           "type": "integer",
           "description": "The port the server will listen on"
-        },
-        "concurrency": {
-          "type": "integer",
-          "description": "Maximum number of concurrent connections"
         }
       },
       "additionalProperties": false

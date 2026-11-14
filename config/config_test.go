@@ -64,7 +64,6 @@ func TestReader_Read(t *testing.T) {
 					},
 				},
 			},
-			Concurrency: 5,
 		}
 
 		mockReader := NewMockReaderStrategy(ctrl)
@@ -116,13 +115,11 @@ func TestReader_Read(t *testing.T) {
 		assert.NotNil(t, cfg)
 	})
 
-	t.Run("against concurrency route creator limit", func(t *testing.T) {
+	t.Run("zero value config", func(t *testing.T) {
 		mockReader := NewMockReaderStrategy(ctrl)
 		mockReader.EXPECT().
 			Read(gomock.Any()).
-			Return(&Cfg{
-				Concurrency: 0,
-			}, nil).
+			Return(&Cfg{}, nil).
 			Times(1)
 
 		configReader := &Reader{
@@ -343,7 +340,6 @@ func TestReadOrCreateConfig(t *testing.T) {
 		assert.NotNil(t, cfg)
 		assert.Equal(t, DefaultSchemaFileName, cfg.Schema)
 		assert.Equal(t, 8080, cfg.ServerPort)
-		assert.Equal(t, 5, cfg.Concurrency)
 		assert.False(t, cfg.HealthCheckRoute)
 		assert.Empty(t, cfg.Routes)
 	})
@@ -371,7 +367,6 @@ func TestReadOrCreateConfig(t *testing.T) {
 		assert.NotNil(t, cfg)
 		assert.Equal(t, DefaultSchemaFileName, cfg.Schema)
 		assert.Equal(t, 9090, cfg.ServerPort)
-		assert.Equal(t, 10, cfg.Concurrency)
 		assert.True(t, cfg.HealthCheckRoute)
 		assert.Len(t, cfg.Routes, 1)
 		assert.Equal(t, "/test", cfg.Routes[0].Path)
@@ -519,7 +514,6 @@ func TestWriteConfig(t *testing.T) {
 		configPath := filepath.Join(tmpDir, "inzibat.json")
 		cfg := &Cfg{
 			ServerPort:       8080,
-			Concurrency:      5,
 			HealthCheckRoute: false,
 			Routes: []Route{
 				{
@@ -544,7 +538,6 @@ func TestWriteConfig(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, DefaultSchemaFileName, readCfg.Schema)
 		assert.Equal(t, cfg.ServerPort, readCfg.ServerPort)
-		assert.Equal(t, cfg.Concurrency, readCfg.Concurrency)
 		assert.Len(t, readCfg.Routes, 1)
 	})
 
@@ -554,7 +547,6 @@ func TestWriteConfig(t *testing.T) {
 		cfg := &Cfg{
 			Schema:           "https://example.com/custom.schema.json",
 			ServerPort:       8080,
-			Concurrency:      5,
 			HealthCheckRoute: false,
 			Routes: []Route{
 				{

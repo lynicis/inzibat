@@ -21,7 +21,7 @@ CI order: lint → build → test → SonarCloud coverage → gosec security.
 ## Architecture
 
 ```
-config/ → router/ (worker pool, concurrency channels) → handler/
+config/ → router/ (sequential route registration) → handler/
   handler/endpoint.go  — mock routes (fakeResponse)
   handler/client.go    — proxy routes (requestTo) with circuit breaker
 server/                — Fiber bootstrap, graceful shutdown
@@ -34,7 +34,7 @@ server/                — Fiber bootstrap, graceful shutdown
 
 - Formats: JSON, TOML, YAML (via koanf parsers). Default extension `.json`.
 - **Precedence**: `--config` flag > `INZIBAT_CONFIG_FILE` env > `inzibat.json` in CWD > `~/.inzibat.config.json` (with `--global`/`-g`)
-- Default server port: `8080`, concurrency: `runtime.GOMAXPROCS(3)` (configurable)
+- Default server port: `8080`
 - `healthCheckRoute: true` auto-adds `GET /health → 200`
 
 ## CLI

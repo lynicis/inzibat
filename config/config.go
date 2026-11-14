@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/goccy/go-json"
 
@@ -115,10 +114,6 @@ func (reader *Reader) Read() (*Cfg, error) {
 		)
 	}
 
-	if config.Concurrency == 0 {
-		config.Concurrency = runtime.GOMAXPROCS(3)
-	}
-
 	return config, nil
 }
 
@@ -185,7 +180,6 @@ func DefaultCfg() *Cfg {
 	return &Cfg{
 		Schema:           DefaultSchemaFileName,
 		ServerPort:       8080,
-		Concurrency:      5,
 		HealthCheckRoute: false,
 		Routes:           []Route{},
 	}

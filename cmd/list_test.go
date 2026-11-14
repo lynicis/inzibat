@@ -49,7 +49,6 @@ func TestListCmd_Run(t *testing.T) {
 		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      5,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -97,7 +96,6 @@ func TestListCmd_Run(t *testing.T) {
 		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      5,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -145,7 +143,6 @@ func TestListCmd_Run(t *testing.T) {
 		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      5,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{

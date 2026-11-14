@@ -34,7 +34,6 @@ func TestStartServerCmd_ConfigFile(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{

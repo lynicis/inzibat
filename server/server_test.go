@@ -30,7 +30,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       freePort,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -102,7 +101,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -163,7 +161,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       8080,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -196,7 +193,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       freePort,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -249,7 +245,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       freePort,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -297,7 +292,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       freePort,
-			Concurrency:      1,
 			HealthCheckRoute: true,
 			Routes: []config.Route{
 				{
@@ -352,7 +346,6 @@ func TestStartServer(t *testing.T) {
 
 		cfg := &config.Cfg{
 			ServerPort:       freePort,
-			Concurrency:      1,
 			HealthCheckRoute: false,
 			Routes: []config.Route{
 				{
@@ -403,7 +396,6 @@ func TestStartServer(t *testing.T) {
 func TestSetupServer_RecordEnabled(t *testing.T) {
 	cfg := &config.Cfg{
 		ServerPort:  8080,
-		Concurrency: 1,
 		Routes: []config.Route{
 			{
 				Method: "GET",
@@ -423,7 +415,6 @@ func TestSetupServer_RecordEnabled(t *testing.T) {
 func TestSetupServer_CircuitBreaker(t *testing.T) {
 	cfg := &config.Cfg{
 		ServerPort:  8080,
-		Concurrency: 1,
 		Routes: []config.Route{
 			{
 				Method: "GET",

@@ -18,7 +18,6 @@ type Cfg struct {
 	Schema           string                `json:"$schema,omitempty" yaml:"$schema,omitempty" toml:"$schema,omitempty" koanf:"$schema"` //nolint:lll
 	ServerPort       int                   `json:"serverPort" koanf:"serverPort" validate:"required"`
 	Routes           []Route               `json:"routes" koanf:"routes" validate:"required,gt=0,dive,required"`
-	Concurrency      int                   `json:"concurrency" koanf:"concurrency"`
 	HealthCheckRoute bool                  `json:"healthCheckRoute" koanf:"isHealthCheckRouteEnabled"`
 	CircuitBreaker   *CircuitBreakerConfig `json:"circuitBreaker,omitempty" koanf:"circuitBreaker"`
 }

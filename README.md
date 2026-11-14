@@ -370,7 +370,6 @@ Inzibat supports configuration files in JSON, TOML, and YAML formats.
 {
   "$schema": "https://raw.githubusercontent.com/lynicis/inzibat/refs/heads/master/examples/inzibat.schema.json",
   "serverPort": 8080,
-  "concurrency": 5,
   "circuitBreaker": {
     "enabled": true,
     "failureThreshold": 5,
