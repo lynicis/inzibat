@@ -191,94 +191,6 @@ func TestBuildSourceSelectionForm(t *testing.T) {
 	})
 }
 
-func TestGetFilePathFromForm(t *testing.T) {
-	t.Run("happy path - function signature matches expected", func(t *testing.T) {
-		var _ func(FilePathFormConfig) (string, error) = GetFilePathFromForm
-
-		assert.NotNil(t, GetFilePathFromForm)
-	})
-
-	t.Run("error path - function returns error when form.Run fails", func(t *testing.T) {
-		config := FilePathFormConfig{
-			Title:       "File Path",
-			Placeholder: "Enter file path",
-			Key:         "filepath",
-		}
-
-		form := BuildFilePathForm(config)
-		assert.NotNil(t, form)
-
-		_ = GetFilePathFromForm
-	})
-
-	t.Run("happy path - function uses config key to get value", func(t *testing.T) {
-		config := FilePathFormConfig{
-			Title:       "Test",
-			Placeholder: "test",
-			Key:         "test_key",
-		}
-
-		form := BuildFilePathForm(config)
-		assert.NotNil(t, form)
-
-		value := form.GetString(config.Key)
-		assert.Equal(t, "", value)
-	})
-
-	t.Run("error path - function wraps form.Run error correctly", func(t *testing.T) {
-		config := FilePathFormConfig{
-			Title:       "File Path",
-			Placeholder: "Enter file path",
-			Key:         "filepath",
-		}
-
-		form := BuildFilePathForm(config)
-		assert.NotNil(t, form)
-
-		_ = GetFilePathFromForm
-	})
-}
-
-func TestGetSourceFromForm(t *testing.T) {
-	t.Run("happy path - function creates form with correct parameters", func(t *testing.T) {
-		title := "Select Source"
-		key := "source"
-
-		form := BuildSourceSelectionForm(title, key)
-
-		assert.NotNil(t, form)
-		value := form.GetString(key)
-		assert.Equal(t, "", value)
-	})
-
-	t.Run("happy path - function signature matches expected", func(t *testing.T) {
-		var _ func(string, string) (string, error) = GetSourceFromForm
-
-		assert.NotNil(t, GetSourceFromForm)
-	})
-
-	t.Run("error path - function returns error when form.Run fails", func(t *testing.T) {
-		title := "Select Source"
-		key := "source"
-
-		form := BuildSourceSelectionForm(title, key)
-		assert.NotNil(t, form)
-
-		_ = GetSourceFromForm
-	})
-
-	t.Run("happy path - function uses key parameter to get value", func(t *testing.T) {
-		title := "Test"
-		key := "test_key"
-
-		form := BuildSourceSelectionForm(title, key)
-
-		assert.NotNil(t, form)
-		value := form.GetString(key)
-		assert.Equal(t, "", value)
-	})
-}
-
 func TestBuildFilePathFormValidationLogic(t *testing.T) {
 	t.Run("happy path - validation passes for existing file", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -495,28 +407,6 @@ func TestSourceConstants(t *testing.T) {
 		value := FilePathKey
 
 		assert.Equal(t, "filepath", value)
-	})
-}
-
-func TestSourceOption(t *testing.T) {
-	t.Run("happy path - SourceOption struct exists", func(t *testing.T) {
-		option := SourceOption{
-			Title: "Test Title",
-			Value: "test_value",
-		}
-
-		assert.Equal(t, "Test Title", option.Title)
-		assert.Equal(t, "test_value", option.Value)
-	})
-
-	t.Run("happy path - SourceOption with empty fields", func(t *testing.T) {
-		option := SourceOption{
-			Title: "",
-			Value: "",
-		}
-
-		assert.Equal(t, "", option.Title)
-		assert.Equal(t, "", option.Value)
 	})
 }
 

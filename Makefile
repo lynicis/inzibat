@@ -2,7 +2,6 @@
 generate-mock:
 	mockgen -source=config/reader.go -destination=config/reader_mock.go -package=config
 	mockgen -source=cmd/formbuilder/form_collector.go -destination=cmd/formbuilder/form_runner_mock.go -package=formbuilder
-	mockgen -source=cmd/create.go -destination=cmd/create_mock.go -package=cmd
 
 .PHONY: lint
 lint:

@@ -9,7 +9,7 @@ import (
 
 var (
 	configFile      string
-	isGlobalConfig  = true
+	isGlobalConfig  bool
 	recordEnabled   bool
 	startServerFunc = server.StartServer
 )

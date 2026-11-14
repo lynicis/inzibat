@@ -8,11 +8,6 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-type SourceOption struct {
-	Title string
-	Value string
-}
-
 type FilePathFormConfig struct {
 	Title       string
 	Placeholder string
@@ -58,20 +53,4 @@ func BuildSourceSelectionForm(title string, key string) *huh.Form {
 		WithInput(os.Stdin).
 		WithOutput(os.Stdout).
 		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
-}
-
-func GetFilePathFromForm(config FilePathFormConfig) (string, error) {
-	form := BuildFilePathForm(config)
-	if err := form.Run(); err != nil {
-		return "", fmt.Errorf("failed to get file path: %w", err)
-	}
-	return form.GetString(config.Key), nil
-}
-
-func GetSourceFromForm(title string, key string) (string, error) {
-	form := BuildSourceSelectionForm(title, key)
-	if err := form.Run(); err != nil {
-		return "", fmt.Errorf("failed to select source: %w", err)
-	}
-	return form.GetString(key), nil
 }
