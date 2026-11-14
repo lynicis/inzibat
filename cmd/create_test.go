@@ -774,3 +774,16 @@ func TestCreateRouteInternal(t *testing.T) {
 		assert.Nil(t, result.RequestTo)
 	})
 }
+
+func TestDefaultCircuitBreakerFormValues(t *testing.T) {
+	for range 2 {
+		failureThreshold, minimumRequests, openTimeoutMs, halfOpenMaxRequests, successThreshold :=
+			defaultCircuitBreakerFormValues()
+
+		assert.Equal(t, "5", failureThreshold)
+		assert.Equal(t, "10", minimumRequests)
+		assert.Equal(t, "30000", openTimeoutMs)
+		assert.Equal(t, "2", halfOpenMaxRequests)
+		assert.Equal(t, "2", successThreshold)
+	}
+}

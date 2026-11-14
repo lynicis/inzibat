@@ -26,14 +26,17 @@ var (
 		{Key: "Mock", Value: "mock"},
 		{Key: "Client (Proxy)", Value: "client"},
 	}
-	createConfigFile           string
-	createIsGlobalConfig       bool
-	defaultFailureThreshold    = "5"
-	defaultMinimumRequests     = "10"
-	defaultOpenTimeoutMs       = "30000"
-	defaultHalfOpenMaxRequests = "2"
-	defaultSuccessThreshold    = "2"
+	createConfigFile     string
+	createIsGlobalConfig bool
 )
+
+// defaultCircuitBreakerFormValues returns fresh form defaults per build so a
+// previous answer cannot leak into the next form.
+func defaultCircuitBreakerFormValues() (
+	failureThreshold, minimumRequests, openTimeoutMs, halfOpenMaxRequests, successThreshold string,
+) {
+	return "5", "10", "30000", "2", "2"
+}
 
 func createRouteForm() *huh.Form {
 	return formbuilder.NewHuhForm(
@@ -317,6 +320,9 @@ func createClientRequestForm() (*config.RequestTo, error) {
 		),
 	)
 
+	failureThreshold, minimumRequests, openTimeoutMs, halfOpenMaxRequests, successThreshold :=
+		defaultCircuitBreakerFormValues()
+
 	optionsForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewConfirm().
@@ -334,27 +340,27 @@ func createClientRequestForm() (*config.RequestTo, error) {
 			huh.NewInput().
 				Key("failureThreshold").
 				Title("Circuit Breaker Failure Threshold").
-				Value(&defaultFailureThreshold).
+				Value(&failureThreshold).
 				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("minimumRequests").
 				Title("Circuit Breaker Minimum Requests").
-				Value(&defaultMinimumRequests).
+				Value(&minimumRequests).
 				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("openTimeoutMs").
 				Title("Circuit Breaker Open Timeout (ms)").
-				Value(&defaultOpenTimeoutMs).
+				Value(&openTimeoutMs).
 				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("halfOpenMaxRequests").
 				Title("Circuit Breaker Half-Open Max Requests").
-				Value(&defaultHalfOpenMaxRequests).
+				Value(&halfOpenMaxRequests).
 				Validate(formbuilder.ValidatePositiveInt),
 			huh.NewInput().
 				Key("successThreshold").
 				Title("Circuit Breaker Success Threshold").
-				Value(&defaultSuccessThreshold).
+				Value(&successThreshold).
 				Validate(formbuilder.ValidatePositiveInt),
 		),
 	)
