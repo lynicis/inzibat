@@ -124,3 +124,32 @@ func TestGetJSON_RespectsTimeout(t *testing.T) {
 	assert.Contains(t, err.Error(), "could not connect to inzibat server")
 	assert.Less(t, time.Since(start), 2*time.Second)
 }
+
+func TestRecordExportCmd_RejectsUnknownFormat(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(recorder.RecordedSession{
+			Entries: []recorder.RecordedEntry{{DurationMs: 1}},
+		})
+	}))
+	defer ts.Close()
+
+	originalAddr := recordAddr
+	originalFormat := recordExportFormat
+	originalOutput := recordExportOutput
+	defer func() {
+		recordAddr = originalAddr
+		recordExportFormat = originalFormat
+		recordExportOutput = originalOutput
+	}()
+
+	outputPath := filepath.Join(t.TempDir(), "export.json")
+	recordAddr = ts.Listener.Addr().String()
+	recordExportFormat = "xml"
+	recordExportOutput = outputPath
+
+	err := recordExportCmd.RunE(recordExportCmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported export format")
+	assert.NoFileExists(t, outputPath)
+}

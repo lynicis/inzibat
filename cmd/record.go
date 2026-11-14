@@ -92,23 +92,31 @@ Supports two formats:
   - json:    Raw recorded session data (default)
   - inzibat: Converted to inzibat mock configuration format`,
 	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		session, err := fetchRecordedSession(recordAddr)
 		if err != nil {
-			zap.L().Fatal("failed to fetch recorded session", zap.Error(err))
+			return fmt.Errorf("failed to fetch recorded session: %w", err)
 		}
 
 		if len(session.Entries) == 0 {
 			fmt.Println("No recorded requests to export.")
-			return
+
+			return nil
 		}
 
 		switch recordExportFormat {
+		case "json":
+			exportAsJSON(session)
 		case "inzibat":
 			exportAsInzibatConfig(session)
 		default:
-			exportAsJSON(session)
+			return fmt.Errorf(
+				"unsupported export format %q (use json or inzibat)",
+				recordExportFormat,
+			)
 		}
+
+		return nil
 	},
 }
 
