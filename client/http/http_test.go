@@ -45,9 +45,9 @@ func TestClient_Get(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Get(uri, http.Header{
+		response, err := httpClient.Do(http.MethodGet, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
-		})
+		}, nil)
 
 		assert.NoError(t, err)
 		assert.Equal(t, []string{
@@ -73,9 +73,9 @@ func TestClient_Get(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Get(uri, http.Header{
+		response, err := httpClient.Do(http.MethodGet, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
-		})
+		}, nil)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -104,7 +104,7 @@ func TestClient_Post(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Post(uri, http.Header{
+		response, err := httpClient.Do(http.MethodPost, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -130,7 +130,7 @@ func TestClient_Post(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Post(uri, http.Header{
+		response, err := httpClient.Do(http.MethodPost, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -161,7 +161,7 @@ func TestClient_Put(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Put(uri, http.Header{
+		response, err := httpClient.Do(http.MethodPut, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -187,7 +187,7 @@ func TestClient_Put(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Put(uri, http.Header{
+		response, err := httpClient.Do(http.MethodPut, uri, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -218,7 +218,7 @@ func TestClient_Delete(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Delete(url, http.Header{
+		response, err := httpClient.Do(http.MethodDelete, url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -244,7 +244,7 @@ func TestClient_Delete(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Delete(url, http.Header{
+		response, err := httpClient.Do(http.MethodDelete, url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -275,7 +275,7 @@ func TestClient_Patch(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Patch(url, http.Header{
+		response, err := httpClient.Do(http.MethodPatch, url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 
@@ -301,7 +301,7 @@ func TestClient_Patch(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		url := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, TestReqPath)
-		response, err := httpClient.Patch(url, http.Header{
+		response, err := httpClient.Do(http.MethodPatch, url, http.Header{
 			TestReqHeaderKey: {TestReqHeaderValue},
 		}, TestReqBody)
 

@@ -55,43 +55,12 @@ func (httpClient *Client) SetRetryConfig(config RetryConfig) {
 	httpClient.retryConfig = config
 }
 
-func (httpClient *Client) Get(
-	uri string,
-	requestHeader http.Header,
-) (*Response, error) {
-	return httpClient.makeRequest(uri, http.MethodGet, requestHeader, nil)
-}
-
-func (httpClient *Client) Post(
-	uri string,
+func (httpClient *Client) Do(
+	method, uri string,
 	requestHeader http.Header,
 	requestBody []byte,
 ) (*Response, error) {
-	return httpClient.makeRequest(uri, http.MethodPost, requestHeader, requestBody)
-}
-
-func (httpClient *Client) Put(
-	uri string,
-	requestHeader http.Header,
-	requestBody []byte,
-) (*Response, error) {
-	return httpClient.makeRequest(uri, http.MethodPut, requestHeader, requestBody)
-}
-
-func (httpClient *Client) Patch(
-	uri string,
-	requestHeader http.Header,
-	requestBody []byte,
-) (*Response, error) {
-	return httpClient.makeRequest(uri, http.MethodPatch, requestHeader, requestBody)
-}
-
-func (httpClient *Client) Delete(
-	uri string,
-	requestHeader http.Header,
-	requestBody []byte,
-) (*Response, error) {
-	return httpClient.makeRequest(uri, http.MethodDelete, requestHeader, requestBody)
+	return httpClient.makeRequest(uri, method, requestHeader, requestBody)
 }
 
 func isRetryableError(err error, statusCode int) bool {
