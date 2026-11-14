@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valyala/fasthttp"
+
+	"github.com/lynicis/inzibat/internal/testutil"
 )
 
 const (
@@ -26,7 +28,7 @@ var (
 
 func TestClient_Get(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -60,7 +62,7 @@ func TestClient_Get(t *testing.T) {
 	})
 
 	t.Run("when upstream returns 404", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -85,7 +87,7 @@ func TestClient_Get(t *testing.T) {
 
 func TestClient_Post(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -117,7 +119,7 @@ func TestClient_Post(t *testing.T) {
 	})
 
 	t.Run("when upstream returns 404", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -142,7 +144,7 @@ func TestClient_Post(t *testing.T) {
 
 func TestClient_Put(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -174,7 +176,7 @@ func TestClient_Put(t *testing.T) {
 	})
 
 	t.Run("when upstream returns 404", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -199,7 +201,7 @@ func TestClient_Put(t *testing.T) {
 
 func TestClient_Delete(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -231,7 +233,7 @@ func TestClient_Delete(t *testing.T) {
 	})
 
 	t.Run("when upstream returns 404", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -256,7 +258,7 @@ func TestClient_Delete(t *testing.T) {
 
 func TestClient_Patch(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -288,7 +290,7 @@ func TestClient_Patch(t *testing.T) {
 	})
 
 	t.Run("when upstream returns 404", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -511,7 +513,7 @@ func TestClient_buildRequest(t *testing.T) {
 
 func TestClient_executeRequest(t *testing.T) {
 	t.Run("happy path - executes request successfully", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -609,7 +611,7 @@ func TestClient_handleResponse(t *testing.T) {
 
 func TestClient_makeRequest(t *testing.T) {
 	t.Run("happy path - successful request on first attempt", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -641,7 +643,7 @@ func TestClient_makeRequest(t *testing.T) {
 	})
 
 	t.Run("error path - retries on 5xx error and eventually fails", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()
@@ -688,7 +690,7 @@ func TestClient_makeRequest(t *testing.T) {
 	})
 
 	t.Run("error path - fails after all retries exhausted", func(t *testing.T) {
-		freePort, err := GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		httpClient := NewHttpClient()

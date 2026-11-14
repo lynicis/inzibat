@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/lynicis/inzibat/client/http"
 	"github.com/lynicis/inzibat/config"
+	"github.com/lynicis/inzibat/internal/testutil"
 )
 
 func contains(s, substr string) bool {
@@ -25,7 +25,7 @@ func TestStartServer(t *testing.T) {
 	t.Run("happy path - with valid config file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
-		freePort, err := http.GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		cfg := &config.Cfg{
@@ -191,7 +191,7 @@ func TestStartServer(t *testing.T) {
 	t.Run("happy path - loads config from environment variable when cli flag omitted", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
-		freePort, err := http.GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		cfg := &config.Cfg{
@@ -244,7 +244,7 @@ func TestStartServer(t *testing.T) {
 		t.Setenv("USERPROFILE", tmpHomeDir)
 
 		globalConfigPath := filepath.Join(tmpHomeDir, config.GlobalConfigFileName)
-		freePort, err := http.GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		cfg := &config.Cfg{
@@ -292,7 +292,7 @@ func TestStartServer(t *testing.T) {
 	t.Run("happy path - server startup and route creation", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "inzibat.json")
-		freePort, err := http.GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		cfg := &config.Cfg{
@@ -347,7 +347,7 @@ func TestStartServer(t *testing.T) {
 		require.NoError(t, err)
 
 		configFile := "inzibat.json"
-		freePort, err := http.GetFreePort()
+		freePort, err := testutil.GetFreePort()
 		require.NoError(t, err)
 
 		cfg := &config.Cfg{
