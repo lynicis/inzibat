@@ -99,3 +99,27 @@ func TestMockRoute_CreateRoute(t *testing.T) {
 		})
 	})
 }
+
+func TestEndpointHandler_BodylessResponse(t *testing.T) {
+	endpointHandler := &EndpointHandler{
+		RouteConfig: &[]config.Route{
+			{
+				Method:       fiber.MethodGet,
+				Path:         "/empty",
+				FakeResponse: &config.FakeResponse{StatusCode: fiber.StatusNoContent},
+			},
+		},
+	}
+
+	fiberApp := fiber.New()
+	fiberApp.Get("/empty", endpointHandler.CreateHandler(0))
+
+	response, err := fiberApp.Test(httptest.NewRequest(fiber.MethodGet, "/empty", nil))
+	require.NoError(t, err)
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusNoContent, response.StatusCode)
+	assert.Empty(t, body)
+}

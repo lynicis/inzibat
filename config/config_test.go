@@ -785,3 +785,46 @@ func TestReader_Read_AppliesDefaultsBeforeValidation(t *testing.T) {
 		assert.Len(t, cfg.Routes, 1)
 	})
 }
+
+func TestReader_Read_AllowsBodylessFakeResponse(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "inzibat.json")
+	require.NoError(t, os.WriteFile(configPath, []byte(`{
+		"serverPort": 8080,
+		"routes": [
+			{
+				"method": "GET",
+				"path": "/empty",
+				"fakeResponse": {"statusCode": 204}
+			}
+		]
+	}`), 0o600))
+
+	loader, err := NewLoader(validator.New(), false, configPath)
+	require.NoError(t, err)
+
+	cfg, err := loader.Read()
+
+	require.NoError(t, err)
+	require.Len(t, cfg.Routes, 1)
+	assert.Equal(t, 204, cfg.Routes[0].FakeResponse.StatusCode)
+	assert.Empty(t, cfg.Routes[0].FakeResponse.Body)
+	assert.Empty(t, cfg.Routes[0].FakeResponse.BodyString)
+}
+
+func TestReader_Read_HealthRouteWithEmptyRoutes(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "inzibat.json")
+	require.NoError(t, os.WriteFile(configPath, []byte(`{
+		"serverPort": 8080,
+		"healthCheckRoute": true,
+		"routes": []
+	}`), 0o600))
+
+	loader, err := NewLoader(validator.New(), false, configPath)
+	require.NoError(t, err)
+
+	cfg, err := loader.Read()
+
+	require.NoError(t, err)
+	require.Len(t, cfg.Routes, 1)
+	assert.Equal(t, "/health", cfg.Routes[0].Path)
+}

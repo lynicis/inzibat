@@ -123,7 +123,7 @@ type HttpBody map[string]any
 
 type FakeResponse struct {
 	Headers    http.Header `json:"headers" koanf:"headers"`
-	Body       HttpBody    `json:"body,omitempty" koanf:"body" validate:"required_without=BodyString"`
-	BodyString string      `json:"bodyString,omitempty" koanf:"bodyString" validate:"required_without=Body"`
+	Body       HttpBody    `json:"body,omitempty" koanf:"body"`
+	BodyString string      `json:"bodyString,omitempty" koanf:"bodyString"`
 	StatusCode int         `json:"statusCode" koanf:"statusCode" validate:"required"`
 }
