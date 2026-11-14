@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -120,7 +121,18 @@ var recordClearCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		url := fmt.Sprintf("http://%s/_inzibat/recorder/clear", recordAddr)
 
-		resp, err := http.Post(url, "application/json", nil) //nolint:noctx
+		request, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodPost,
+			url,
+			nil,
+		)
+		if err != nil {
+			zap.L().Fatal("failed to build request", zap.Error(err))
+		}
+		request.Header.Set("Content-Type", "application/json")
+
+		resp, err := httpClient.Do(request)
 		if err != nil {
 			zap.L().Fatal(
 				"failed to clear recorded entries",
@@ -141,12 +153,17 @@ var recordClearCmd = &cobra.Command{
 	},
 }
 
-var httpClient = &http.Client{}
+var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 func getJSON[T any](url string, addr, kind string) (T, error) {
 	var result T
 
-	response, err := httpClient.Get(url) //nolint:noctx
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return result, fmt.Errorf("failed to build request: %w", err)
+	}
+
+	response, err := httpClient.Do(request)
 	if err != nil {
 		return result, fmt.Errorf(
 			"could not connect to inzibat server at %s: %w",

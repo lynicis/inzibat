@@ -46,7 +46,7 @@ func TestFetchRecordedSession(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/_inzibat/recorder/session", r.URL.Path)
 		session := recorder.RecordedSession{
-			StartedAt:  time.Now(),
+			StartedAt: time.Now(),
 		}
 		json.NewEncoder(w).Encode(session)
 	}))
@@ -105,4 +105,22 @@ func TestExportAsInzibatConfig(t *testing.T) {
 	data, err := os.ReadFile(exportPath)
 	require.NoError(t, err)
 	require.Contains(t, string(data), "routes")
+}
+
+func TestGetJSON_RespectsTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	originalTimeout := httpClient.Timeout
+	httpClient.Timeout = 50 * time.Millisecond
+	defer func() { httpClient.Timeout = originalTimeout }()
+
+	start := time.Now()
+	_, err := getJSON[map[string]any](server.URL, "test-addr", "response")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "could not connect to inzibat server")
+	assert.Less(t, time.Since(start), 2*time.Second)
 }
