@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -422,5 +423,86 @@ func TestClientHandler_CreateHandler_NoNullBody(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Equal(t, "", <-bodies)
+	})
+}
+
+func TestClientHandler_CreateHandler_PassThrough(t *testing.T) {
+	t.Run("passWithRequestHeaders forwards incoming headers", func(t *testing.T) {
+		headers := make(chan http.Header, 1)
+		targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			headers <- r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer targetServer.Close()
+
+		clientHandler := &ClientHandler{
+			Client: httpPkg.NewHttpClient(),
+			RouteConfig: &[]config.Route{
+				{
+					Method: http.MethodGet,
+					Path:   "/proxy",
+					RequestTo: &config.RequestTo{
+						Method:                 http.MethodGet,
+						Headers:                http.Header{"X-Configured": {"configured"}},
+						Host:                   targetServer.URL,
+						Path:                   "/",
+						PassWithRequestHeaders: true,
+					},
+				},
+			},
+		}
+
+		fiberApp := fiber.New()
+		fiberApp.Get("/proxy", clientHandler.CreateHandler(0))
+
+		request := httptest.NewRequest(http.MethodGet, "/proxy", nil)
+		request.Header.Set("X-Test", "1")
+		request.Header.Set("Content-Length", "0")
+
+		response, err := fiberApp.Test(request)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+
+		forwarded := <-headers
+		assert.Equal(t, "1", forwarded.Get("X-Test"))
+		assert.Equal(t, "configured", forwarded.Get("X-Configured"))
+	})
+
+	t.Run("passWithRequestBody forwards the incoming body verbatim", func(t *testing.T) {
+		bodies := make(chan string, 1)
+		targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			bodies <- string(body)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer targetServer.Close()
+
+		clientHandler := &ClientHandler{
+			Client: httpPkg.NewHttpClient(),
+			RouteConfig: &[]config.Route{
+				{
+					Method: http.MethodPost,
+					Path:   "/proxy",
+					RequestTo: &config.RequestTo{
+						Method:              http.MethodPost,
+						Body:                config.HttpBody{"configured": "body"},
+						Host:                targetServer.URL,
+						Path:                "/",
+						PassWithRequestBody: true,
+					},
+				},
+			},
+		}
+
+		fiberApp := fiber.New()
+		fiberApp.Post("/proxy", clientHandler.CreateHandler(0))
+
+		request := httptest.NewRequest(http.MethodPost, "/proxy", strings.NewReader(`{"a":1}`))
+		request.Header.Set("Content-Type", "application/json")
+
+		response, err := fiberApp.Test(request)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, `{"a":1}`, <-bodies)
 	})
 }

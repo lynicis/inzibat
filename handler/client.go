@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
@@ -37,19 +38,21 @@ func (clientRoute *ClientHandler) CreateHandler(routeIndex int) func(ctx *fiber.
 			return fmt.Errorf("failed to parse request URL: %w", err)
 		}
 
-		var bodyBytes []byte
-		if len(requestTo.Body) > 0 {
-			bodyBytes, err = json.Marshal(&requestTo.Body)
-			if err != nil {
-				return fmt.Errorf("failed to marshal request body: %w", err)
-			}
+		requestHeaders := requestTo.Headers
+		if requestTo.PassWithRequestHeaders {
+			requestHeaders = mergeHeaders(ctx.GetReqHeaders(), requestTo.Headers)
+		}
+
+		requestBody, err := resolveBody(ctx.Body(), requestTo)
+		if err != nil {
+			return err
 		}
 
 		response, err := clientRoute.Client.Do(
 			requestTo.Method,
 			parsedUrl.String(),
-			requestTo.Headers,
-			bodyBytes,
+			requestHeaders,
+			requestBody,
 		)
 		if err != nil {
 			if recordErr := clientRoute.recordFailure(hasCircuitBreaker, routeKey); recordErr != nil {
@@ -112,4 +115,55 @@ func (clientRoute *ClientHandler) recordSuccess(hasCircuitBreaker bool, routeKey
 	}
 
 	return nil
+}
+
+// mergeHeaders copies the incoming headers and lets configured headers win per key.
+func mergeHeaders(incoming map[string][]string, configured http.Header) http.Header {
+	merged := make(http.Header, len(incoming)+len(configured))
+
+	for key, values := range incoming {
+		if isUnforwardableHeader(key) {
+			continue
+		}
+
+		merged[key] = append([]string(nil), values...)
+	}
+
+	for key, values := range configured {
+		if isUnforwardableHeader(key) {
+			continue
+		}
+
+		merged[key] = append([]string(nil), values...)
+	}
+
+	return merged
+}
+
+func resolveBody(incoming []byte, requestTo *config.RequestTo) ([]byte, error) {
+	if requestTo.PassWithRequestBody && len(incoming) > 0 {
+		return append([]byte(nil), incoming...), nil
+	}
+
+	if len(requestTo.Body) == 0 {
+		return nil, nil
+	}
+
+	bodyBytes, err := json.Marshal(&requestTo.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	return bodyBytes, nil
+}
+
+// isUnforwardableHeader reports headers the transport owns or that only apply to one hop.
+func isUnforwardableHeader(name string) bool {
+	switch http.CanonicalHeaderKey(name) {
+	case "Host", "Content-Length", "Transfer-Encoding", "Connection", "Keep-Alive",
+		"Upgrade", "Proxy-Connection", "Te", "Trailer", "Proxy-Authorization":
+		return true
+	default:
+		return false
+	}
 }
