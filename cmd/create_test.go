@@ -751,7 +751,7 @@ func TestCreateRouteInternal(t *testing.T) {
 		assert.Equal(t, "http://localhost:8081", result.RequestTo.Host)
 	})
 
-	t.Run("happy path - unknown route type (no fakeResponse or requestTo)", func(t *testing.T) {
+	t.Run("error path - unknown route type is rejected", func(t *testing.T) {
 
 		mockRouteForm := formbuilder.NewMockFormRunner(ctrl)
 
@@ -766,12 +766,8 @@ func TestCreateRouteInternal(t *testing.T) {
 			func() (*config.RequestTo, error) { return nil, nil },
 		)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, "/api/test", result.Path)
-		assert.Equal(t, "GET", result.Method)
-		assert.Nil(t, result.FakeResponse)
-		assert.Nil(t, result.RequestTo)
+		assert.Nil(t, result)
+		assert.ErrorContains(t, err, `unsupported route type "unknown"`)
 	})
 }
 

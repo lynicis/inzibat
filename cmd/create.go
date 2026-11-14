@@ -407,6 +407,8 @@ func createRouteInternal(
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, fmt.Errorf("unsupported route type %q", routeType)
 	}
 
 	return &config.Route{
@@ -440,29 +442,31 @@ The route will be added to the configuration file (in order of precedence):
   3. inzibat.json in the current working directory
   4. ~/.inzibat.config.json if --global flag is used`,
 	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		route, err := createRoute()
 		if err != nil {
-			zap.L().Fatal("failed to create route", zap.Error(err))
+			return fmt.Errorf("failed to create route: %w", err)
 		}
 
 		cfgFilePath, err := config.ResolveConfigPath(createIsGlobalConfig, createConfigFile)
 		if err != nil {
-			zap.L().Fatal("failed to resolve config file path", zap.Error(err))
+			return fmt.Errorf("failed to resolve config file path: %w", err)
 		}
 
 		cfg, err := config.ReadOrCreateConfig(cfgFilePath)
 		if err != nil {
-			zap.L().Fatal("failed to read/create config", zap.Error(err))
+			return fmt.Errorf("failed to read/create config: %w", err)
 		}
 
 		cfg.Routes = append(cfg.Routes, *route)
 
 		if err := config.WriteConfig(cfg, cfgFilePath); err != nil {
-			zap.L().Fatal("failed to write config", zap.Error(err))
+			return fmt.Errorf("failed to write config: %w", err)
 		}
 
 		zap.L().Info("Route created successfully", zap.String("config_file", cfgFilePath))
+
+		return nil
 	},
 }
 
