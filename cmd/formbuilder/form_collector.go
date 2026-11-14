@@ -31,23 +31,30 @@ func (r *HuhFormRunner) GetBool(key string) bool {
 	return r.Form.GetBool(key)
 }
 
-func collectHeadersFromFormInternal(
-	headerFormCreator func() FormRunner,
-	continueFormCreator func() FormRunner,
-) (http.Header, error) {
-	headers := make(http.Header)
+type keyValuePair struct {
+	Key   string
+	Value string
+}
+
+func collectPairs(
+	entryCreator func() FormRunner,
+	continueCreator func() FormRunner,
+	entryTitle string,
+) ([]keyValuePair, error) {
+	var pairs []keyValuePair
 
 	for {
-		headerForm := headerFormCreator()
-		if err := headerForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to collect header: %w", err)
+		entryForm := entryCreator()
+		if err := entryForm.Run(); err != nil {
+			return nil, fmt.Errorf("failed to collect %s: %w", entryTitle, err)
 		}
 
-		key := headerForm.GetString("key")
-		value := headerForm.GetString("value")
-		headers.Set(key, value)
+		pairs = append(pairs, keyValuePair{
+			Key:   entryForm.GetString("key"),
+			Value: entryForm.GetString("value"),
+		})
 
-		continueForm := continueFormCreator()
+		continueForm := continueCreator()
 		if err := continueForm.Run(); err != nil {
 			return nil, fmt.Errorf("failed to get user input: %w", err)
 		}
@@ -55,6 +62,23 @@ func collectHeadersFromFormInternal(
 		if !continueForm.GetBool("continue") {
 			break
 		}
+	}
+
+	return pairs, nil
+}
+
+func collectHeadersFromFormInternal(
+	headerFormCreator func() FormRunner,
+	continueFormCreator func() FormRunner,
+) (http.Header, error) {
+	pairs, err := collectPairs(headerFormCreator, continueFormCreator, "header")
+	if err != nil {
+		return nil, err
+	}
+
+	headers := make(http.Header, len(pairs))
+	for _, pair := range pairs {
+		headers.Set(pair.Key, pair.Value)
 	}
 
 	return headers, nil
@@ -106,35 +130,14 @@ func collectBodyFromFormInternal(
 	bodyFormCreator func() FormRunner,
 	continueFormCreator func() FormRunner,
 ) (config.HttpBody, error) {
-	body := make(config.HttpBody)
-
-	bodyForm := bodyFormCreator()
-	if err := bodyForm.Run(); err != nil {
-		return nil, fmt.Errorf("failed to collect body field: %w", err)
+	pairs, err := collectPairs(bodyFormCreator, continueFormCreator, "body field")
+	if err != nil {
+		return nil, err
 	}
 
-	key := bodyForm.GetString("key")
-	value := bodyForm.GetString("value")
-	body[key] = value
-
-	for {
-		continueForm := continueFormCreator()
-		if err := continueForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to get user input: %w", err)
-		}
-
-		if !continueForm.GetBool("continue") {
-			break
-		}
-
-		bodyForm := bodyFormCreator()
-		if err := bodyForm.Run(); err != nil {
-			return nil, fmt.Errorf("failed to collect body field: %w", err)
-		}
-
-		key := bodyForm.GetString("key")
-		value := bodyForm.GetString("value")
-		body[key] = value
+	body := make(config.HttpBody, len(pairs))
+	for _, pair := range pairs {
+		body[pair.Key] = pair.Value
 	}
 
 	return body, nil
