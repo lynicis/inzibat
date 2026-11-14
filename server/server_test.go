@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	nethttp "net/http"
 	"os"
 	"path/filepath"
@@ -433,4 +434,58 @@ func TestSetupServer_CircuitBreaker(t *testing.T) {
 	app, err := setupServer(cfg, false)
 	require.NoError(t, err)
 	assert.NotNil(t, app)
+}
+
+func TestRunServer_ReturnsListenError(t *testing.T) {
+	freePort, err := testutil.GetFreePort()
+	require.NoError(t, err)
+
+	cfg := &config.Cfg{
+		ServerPort: freePort,
+		Routes: []config.Route{
+			{
+				Method:       "GET",
+				Path:         "/",
+				FakeResponse: &config.FakeResponse{StatusCode: 200},
+			},
+		},
+	}
+
+	firstApp, err := setupServer(cfg, false)
+	require.NoError(t, err)
+
+	firstCtx, stopFirst := context.WithCancel(context.Background())
+	defer stopFirst()
+
+	firstDone := make(chan error, 1)
+	go func() { firstDone <- runServer(firstCtx, firstApp, cfg) }()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		conn, dialErr := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", freePort))
+		if dialErr == nil {
+			conn.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("first server never started listening")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	secondApp, err := setupServer(cfg, false)
+	require.NoError(t, err)
+
+	secondCtx, stopSecond := context.WithTimeout(context.Background(), 2*time.Second)
+	defer stopSecond()
+
+	start := time.Now()
+	secondErr := runServer(secondCtx, secondApp, cfg)
+
+	require.Error(t, secondErr)
+	assert.Contains(t, secondErr.Error(), "failed to start http server")
+	assert.Less(t, time.Since(start), 2*time.Second)
+
+	stopFirst()
+	require.NoError(t, <-firstDone)
 }

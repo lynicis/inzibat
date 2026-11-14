@@ -135,19 +135,25 @@ func setupServer(cfg *config.Cfg, recordEnabled bool) (*fiber.App, error) {
 }
 
 func runServer(ctx context.Context, fiberApp *fiber.App, cfg *config.Cfg) error {
-	var serverErr error
+	listenErr := make(chan error, 1)
+
 	go func() {
-		if err := fiberApp.Listen(cfg.GetServerAddr()); err != nil {
-			zap.L().Fatal("failed to start http server", zap.Error(err))
-			serverErr = err
-		}
+		listenErr <- fiberApp.Listen(cfg.GetServerAddr())
 	}()
 
-	<-ctx.Done()
+	select {
+	case err := <-listenErr:
+		if err != nil {
+			return fmt.Errorf("failed to start http server: %w", err)
+		}
+
+		return nil
+	case <-ctx.Done():
+	}
 
 	if err := fiberApp.ShutdownWithTimeout(5 * time.Second); err != nil {
 		return fmt.Errorf("failed to shutdown gracefully: %w", err)
 	}
 
-	return serverErr
+	return nil
 }
