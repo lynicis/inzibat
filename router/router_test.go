@@ -127,3 +127,35 @@ func TestRouter_CreateRoutes(t *testing.T) {
 		assert.Empty(t, clientHandler.calls)
 	})
 }
+
+func TestRouter_CreateRoutes_BothHandlersSet(t *testing.T) {
+	fiberApp := fiber.New()
+	endpointHandler := &stubHandler{body: "mock"}
+	clientHandler := &stubHandler{body: "proxy"}
+
+	mainRouter := &MainRouter{
+		Config: &config.Cfg{
+			Routes: []config.Route{
+				{
+					Method: fiber.MethodGet,
+					Path:   "/ambiguous",
+					RequestTo: &config.RequestTo{
+						Method: fiber.MethodGet,
+						Host:   "http://127.0.0.1:3001",
+						Path:   "/ambiguous",
+					},
+					FakeResponse: &config.FakeResponse{StatusCode: fiber.StatusOK},
+				},
+			},
+		},
+		FiberApp:        fiberApp,
+		EndpointHandler: endpointHandler,
+		ClientHandler:   clientHandler,
+	}
+
+	mainRouter.CreateRoutes()
+
+	assert.Equal(t, []int{0}, clientHandler.calls)
+	assert.Empty(t, endpointHandler.calls)
+	assert.Equal(t, "proxy", request(t, fiberApp, fiber.MethodGet, "/ambiguous"))
+}

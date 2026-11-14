@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 )
 
 const DefaultConfigExtension = ".json"
@@ -140,6 +141,14 @@ func (reader *Reader) validate(config *Cfg) error {
 func normalizeRoutes(config *Cfg) error {
 	for routeIndex := range config.Routes {
 		route := &config.Routes[routeIndex]
+
+		if route.RequestTo != nil && route.FakeResponse != nil {
+			zap.L().Warn(
+				"route defines requestTo and fakeResponse; using requestTo",
+				zap.String("path", route.Path),
+			)
+		}
+
 		if route.RequestTo == nil {
 			continue
 		}
