@@ -15,12 +15,10 @@ type EndpointHandler struct {
 func (mockRoute *EndpointHandler) CreateHandler(routeIndex int) func(ctx *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
 		resp := (*mockRoute.RouteConfig)[routeIndex].FakeResponse
-		ctx = ctx.Status(resp.StatusCode)
+		ctx.Status(resp.StatusCode)
 
-		if len(resp.Headers) > 0 {
-			for headerKey, headerValue := range resp.Headers {
-				ctx.Set(headerKey, strings.Join(headerValue, ","))
-			}
+		for headerKey, headerValue := range resp.Headers {
+			ctx.Set(headerKey, strings.Join(headerValue, ","))
 		}
 
 		if len(resp.BodyString) > 0 {
