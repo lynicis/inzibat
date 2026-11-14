@@ -15,6 +15,8 @@ import (
 
 const DefaultConfigExtension = ".json"
 
+const healthCheckPath = "/health"
+
 type Reader struct {
 	ConfigReader ReaderStrategy
 	Validator    *validator.Validate
@@ -89,10 +91,6 @@ func (reader *Reader) Read() (*Cfg, error) {
 		return nil, err
 	}
 
-	if err = reader.validate(config); err != nil {
-		return nil, err
-	}
-
 	if config.CircuitBreaker != nil {
 		config.CircuitBreaker = MergeCircuitBreakerConfig(nil, config.CircuitBreaker)
 	}
@@ -102,19 +100,33 @@ func (reader *Reader) Read() (*Cfg, error) {
 	}
 
 	if config.HealthCheckRoute {
-		config.Routes = append(
-			config.Routes,
-			Route{
-				Method: "GET",
-				Path:   "/health",
-				FakeResponse: &FakeResponse{
-					StatusCode: http.StatusOK,
-				},
-			},
-		)
+		addHealthCheckRoute(config)
+	}
+
+	if err = reader.validate(config); err != nil {
+		return nil, err
 	}
 
 	return config, nil
+}
+
+func addHealthCheckRoute(config *Cfg) {
+	for _, route := range config.Routes {
+		if route.Method == http.MethodGet && route.Path == healthCheckPath {
+			return
+		}
+	}
+
+	config.Routes = append(
+		config.Routes,
+		Route{
+			Method: http.MethodGet,
+			Path:   healthCheckPath,
+			FakeResponse: &FakeResponse{
+				StatusCode: http.StatusOK,
+			},
+		},
+	)
 }
 
 func (reader *Reader) validate(config *Cfg) error {

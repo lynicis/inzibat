@@ -728,3 +728,60 @@ func TestNewLoader(t *testing.T) {
 		assert.ErrorContains(t, err, "ambiguous file extension")
 	})
 }
+
+func TestReader_Read_AppliesDefaultsBeforeValidation(t *testing.T) {
+	writeConfig := func(t *testing.T, content string) string {
+		t.Helper()
+
+		configPath := filepath.Join(t.TempDir(), "inzibat.json")
+		require.NoError(t, os.WriteFile(configPath, []byte(content), 0o600))
+
+		return configPath
+	}
+
+	readConfig := func(t *testing.T, configPath string) (*Cfg, error) {
+		t.Helper()
+
+		loader, err := NewLoader(validator.New(), false, configPath)
+		require.NoError(t, err)
+
+		return loader.Read()
+	}
+
+	t.Run("requestTo default method is valid", func(t *testing.T) {
+		configPath := writeConfig(t, `{
+			"serverPort": 8080,
+			"routes": [
+				{
+					"method": "GET",
+					"path": "/x",
+					"requestTo": {"host": "http://localhost:8081", "path": "/x"}
+				}
+			]
+		}`)
+
+		cfg, err := readConfig(t, configPath)
+
+		require.NoError(t, err)
+		assert.Equal(t, "GET", cfg.Routes[0].RequestTo.Method)
+	})
+
+	t.Run("existing health route is not duplicated", func(t *testing.T) {
+		configPath := writeConfig(t, `{
+			"serverPort": 8080,
+			"healthCheckRoute": true,
+			"routes": [
+				{
+					"method": "GET",
+					"path": "/health",
+					"fakeResponse": {"statusCode": 200, "bodyString": "ok"}
+				}
+			]
+		}`)
+
+		cfg, err := readConfig(t, configPath)
+
+		require.NoError(t, err)
+		assert.Len(t, cfg.Routes, 1)
+	})
+}
