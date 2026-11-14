@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -97,8 +96,14 @@ func (httpClient *Client) buildRequest(
 	req.Header.SetContentType(fiber.MIMEApplicationJSON)
 
 	if len(requestHeader) > 0 {
-		for headerKey, headerValue := range requestHeader {
-			req.Header.Set(headerKey, strings.Join(headerValue, ""))
+		for headerKey, headerValues := range requestHeader {
+			if isSkipHeader(headerKey) {
+				continue
+			}
+
+			for _, headerValue := range headerValues {
+				req.Header.Add(headerKey, headerValue)
+			}
 		}
 	}
 
@@ -107,6 +112,16 @@ func (httpClient *Client) buildRequest(
 	}
 
 	return req
+}
+
+// isSkipHeader reports headers fasthttp owns; forwarding them would corrupt framing.
+func isSkipHeader(name string) bool {
+	switch http.CanonicalHeaderKey(name) {
+	case "Host", "Content-Length", "Connection", "Transfer-Encoding", "Keep-Alive":
+		return true
+	default:
+		return false
+	}
 }
 
 func (httpClient *Client) executeRequest(req *fasthttp.Request) (*fasthttp.Response, error) {

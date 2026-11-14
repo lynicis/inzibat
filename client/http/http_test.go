@@ -509,17 +509,34 @@ func TestClient_buildRequest(t *testing.T) {
 		assert.Empty(t, req.Body())
 	})
 
-	t.Run("happy path - builds request with empty headers", func(t *testing.T) {
+	t.Run("sends every value of a multi-value header", func(t *testing.T) {
 		httpClient := NewHttpClient()
-		uri := "http://localhost:8080/test"
-		method := http.MethodGet
-		headers := http.Header{}
+		headers := http.Header{"X-Multi": {"first", "second"}}
 
-		req := httpClient.buildRequest(uri, method, headers, nil)
+		req := httpClient.buildRequest("http://localhost:8080/test", http.MethodGet, headers, nil)
 
-		assert.NotNil(t, req)
-		assert.Equal(t, uri, string(req.RequestURI()))
-		assert.Equal(t, method, string(req.Header.Method()))
+		assert.Equal(t, [][]byte{[]byte("first"), []byte("second")}, req.Header.PeekAll("X-Multi"))
+	})
+
+	t.Run("drops headers owned by the transport", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		headers := http.Header{
+			"Host":              {"example.com"},
+			"Content-Length":    {"10"},
+			"Connection":        {"keep-alive"},
+			"Transfer-Encoding": {"chunked"},
+			"Keep-Alive":        {"timeout=5"},
+			"X-Kept":            {"value"},
+		}
+
+		req := httpClient.buildRequest("http://localhost:8080/test", http.MethodGet, headers, nil)
+
+		assert.NotEqual(t, []byte("example.com"), req.Header.Peek("Host"))
+		assert.NotEqual(t, []byte("10"), req.Header.Peek("Content-Length"))
+		assert.Empty(t, req.Header.PeekAll("Connection"))
+		assert.Empty(t, req.Header.PeekAll("Transfer-Encoding"))
+		assert.Empty(t, req.Header.PeekAll("Keep-Alive"))
+		assert.Equal(t, []byte("value"), req.Header.Peek("X-Kept"))
 	})
 }
 
@@ -735,6 +752,34 @@ func TestClient_makeRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, response)
 	})
+}
+
+func TestClient_makeRequest_SendsRepeatedHeaders(t *testing.T) {
+	freePort, err := testutil.GetFreePort()
+	require.NoError(t, err)
+
+	mockServer := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	captured := make(chan []string, 1)
+	mockServer.Get("/multi", func(ctx *fiber.Ctx) error {
+		captured <- ctx.GetReqHeaders()["X-Multi"]
+
+		return ctx.SendStatus(fiber.StatusOK)
+	})
+
+	go mockServer.Listen(fmt.Sprintf(":%d", freePort))
+	defer mockServer.Shutdown()
+	time.Sleep(1 * time.Second)
+
+	uri := fmt.Sprintf("%s:%d%s", TestReqUri, freePort, "/multi")
+	_, err = NewHttpClient().makeRequest(uri, http.MethodGet, http.Header{
+		"X-Multi": {"first", "second"},
+	}, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"first", "second"}, <-captured)
 }
 
 func TestClient_makeRequest_RetryMethodMatrix(t *testing.T) {
