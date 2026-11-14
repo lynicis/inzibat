@@ -2,6 +2,8 @@ package http
 
 import (
 	"errors"
+	"math"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -72,19 +74,16 @@ func isRetryableError(err error, statusCode int) bool {
 
 func (httpClient *Client) calculateBackoff(attempt int) time.Duration {
 	backoff := time.Duration(float64(httpClient.retryConfig.InitialBackoff) *
-		pow(httpClient.retryConfig.BackoffMultiplier, float64(attempt)))
+		math.Pow(httpClient.retryConfig.BackoffMultiplier, float64(attempt)))
+
+	// ±20% jitter keeps retries from synchronizing across clients.
+	backoff = time.Duration(float64(backoff) * (0.8 + 0.4*rand.Float64()))
+
 	if backoff > httpClient.retryConfig.MaxBackoff {
 		backoff = httpClient.retryConfig.MaxBackoff
 	}
-	return backoff
-}
 
-func pow(base, exp float64) float64 {
-	result := 1.0
-	for i := 0; i < int(exp); i++ {
-		result *= base
-	}
-	return result
+	return backoff
 }
 
 func (httpClient *Client) buildRequest(

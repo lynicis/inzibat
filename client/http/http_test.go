@@ -345,7 +345,7 @@ func TestDefaultRetryConfig(t *testing.T) {
 }
 
 func TestClient_calculateBackoff(t *testing.T) {
-	t.Run("happy path - calculates backoff correctly", func(t *testing.T) {
+	t.Run("stays within the jittered range", func(t *testing.T) {
 		httpClient := NewHttpClient()
 		httpClient.SetRetryConfig(RetryConfig{
 			MaxRetries:        3,
@@ -354,14 +354,16 @@ func TestClient_calculateBackoff(t *testing.T) {
 			BackoffMultiplier: 2.0,
 		})
 
-		backoff1 := httpClient.calculateBackoff(0)
-		assert.Equal(t, 100*time.Millisecond, backoff1)
+		for attempt, expected := range map[int]time.Duration{
+			0: 100 * time.Millisecond,
+			1: 200 * time.Millisecond,
+			2: 400 * time.Millisecond,
+		} {
+			backoff := httpClient.calculateBackoff(attempt)
 
-		backoff2 := httpClient.calculateBackoff(1)
-		assert.Equal(t, 200*time.Millisecond, backoff2)
-
-		backoff3 := httpClient.calculateBackoff(2)
-		assert.Equal(t, 400*time.Millisecond, backoff3)
+			assert.InDelta(t, float64(expected), float64(backoff), float64(expected)/5)
+			assert.LessOrEqual(t, backoff, httpClient.retryConfig.MaxBackoff)
+		}
 	})
 
 	t.Run("happy path - backoff capped at MaxBackoff", func(t *testing.T) {
@@ -377,25 +379,22 @@ func TestClient_calculateBackoff(t *testing.T) {
 
 		assert.Equal(t, 500*time.Millisecond, backoff)
 	})
-}
 
-func TestPow(t *testing.T) {
-	t.Run("happy path - calculates power correctly", func(t *testing.T) {
-		assert.Equal(t, 1.0, pow(2.0, 0))
-		assert.Equal(t, 2.0, pow(2.0, 1))
-		assert.Equal(t, 4.0, pow(2.0, 2))
-		assert.Equal(t, 8.0, pow(2.0, 3))
-		assert.Equal(t, 9.0, pow(3.0, 2))
-	})
+	t.Run("jitter varies between calls", func(t *testing.T) {
+		httpClient := NewHttpClient()
+		httpClient.SetRetryConfig(RetryConfig{
+			MaxRetries:        3,
+			InitialBackoff:    100 * time.Millisecond,
+			MaxBackoff:        10 * time.Second,
+			BackoffMultiplier: 2.0,
+		})
 
-	t.Run("happy path - handles zero base", func(t *testing.T) {
-		assert.Equal(t, 1.0, pow(0.0, 0))
-		assert.Equal(t, 0.0, pow(0.0, 1))
-	})
+		samples := make(map[time.Duration]struct{})
+		for range 100 {
+			samples[httpClient.calculateBackoff(3)] = struct{}{}
+		}
 
-	t.Run("happy path - handles zero exponent", func(t *testing.T) {
-		assert.Equal(t, 1.0, pow(5.0, 0))
-		assert.Equal(t, 1.0, pow(10.0, 0))
+		assert.Greater(t, len(samples), 1)
 	})
 }
 
