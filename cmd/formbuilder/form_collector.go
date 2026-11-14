@@ -3,9 +3,7 @@ package formbuilder
 import (
 	"fmt"
 	"net/http"
-	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
 	"github.com/lynicis/inzibat/config"
@@ -63,7 +61,7 @@ func collectHeadersFromFormInternal(
 }
 
 func createHeaderForm() *huh.Form {
-	return huh.NewForm(
+	return NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("key").
@@ -80,14 +78,11 @@ func createHeaderForm() *huh.Form {
 					return ValidateNonEmpty(s, "header value")
 				}),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 }
 
 func createContinueForm(message string) *huh.Form {
-	return huh.NewForm(
+	return NewHuhForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("continue").
@@ -95,10 +90,7 @@ func createContinueForm(message string) *huh.Form {
 				Affirmative("Yes").
 				Negative("No"),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 }
 
 func CollectHeadersFromForm() (http.Header, error) {
@@ -149,7 +141,7 @@ func collectBodyFromFormInternal(
 }
 
 func createBodyForm() *huh.Form {
-	return huh.NewForm(
+	return NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("key").
@@ -166,10 +158,7 @@ func createBodyForm() *huh.Form {
 					return ValidateNonEmpty(s, "body value")
 				}),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 }
 
 func CollectBodyFromForm() (config.HttpBody, error) {
@@ -190,7 +179,7 @@ func collectBodyStringFromFormInternal(bodyStringFormRunner FormRunner) (string,
 }
 
 func CollectBodyStringFromForm() (string, error) {
-	bodyStringForm := huh.NewForm(
+	bodyStringForm := NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("bodyString").
@@ -200,10 +189,7 @@ func CollectBodyStringFromForm() (string, error) {
 					return ValidateNonEmpty(s, "body string")
 				}),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
 	bodyStringFormRunner := &HuhFormRunner{Form: bodyStringForm}
 

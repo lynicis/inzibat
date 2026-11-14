@@ -3,10 +3,8 @@ package cmd
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -38,7 +36,7 @@ var (
 )
 
 func createRouteForm() *huh.Form {
-	return huh.NewForm(
+	return formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("path").
@@ -54,10 +52,7 @@ func createRouteForm() *huh.Form {
 				Title("Route Type").
 				Options(routeTypes...),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 }
 
 func createMockResponseFormInternal(
@@ -113,7 +108,7 @@ func createMockResponseFormInternal(
 
 func createMockResponseForm() (*config.FakeResponse, error) {
 	status := strconv.Itoa(http.StatusOK)
-	statusForm := huh.NewForm(
+	statusForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("statusCode").
@@ -122,12 +117,9 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 				Value(&status).
 				Validate(formbuilder.ValidateStatusCode),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
-	bodyForm := huh.NewForm(
+	bodyForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Key("bodyType").
@@ -138,10 +130,7 @@ func createMockResponseForm() (*config.FakeResponse, error) {
 					{Key: "Skip", Value: formbuilder.SourceSkip},
 				}...),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
 	statusFormRunner := &formbuilder.HuhFormRunner{Form: statusForm}
 	bodyTypeFormRunner := &formbuilder.HuhFormRunner{Form: bodyForm}
@@ -297,7 +286,7 @@ func parsePositiveInt(value string, key string) (int, error) {
 }
 
 func createClientRequestForm() (*config.RequestTo, error) {
-	basicForm := huh.NewForm(
+	basicForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Key("host").
@@ -314,12 +303,9 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Title("Target HTTP Method").
 				Options(httpMethods...),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
-	bodyForm := huh.NewForm(
+	bodyForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Key("bodyType").
@@ -329,12 +315,9 @@ func createClientRequestForm() (*config.RequestTo, error) {
 					{Key: "Skip", Value: formbuilder.SourceSkip},
 				}...),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
-	optionsForm := huh.NewForm(
+	optionsForm := formbuilder.NewHuhForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("passWithRequestBody").
@@ -374,10 +357,7 @@ func createClientRequestForm() (*config.RequestTo, error) {
 				Value(&defaultSuccessThreshold).
 				Validate(formbuilder.ValidatePositiveInt),
 		),
-	).
-		WithInput(os.Stdin).
-		WithOutput(os.Stdout).
-		WithProgramOptions(tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	)
 
 	basicFormRunner := &formbuilder.HuhFormRunner{Form: basicForm}
 	bodyTypeFormRunner := &formbuilder.HuhFormRunner{Form: bodyForm}
