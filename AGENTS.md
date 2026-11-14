@@ -2,7 +2,7 @@
 
 ## Entrypoints
 
-- `main.go`: starts Fiber server directly when called with 0–1 args; dispatches to Cobra (`cmd/`) for 2+ args.
+- `main.go`: calls `cmd.Execute()` only. The root Cobra command starts the server; `inzibat start` is an alias for the same runner.
 - Server can be invoked standalone (bare `inzibat` or `go run .`) or via CLI (`inzibat start`).
 
 ## Build & Test
@@ -27,7 +27,7 @@ config/ → router/ (sequential route registration) → handler/
 server/                — Fiber bootstrap, graceful shutdown
 ```
 
-- Routes with both `fakeResponse` and `requestTo` register **both** handlers.
+- Routes with both `fakeResponse` and `requestTo` serve `requestTo`; the loader warns and the mock response is dropped.
 - Circuit breaker: proxy routes only, tripped on network errors + 5xx (not 4xx). Global + per-route override.
 
 ## Config
@@ -56,7 +56,6 @@ server/                — Fiber bootstrap, graceful shutdown
 Run `make generate-mock` after changing interfaces in:
 - `config/reader.go`
 - `cmd/formbuilder/form_collector.go`
-- `cmd/create.go`
 
 Mock files (`*_mock.go`) are excluded from SonarCloud coverage and linting.
 
