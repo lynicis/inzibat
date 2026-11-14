@@ -9,19 +9,13 @@ import (
 	"github.com/goccy/go-json"
 )
 
-type FileLoader interface {
-	Load(filePath string) (interface{}, error)
-}
-
-type HeadersLoader struct{}
-
-func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
+func readFile(filePath string) ([]byte, error) {
 	absPath, err := ResolveAbsolutePath(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// #nosec G304
+	// #nosec G304 - the path is resolved and cleaned by ResolveAbsolutePath
 	file, err := os.Open(absPath)
 	if err != nil {
 		return nil, newFailOpeningError(err)
@@ -31,6 +25,15 @@ func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, newFailReadingError(err)
+	}
+
+	return data, nil
+}
+
+func LoadHeadersFromFile(filePath string) (http.Header, error) {
+	data, err := readFile(filePath)
+	if err != nil {
+		return nil, err
 	}
 
 	var headersMap map[string]string
@@ -38,7 +41,7 @@ func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	headers := make(http.Header)
+	headers := make(http.Header, len(headersMap))
 	for key, value := range headersMap {
 		headers.Set(key, value)
 	}
@@ -46,23 +49,10 @@ func (l *HeadersLoader) Load(filePath string) (interface{}, error) {
 	return headers, nil
 }
 
-type BodyLoader struct{}
-
-func (l *BodyLoader) Load(filePath string) (interface{}, error) {
-	absPath, err := ResolveAbsolutePath(filePath)
+func LoadBodyFromFile(filePath string) (HttpBody, error) {
+	data, err := readFile(filePath)
 	if err != nil {
 		return nil, err
-	}
-	// #nosec G304 - File path is validated and cleaned before use
-	file, err := os.Open(absPath)
-	if err != nil {
-		return nil, newFailOpeningError(err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return nil, newFailReadingError(err)
 	}
 
 	var body HttpBody
@@ -73,51 +63,11 @@ func (l *BodyLoader) Load(filePath string) (interface{}, error) {
 	return body, nil
 }
 
-type BodyStringLoader struct{}
-
-func (l *BodyStringLoader) Load(filePath string) (interface{}, error) {
-	absPath, err := ResolveAbsolutePath(filePath)
+func LoadBodyStringFromFile(filePath string) (string, error) {
+	data, err := readFile(filePath)
 	if err != nil {
 		return "", err
-	}
-	// #nosec G304
-	file, err := os.Open(absPath)
-	if err != nil {
-		return "", newFailOpeningError(err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return "", newFailReadingError(err)
 	}
 
 	return string(data), nil
-}
-
-func LoadHeadersFromFile(filePath string) (http.Header, error) {
-	loader := &HeadersLoader{}
-	result, err := loader.Load(filePath)
-	if err != nil {
-		return nil, err
-	}
-	return result.(http.Header), nil
-}
-
-func LoadBodyFromFile(filePath string) (HttpBody, error) {
-	loader := &BodyLoader{}
-	result, err := loader.Load(filePath)
-	if err != nil {
-		return nil, err
-	}
-	return result.(HttpBody), nil
-}
-
-func LoadBodyStringFromFile(filePath string) (string, error) {
-	loader := &BodyStringLoader{}
-	result, err := loader.Load(filePath)
-	if err != nil {
-		return "", err
-	}
-	return result.(string), nil
 }
