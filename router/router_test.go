@@ -1,155 +1,129 @@
 package router
 
 import (
+	"io"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/lynicis/inzibat/client/http"
 	"github.com/lynicis/inzibat/config"
-	"github.com/lynicis/inzibat/handler"
 )
 
-func TestRouter_CreateRoute(t *testing.T) {
-	t.Run("happy path", func(t *testing.T) {
-		t.Run("GET Method", func(t *testing.T) {
-			fiberApp := fiber.New()
-			router := &MainRouter{
-				Config: &config.Cfg{
-					ServerPort: 3000,
-					Routes: []config.Route{
-						{
-							Method: fiber.MethodGet,
-							Path:   "/",
-							RequestTo: &config.RequestTo{
-								Method: fiber.MethodGet,
-								Host:   "http://127.0.0.1:3001",
-								Path:   "/",
-							},
-						},
+type stubHandler struct {
+	body  string
+	calls []int
+}
+
+func (stub *stubHandler) CreateHandler(handlerIndex int) func(ctx *fiber.Ctx) error {
+	stub.calls = append(stub.calls, handlerIndex)
+
+	return func(ctx *fiber.Ctx) error {
+		return ctx.Status(fiber.StatusOK).SendString(stub.body)
+	}
+}
+
+func request(t *testing.T, fiberApp *fiber.App, method, path string) string {
+	t.Helper()
+
+	req := httptest.NewRequest(method, path, nil)
+
+	response, err := fiberApp.Test(req)
+	require.NoError(t, err)
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.NoError(t, response.Body.Close())
+
+	return string(body)
+}
+
+func TestRouter_CreateRoutes(t *testing.T) {
+	t.Run("mock route is registered", func(t *testing.T) {
+		fiberApp := fiber.New()
+		endpointHandler := &stubHandler{body: "mock"}
+		clientHandler := &stubHandler{body: "proxy"}
+
+		mainRouter := &MainRouter{
+			Config: &config.Cfg{
+				Routes: []config.Route{
+					{
+						Method:       fiber.MethodGet,
+						Path:         "/mock",
+						FakeResponse: &config.FakeResponse{StatusCode: fiber.StatusOK},
 					},
-					Concurrency: 1,
 				},
-				FiberApp: fiberApp,
-				ClientHandler: &handler.ClientHandler{
-					Client:      http.NewHttpClient(),
-					RouteConfig: nil,
-				},
-			}
+			},
+			FiberApp:        fiberApp,
+			EndpointHandler: endpointHandler,
+			ClientHandler:   clientHandler,
+		}
 
-			assert.NotPanics(t, func() {
-				router.CreateRoutes()
-			})
-		})
+		mainRouter.CreateRoutes()
 
-		t.Run("POST Method", func(t *testing.T) {
-			fiberApp := fiber.New()
-			router := &MainRouter{
-				Config: &config.Cfg{
-					ServerPort: 3000,
-					Routes: []config.Route{
-						{
+		assert.Equal(t, []int{0}, endpointHandler.calls)
+		assert.Empty(t, clientHandler.calls)
+		assert.Equal(t, "mock", request(t, fiberApp, fiber.MethodGet, "/mock"))
+	})
+
+	t.Run("proxy route is registered", func(t *testing.T) {
+		fiberApp := fiber.New()
+		endpointHandler := &stubHandler{body: "mock"}
+		clientHandler := &stubHandler{body: "proxy"}
+
+		mainRouter := &MainRouter{
+			Config: &config.Cfg{
+				Routes: []config.Route{
+					{
+						Method: fiber.MethodPost,
+						Path:   "/proxy",
+						RequestTo: &config.RequestTo{
 							Method: fiber.MethodPost,
-							Path:   "/",
-							RequestTo: &config.RequestTo{
-								Method: fiber.MethodGet,
-								Host:   "http://127.0.0.1:3001",
-								Path:   "/",
-							},
+							Host:   "http://127.0.0.1:3001",
+							Path:   "/proxy",
 						},
 					},
-					Concurrency: 1,
 				},
-				FiberApp:        fiberApp,
-				EndpointHandler: &handler.EndpointHandler{},
-				ClientHandler:   &handler.ClientHandler{},
-			}
+			},
+			FiberApp:        fiberApp,
+			EndpointHandler: endpointHandler,
+			ClientHandler:   clientHandler,
+		}
 
-			assert.NotPanics(t, func() {
-				router.CreateRoutes()
-			})
-		})
+		mainRouter.CreateRoutes()
 
-		t.Run("PUT Method", func(t *testing.T) {
-			fiberApp := fiber.New()
-			router := &MainRouter{
-				Config: &config.Cfg{
-					ServerPort: 3000,
-					Routes: []config.Route{
-						{
-							Method: fiber.MethodPut,
-							Path:   "/",
-							RequestTo: &config.RequestTo{
-								Host: "http://127.0.0.1:3001",
-								Path: "/",
-							},
-						},
+		assert.Equal(t, []int{0}, clientHandler.calls)
+		assert.Empty(t, endpointHandler.calls)
+		assert.Equal(t, "proxy", request(t, fiberApp, fiber.MethodPost, "/proxy"))
+	})
+
+	t.Run("route with neither handler is skipped", func(t *testing.T) {
+		fiberApp := fiber.New()
+		endpointHandler := &stubHandler{}
+		clientHandler := &stubHandler{}
+
+		mainRouter := &MainRouter{
+			Config: &config.Cfg{
+				Routes: []config.Route{
+					{Method: fiber.MethodGet, Path: "/unknown"},
+					{
+						Method:       fiber.MethodGet,
+						Path:         "/no-method",
+						RequestTo:    &config.RequestTo{},
+						FakeResponse: &config.FakeResponse{},
 					},
-					Concurrency: 1,
 				},
-				FiberApp:        fiberApp,
-				EndpointHandler: &handler.EndpointHandler{},
-				ClientHandler:   &handler.ClientHandler{},
-			}
+			},
+			FiberApp:        fiberApp,
+			EndpointHandler: endpointHandler,
+			ClientHandler:   clientHandler,
+		}
 
-			assert.NotPanics(t, func() {
-				router.CreateRoutes()
-			})
-		})
+		mainRouter.CreateRoutes()
 
-		t.Run("POST Method", func(t *testing.T) {
-			fiberApp := fiber.New()
-			router := &MainRouter{
-				Config: &config.Cfg{
-					ServerPort: 3000,
-					Routes: []config.Route{
-						{
-							Method: fiber.MethodDelete,
-							Path:   "/",
-							RequestTo: &config.RequestTo{
-								Host: "http://127.0.0.1:3001",
-								Path: "/",
-							},
-						},
-					},
-					Concurrency: 1,
-				},
-				FiberApp:        fiberApp,
-				EndpointHandler: &handler.EndpointHandler{},
-				ClientHandler:   &handler.ClientHandler{},
-			}
-
-			assert.NotPanics(t, func() {
-				router.CreateRoutes()
-			})
-		})
-
-		t.Run("PATCH Method", func(t *testing.T) {
-			fiberApp := fiber.New()
-			r := &MainRouter{
-				Config: &config.Cfg{
-					ServerPort: 3000,
-					Routes: []config.Route{
-						{
-							Method: fiber.MethodPatch,
-							Path:   "/",
-							RequestTo: &config.RequestTo{
-								Host: "http://127.0.0.1:3001",
-								Path: "/",
-							},
-						},
-					},
-					Concurrency: 1,
-				},
-				FiberApp:        fiberApp,
-				EndpointHandler: &handler.EndpointHandler{},
-				ClientHandler:   &handler.ClientHandler{},
-			}
-
-			assert.NotPanics(t, func() {
-				r.CreateRoutes()
-			})
-		})
+		assert.Empty(t, endpointHandler.calls)
+		assert.Empty(t, clientHandler.calls)
 	})
 }
