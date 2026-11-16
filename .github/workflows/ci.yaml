@@ -20,7 +20,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - uses: golangci/golangci-lint-action@v9
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
 
   build:
     needs: [lint]
@@ -61,11 +61,11 @@ jobs:
         with:
           name: code-coverage
 
-      - uses: sonarsource/sonarqube-scan-action@v8
+      - uses: sonarsource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - uses: sonarsource/sonarqube-quality-gate-action@v1
+      - uses: sonarsource/sonarqube-quality-gate-action@7a5fffe8e523c40e0c740b6bc2712ab503e52efa # v1
         with:
           pollingTimeoutSec: 600
         env:
