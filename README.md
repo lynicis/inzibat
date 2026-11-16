@@ -77,7 +77,7 @@ scoop install inzibat
 
 **Binaries and Linux packages** — `tar.gz`/`zip` archives and `.deb`/`.rpm` packages for each release are on the [releases page](https://github.com/Lynicis/inzibat/releases). Asset names carry the version and platform, e.g. `inzibat_0.4.0_linux_amd64.deb`.
 
-**From source** — needs Go 1.26+:
+**From source** — needs Go 1.27+:
 
 ```bash
 go install github.com/lynicis/inzibat@latest
