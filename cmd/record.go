@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -26,6 +27,13 @@ const (
 	defaultExportFormat = "json"
 	exportFilePerm      = 0644
 )
+
+// adminURL builds the URL of the running server's recorder admin API. The
+// record commands talk to a locally running inzibat over plain HTTP: the
+// admin endpoint serves no TLS.
+func adminURL(addr string, path string) string {
+	return (&url.URL{Scheme: "http", Host: addr, Path: path}).String()
+}
 
 var (
 	recordAddr         string
@@ -129,12 +137,10 @@ var recordClearCmd = &cobra.Command{
 	Long:    `Clear all recorded HTTP requests from the running inzibat server.`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		url := fmt.Sprintf("http://%s/_inzibat/recorder/clear", recordAddr)
-
 		request, err := http.NewRequestWithContext(
 			context.Background(),
 			http.MethodPost,
-			url,
+			adminURL(recordAddr, "/_inzibat/recorder/clear"),
 			nil,
 		)
 		if err != nil {
@@ -191,15 +197,11 @@ func getJSON[T any](url string, addr, kind string) (T, error) {
 }
 
 func fetchRecordedEntries(addr string) ([]recorder.RecordedEntry, error) {
-	url := fmt.Sprintf("http://%s/_inzibat/recorder/entries", addr)
-
-	return getJSON[[]recorder.RecordedEntry](url, addr, "response")
+	return getJSON[[]recorder.RecordedEntry](adminURL(addr, "/_inzibat/recorder/entries"), addr, "response")
 }
 
 func fetchRecordedSession(addr string) (*recorder.RecordedSession, error) {
-	url := fmt.Sprintf("http://%s/_inzibat/recorder/session", addr)
-
-	return getJSON[*recorder.RecordedSession](url, addr, "session")
+	return getJSON[*recorder.RecordedSession](adminURL(addr, "/_inzibat/recorder/session"), addr, "session")
 }
 
 func exportAsJSON(session *recorder.RecordedSession) {
