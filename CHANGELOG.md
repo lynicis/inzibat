@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
+### Added
+- JSON Schema (`examples/inzibat.schema.json`) describing the real configuration; configs can be validated against it.
+- Graphify knowledge-graph index (`graphify-out/`) replacing GitNexus, queryable with `graphify query`/`explain`/`path`.
+- Headless end-to-end tests for every interactive huh form (route, mock response, client request, header/body collectors); total test coverage is now 95.5%.
+
 ### Changed
 - Rewrote the README: corrected the quick start to the real config schema (`serverPort`, `fakeResponse.statusCode`, object `body`), fixed dead install URLs, stated project status, and moved contributing content to CONTRIBUTING.md.
+- Whole-repository refactor: one koanf-backed config reader, sequential route registration, `formbuilder` package with a single terminal-wiring helper, one `Do` method in `client/http`, a guarded-map circuit breaker store, and recorder/CLI helpers deduplicated.
+- Upgraded the Go toolchain requirement to 1.27 and tidied `go.mod` (`tool` directives pin golangci-lint, gosec, mockgen, govulncheck).
+
+### Fixed
+- Proxy routes now honour `passWithRequestHeaders` and `passWithRequestBody`, forward multi-value headers intact, and no longer send a JSON `null` body.
+- HTTP client retries use real exponential backoff with jitter and only retry idempotent methods; response status is read before release.
+- Circuit breakers: the half-open in-flight gauge is released, and seeded breakers get the documented defaults.
+- Server: listener failure is returned as an error instead of calling `log.Fatal`.
+- Config: defaults and normalization run before validation, bodyless fake responses are valid, `healthCheckRoute` survives a write/read round trip, and a route with both handlers warns and drops the mock.
+- CLI: `create` refuses to write a typeless route, circuit breaker form defaults no longer leak between forms, the root command starts the server, and `record` rejects unknown export formats with bounded HTTP calls.
+- Recorder skips HTTP methods a mock route cannot serve.
 
 ## [0.4.0] - 2026-06-19
 
