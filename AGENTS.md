@@ -66,4 +66,4 @@ This project is indexed by Graphify; the knowledge graph lives in `graphify-out/
 - Query the graph instead of grepping when exploring unfamiliar code: `graphify query "<question>"`, `graphify explain "<node>"`, `graphify path "A" "B"`.
 - Index stale? Run `graphify --update` from the project root (AST re-extraction is free and fast for Go).
 - Full rebuild: `graphify .` — see `graphify-out/GRAPH_REPORT.md` for the audit report.
-- `graphify-out/` outputs (`graph.json`, `GRAPH_REPORT.md`) are committed to the repo; after `--update`, commit the refreshed graph.
+- `GRAPH_REPORT.md` and the `.graphify_*` sidecars are committed; `graph.json` itself is local-only (root-wide `*.json` ignore).
