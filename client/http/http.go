@@ -76,6 +76,7 @@ func (httpClient *Client) calculateBackoff(attempt int) time.Duration {
 		math.Pow(httpClient.retryConfig.BackoffMultiplier, float64(attempt)))
 
 	// ±20% jitter keeps retries from synchronizing across clients.
+	// #nosec G404 - jitter spreads retry timing, it is not a secret
 	backoff = time.Duration(float64(backoff) * (0.8 + 0.4*rand.Float64()))
 
 	if backoff > httpClient.retryConfig.MaxBackoff {
