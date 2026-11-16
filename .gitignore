@@ -12,6 +12,5 @@ inzibat
 *.out
 *.html
 dist/
-graphify-out/
 !skills-lock.json
 .DS_Store
