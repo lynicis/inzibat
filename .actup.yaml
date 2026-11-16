@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/lynicis/actup/main/schema.json
+
+pins: {}
+
+actions:
+  actions/checkout: v7
+  actions/download-artifact: v8
+  actions/setup-go: v7
+  actions/upload-artifact: v7
+  golangci/golangci-lint-action: v9
+  goreleaser/goreleaser-action: v7
+  sonarsource/sonarqube-quality-gate-action: v1
+  sonarsource/sonarqube-scan-action: v8
