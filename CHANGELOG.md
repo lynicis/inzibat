@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- JSON Schema now mirrors runtime validation: required `serverPort`/`routes`, at least one route handler, method enums, `/`-prefixed paths, circuit-breaker minimums, and header values as a string or string array. Example configs point editors at it.
+
 ## [0.5.0] - 2026-11-16
 
 ### Added

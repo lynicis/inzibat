@@ -8,9 +8,88 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSchemaAcceptsExamples(t *testing.T) {
+	schema := compileConfigSchema(t)
+
+	documents := make(map[string]string)
+	for _, name := range []string{"inzibat.json", "quickstart.json"} {
+		data, err := os.ReadFile(filepath.Join("..", "examples", name))
+		require.NoError(t, err)
+
+		documents[name] = string(data)
+	}
+
+	documents["arrayHeaders"] = `{
+		"serverPort": 8080,
+		"routes": [{
+			"method": "GET",
+			"path": "/x",
+			"fakeResponse": {
+				"statusCode": 200,
+				"headers": {"Content-Type": ["text/plain"]}
+			}
+		}]
+	}`
+
+	for name, document := range documents {
+		t.Run(name, func(t *testing.T) {
+			assert.NoError(t, validateConfigDocument(t, schema, document))
+		})
+	}
+}
+
+func TestSchemaRejectsInvalidConfigs(t *testing.T) {
+	schema := compileConfigSchema(t)
+
+	documents := []struct {
+		name     string
+		document string
+	}{
+		{"missingRoutes", `{"serverPort": 8080}`},
+		{"unknownKey", `{
+			"serverPort": 8080,
+			"serverport": 9090,
+			"routes": [{"method": "GET", "path": "/x", "fakeResponse": {"statusCode": 200}}]
+		}`},
+		{"routeWithoutHandler", `{
+			"serverPort": 8080,
+			"routes": [{"method": "GET", "path": "/x"}]
+		}`},
+		{"invalidMethod", `{
+			"serverPort": 8080,
+			"routes": [{"method": "FETCH", "path": "/x", "fakeResponse": {"statusCode": 200}}]
+		}`},
+	}
+
+	for _, testCase := range documents {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Error(t, validateConfigDocument(t, schema, testCase.document))
+		})
+	}
+}
+
+func compileConfigSchema(t *testing.T) *jsonschema.Schema {
+	t.Helper()
+
+	schema, err := jsonschema.NewCompiler().Compile(filepath.Join("..", "examples", "inzibat.schema.json"))
+	require.NoError(t, err)
+
+	return schema
+}
+
+func validateConfigDocument(t *testing.T, schema *jsonschema.Schema, document string) error {
+	t.Helper()
+
+	instance, err := jsonschema.UnmarshalJSON(strings.NewReader(document))
+	require.NoError(t, err)
+
+	return schema.Validate(instance)
+}
 
 func TestSchemaMatchesModel(t *testing.T) {
 	schemaBytes, err := os.ReadFile(filepath.Join("..", "examples", "inzibat.schema.json"))

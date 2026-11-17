@@ -1,19 +1,24 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Inzibat Configuration",
-  "description": "Schema for Inzibat configuration files",
+  "description": "Configuration for the Inzibat mock and proxy server",
   "type": "object",
+  "required": ["serverPort", "routes"],
   "properties": {
     "$schema": {
       "type": "string",
-      "description": "URL of this schema"
+      "description": "URL of this schema, used by editors for completion and validation"
     },
     "serverPort": {
       "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 8080,
       "description": "Port the server listens on"
     },
     "healthCheckRoute": {
       "type": "boolean",
+      "default": false,
       "description": "Register GET /health returning 200"
     },
     "circuitBreaker": {
@@ -21,118 +26,163 @@
     },
     "routes": {
       "type": "array",
-      "description": "Routes served by the mock server",
+      "minItems": 1,
+      "description": "Routes served by the server",
       "items": {
-        "type": "object",
-        "properties": {
-          "method": {
-            "type": "string",
-            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
-          },
-          "path": {
-            "type": "string",
-            "description": "Path the route answers on, starting with /"
-          },
-          "requestTo": {
-            "type": "object",
-            "description": "Upstream request the route proxies to",
-            "properties": {
-              "method": {
-                "type": "string",
-                "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
-              },
-              "headers": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {"type": "string"}
-                }
-              },
-              "body": {
-                "type": "object",
-                "description": "JSON body sent upstream"
-              },
-              "host": {
-                "type": "string",
-                "description": "Upstream host, including scheme"
-              },
-              "path": {
-                "type": "string",
-                "description": "Upstream path, starting with /"
-              },
-              "passWithRequestBody": {
-                "type": "boolean",
-                "description": "Forward the incoming body instead of the configured one"
-              },
-              "passWithRequestHeaders": {
-                "type": "boolean",
-                "description": "Forward the incoming headers, configured ones winning"
-              },
-              "inErrorReturn500": {
-                "type": "boolean",
-                "description": "Return an empty 500 instead of the upstream error text"
-              },
-              "circuitBreaker": {
-                "$ref": "#/definitions/circuitBreaker"
-              }
-            },
-            "additionalProperties": false
-          },
-          "fakeResponse": {
-            "type": "object",
-            "description": "Static response the route returns",
-            "properties": {
-              "headers": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {"type": "string"}
-                }
-              },
-              "body": {
-                "type": "object",
-                "description": "JSON body returned to the client"
-              },
-              "bodyString": {
-                "type": "string",
-                "description": "Raw body returned to the client"
-              },
-              "statusCode": {
-                "type": "integer",
-                "description": "HTTP status code"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "required": ["method", "path"],
-        "additionalProperties": false
+        "$ref": "#/definitions/route"
       }
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "route": {
+      "type": "object",
+      "required": ["method", "path"],
+      "anyOf": [
+        {"required": ["requestTo"]},
+        {"required": ["fakeResponse"]}
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "description": "HTTP method the route answers"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Path the route answers on, starting with /"
+        },
+        "requestTo": {
+          "$ref": "#/definitions/requestTo"
+        },
+        "fakeResponse": {
+          "$ref": "#/definitions/fakeResponse"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requestTo": {
+      "type": "object",
+      "description": "Upstream request the route proxies to",
+      "required": ["host", "path"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "default": "GET",
+          "description": "HTTP method sent upstream; defaults to GET"
+        },
+        "host": {
+          "type": "string",
+          "format": "uri",
+          "description": "Upstream host including scheme, e.g. http://localhost:8081"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Upstream path, starting with /"
+        },
+        "headers": {
+          "$ref": "#/definitions/headers"
+        },
+        "body": {
+          "type": "object",
+          "description": "JSON body sent upstream; only valid for non-GET methods"
+        },
+        "passWithRequestBody": {
+          "type": "boolean",
+          "default": false,
+          "description": "Forward the incoming body instead of the configured one"
+        },
+        "passWithRequestHeaders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Forward the incoming headers, configured ones winning"
+        },
+        "inErrorReturn500": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return an empty 500 instead of the upstream error text"
+        },
+        "circuitBreaker": {
+          "$ref": "#/definitions/circuitBreaker"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fakeResponse": {
+      "type": "object",
+      "description": "Static response the route returns",
+      "required": ["statusCode"],
+      "properties": {
+        "headers": {
+          "$ref": "#/definitions/headers"
+        },
+        "body": {
+          "type": "object",
+          "description": "JSON body returned to the client"
+        },
+        "bodyString": {
+          "type": "string",
+          "description": "Raw body returned to the client"
+        },
+        "statusCode": {
+          "type": "integer",
+          "description": "HTTP status code, e.g. 200"
+        }
+      },
+      "additionalProperties": false
+    },
+    "headers": {
+      "type": "object",
+      "description": "Header names to values; a value may be one string or an array of strings",
+      "additionalProperties": {
+        "anyOf": [
+          {"type": "string"},
+          {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        ]
+      }
+    },
     "circuitBreaker": {
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         },
         "failureThreshold": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "default": 5,
+          "description": "Failures needed to open the breaker"
         },
         "minimumRequests": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "default": 10,
+          "description": "Requests needed before the failure rate is evaluated"
         },
         "openTimeoutMs": {
           "type": "integer",
+          "minimum": 1,
+          "default": 30000,
           "description": "Milliseconds the breaker stays open"
         },
         "halfOpenMaxRequests": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Trial requests allowed while half-open"
         },
         "successThreshold": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Successes needed to close the breaker again"
         }
       },
       "additionalProperties": false
