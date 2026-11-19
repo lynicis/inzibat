@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-19
+
 ### Fixed
 - JSON Schema now mirrors runtime validation: required `serverPort`/`routes`, at least one route handler, method enums, `/`-prefixed paths, circuit-breaker minimums, and header values as a string or string array. Example configs point editors at it.
+- Chocolatey package metadata: removed broken `raw.githubusercontent.com` `iconUrl` and added `<copyright>` matching `LICENSE`.
 
 ## [0.5.0] - 2026-11-16
 
@@ -149,7 +152,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Switched default JSON parsing and serialization package to high-performance library.
 
-[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Lynicis/inzibat/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/Lynicis/inzibat/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Lynicis/inzibat/compare/v0.3.11...v0.4.0
 [0.3.11]: https://github.com/Lynicis/inzibat/compare/v0.3.10...v0.3.11
 [0.3.10]: https://github.com/Lynicis/inzibat/compare/v0.3.9...v0.3.10

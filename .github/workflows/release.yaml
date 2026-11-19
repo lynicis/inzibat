@@ -106,7 +106,7 @@ jobs:
               </description>
               <licenseUrl>https://github.com/lynicis/inzibat/blob/main/LICENSE</licenseUrl>
               <requireLicenseAcceptance>false</requireLicenseAcceptance>
-              <iconUrl>https://raw.githubusercontent.com/lynicis/inzibat/main/icon.png</iconUrl>
+              <copyright>Copyright (c) 2023 İsmail Emre Sırmalı</copyright>
               <releaseNotes>https://github.com/lynicis/inzibat/releases/tag/v$version</releaseNotes>
             </metadata>
             <files>
