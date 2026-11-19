@@ -4,26 +4,41 @@ on:
   workflow_run:
     workflows: [Release]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.5.2)"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   update-tap:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source repo
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.workflow_run.head_sha }}
 
       - name: Get release metadata
         id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          TAG=$(git describe --tags --exact-match ${{ github.event.workflow_run.head_sha }})
-          COMMIT=${{ github.event.workflow_run.head_sha }}
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+            COMMIT=$(git rev-parse --verify "${TAG}^{commit}")
+          else
+            COMMIT="$WORKFLOW_SHA"
+            TAG=$(git describe --tags --exact-match "$COMMIT")
+          fi
           {
             echo "tag=${TAG}"
             echo "commit=${COMMIT}"

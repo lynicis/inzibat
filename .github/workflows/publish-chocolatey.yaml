@@ -1,0 +1,130 @@
+name: Publish Chocolatey Package
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.5.2)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  chocolatey:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.workflow_run.head_sha }}
+
+      - name: Resolve release tag
+        id: meta
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if ($env:EVENT_NAME -eq 'workflow_dispatch') {
+            $tag = $env:INPUT_TAG
+          } else {
+            $tag = (git describe --tags --exact-match $env:WORKFLOW_SHA).Trim()
+          }
+          if (-not ($tag -match '^v\d+\.\d+\.\d+$')) {
+            throw "Invalid release tag: $tag"
+          }
+          $version = $tag.TrimStart('v')
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Download release archives
+        shell: pwsh
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/lynicis/inzibat/releases/download/$env:TAG/inzibat_Windows_x86_64.zip" -OutFile "dist/inzibat_Windows_x86_64.zip"
+          Invoke-WebRequest -Uri "https://github.com/lynicis/inzibat/releases/download/$env:TAG/inzibat_Windows_i386.zip" -OutFile "dist/inzibat_Windows_i386.zip"
+
+      - name: Publish Chocolatey Package
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          $version = $env:VERSION
+
+          # Calculate checksums of release windows archives
+          $checksum_64 = (Get-FileHash dist/inzibat_Windows_x86_64.zip -Algorithm SHA256).Hash.ToLower()
+          $checksum_386 = (Get-FileHash dist/inzibat_Windows_i386.zip -Algorithm SHA256).Hash.ToLower()
+
+          New-Item -ItemType Directory -Force -Path choco/tools
+
+          $installTemplate = @'
+          $ErrorActionPreference = 'Stop';
+
+          $version = $env:chocolateyPackageVersion
+          $packageName = $env:chocolateyPackageName
+          $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
+
+          $packageArgs = @{
+              packageName    = $packageName
+              unzipLocation  = $toolsDir
+              url            = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_i386.zip'
+              checksum       = '{CHECKSUM_386}'
+              checksumType   = 'sha256'
+              url64bit       = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_x86_64.zip'
+              checksum64     = '{CHECKSUM_64}'
+              checksumType64 = 'sha256'
+          }
+
+          Install-ChocolateyZipPackage @packageArgs
+          '@
+
+          $installScript = $installTemplate.Replace('{VERSION}', $version).Replace('{CHECKSUM_386}', $checksum_386).Replace('{CHECKSUM_64}', $checksum_64)
+          Set-Content -Path choco/tools/chocolateyinstall.ps1 -Value $installScript
+
+          $nuspec = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+            <metadata>
+              <id>inzibat</id>
+              <version>$version</version>
+              <title>Inzibat</title>
+              <authors>Emre Sırmalı</authors>
+              <owners>Emre Sırmalı</owners>
+              <projectUrl>https://github.com/lynicis/inzibat</projectUrl>
+              <packageSourceUrl>https://github.com/lynicis/inzibat</packageSourceUrl>
+              <docsUrl>https://github.com/lynicis/inzibat/blob/master/README.md</docsUrl>
+              <bugTrackerUrl>https://github.com/lynicis/inzibat/issues</bugTrackerUrl>
+              <tags>inzibat mock http server testing microservices fiber</tags>
+              <summary>A lightweight HTTP mock server for microservices testing and development</summary>
+              <description>
+                Inzibat (from Turkish, meaning "Military Police") is a lightweight,
+                fully-customizable HTTP mock server designed for microservices testing
+                and development. Built in Go and powered by Fiber, it provides a fast
+                and simple way to simulate downstream services through declarative
+                configuration files.
+              </description>
+              <licenseUrl>https://github.com/lynicis/inzibat/blob/master/LICENSE</licenseUrl>
+              <requireLicenseAcceptance>false</requireLicenseAcceptance>
+              <copyright>Copyright (c) 2023 İsmail Emre Sırmalı</copyright>
+              <releaseNotes>https://github.com/lynicis/inzibat/releases/tag/v$version</releaseNotes>
+            </metadata>
+            <files>
+              <file src="tools\**" target="tools" />
+            </files>
+          </package>
+          "@
+          Set-Content -Path choco/inzibat.nuspec -Value $nuspec
+
+          choco pack choco/inzibat.nuspec --outputdirectory dist
+          choco push dist/inzibat.$version.nupkg --source https://push.chocolatey.org/ -k $env:CHOCOLATEY_API_KEY
