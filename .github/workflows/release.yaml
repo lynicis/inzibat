@@ -91,9 +91,8 @@ jobs:
               <authors>Emre Sırmalı</authors>
               <owners>Emre Sırmalı</owners>
               <projectUrl>https://github.com/lynicis/inzibat</projectUrl>
-              <projectSourceUrl>https://github.com/lynicis/inzibat</projectSourceUrl>
               <packageSourceUrl>https://github.com/lynicis/inzibat</packageSourceUrl>
-              <docsUrl>https://github.com/lynicis/inzibat/blob/main/README.md</docsUrl>
+              <docsUrl>https://github.com/lynicis/inzibat/blob/master/README.md</docsUrl>
               <bugTrackerUrl>https://github.com/lynicis/inzibat/issues</bugTrackerUrl>
               <tags>inzibat mock http server testing microservices fiber</tags>
               <summary>A lightweight HTTP mock server for microservices testing and development</summary>
@@ -104,7 +103,7 @@ jobs:
                 and simple way to simulate downstream services through declarative
                 configuration files.
               </description>
-              <licenseUrl>https://github.com/lynicis/inzibat/blob/main/LICENSE</licenseUrl>
+              <licenseUrl>https://github.com/lynicis/inzibat/blob/master/LICENSE</licenseUrl>
               <requireLicenseAcceptance>false</requireLicenseAcceptance>
               <copyright>Copyright (c) 2023 İsmail Emre Sırmalı</copyright>
               <releaseNotes>https://github.com/lynicis/inzibat/releases/tag/v$version</releaseNotes>

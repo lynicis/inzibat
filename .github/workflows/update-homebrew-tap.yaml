@@ -24,9 +24,11 @@ jobs:
         run: |
           TAG=$(git describe --tags --exact-match ${{ github.event.workflow_run.head_sha }})
           COMMIT=${{ github.event.workflow_run.head_sha }}
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "commit=${COMMIT}"
+            echo "version=${TAG#v}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout homebrew-tap repo
         uses: actions/checkout@v7
