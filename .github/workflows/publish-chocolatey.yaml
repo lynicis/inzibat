@@ -52,7 +52,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Invoke-WebRequest -Uri "https://github.com/lynicis/inzibat/releases/download/$env:TAG/inzibat_Windows_x86_64.zip" -OutFile "dist/inzibat_Windows_x86_64.zip"
-          Invoke-WebRequest -Uri "https://github.com/lynicis/inzibat/releases/download/$env:TAG/inzibat_Windows_i386.zip" -OutFile "dist/inzibat_Windows_i386.zip"
 
       - name: Publish Chocolatey Package
         shell: pwsh
@@ -62,9 +61,8 @@ jobs:
         run: |
           $version = $env:VERSION
 
-          # Calculate checksums of release windows archives
+          # Calculate checksum of release windows archive
           $checksum_64 = (Get-FileHash dist/inzibat_Windows_x86_64.zip -Algorithm SHA256).Hash.ToLower()
-          $checksum_386 = (Get-FileHash dist/inzibat_Windows_i386.zip -Algorithm SHA256).Hash.ToLower()
 
           New-Item -ItemType Directory -Force -Path choco/tools
 
@@ -78,9 +76,6 @@ jobs:
           $packageArgs = @{
               packageName    = $packageName
               unzipLocation  = $toolsDir
-              url            = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_i386.zip'
-              checksum       = '{CHECKSUM_386}'
-              checksumType   = 'sha256'
               url64bit       = 'https://github.com/lynicis/inzibat/releases/download/v{VERSION}/inzibat_Windows_x86_64.zip'
               checksum64     = '{CHECKSUM_64}'
               checksumType64 = 'sha256'
@@ -89,7 +84,7 @@ jobs:
           Install-ChocolateyZipPackage @packageArgs
           '@
 
-          $installScript = $installTemplate.Replace('{VERSION}', $version).Replace('{CHECKSUM_386}', $checksum_386).Replace('{CHECKSUM_64}', $checksum_64)
+          $installScript = $installTemplate.Replace('{VERSION}', $version).Replace('{CHECKSUM_64}', $checksum_64)
           Set-Content -Path choco/tools/chocolateyinstall.ps1 -Value $installScript
 
           $nuspec = @"

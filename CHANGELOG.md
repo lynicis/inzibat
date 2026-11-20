@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-20
+
+### Changed
+- Windows releases and Chocolatey package now target `windows/amd64` (`x86_64`) only, dropping `windows/386` to avoid VirusTotal false positives (`TR/Crypt.EPACK.Gen2` on unsigned 32-bit Go PE binaries).
+- Decoupled Chocolatey publishing into its own workflow with manual `workflow_dispatch` backfill support.
+
 ## [0.5.2] - 2026-11-19
 
 ### Fixed
@@ -158,7 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Switched default JSON parsing and serialization package to high-performance library.
 
-[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/Lynicis/inzibat/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/Lynicis/inzibat/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Lynicis/inzibat/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Lynicis/inzibat/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Lynicis/inzibat/compare/v0.4.0...v0.5.0
